@@ -18,7 +18,7 @@ import '../models/http/results/word_model.dart';
 
 part 'http_api.g.dart';
 
-@RestApi(baseUrl: 'http://192.168.31.157:8080')
+@RestApi(baseUrl: 'https://flrjk.52yfx.cn')
 abstract class HttpApi {
   factory HttpApi(Dio dio, {String baseUrl}) = _HttpApi;
 

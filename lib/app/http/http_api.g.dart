@@ -12,7 +12,7 @@ part of 'http_api.dart';
 
 class _HttpApi implements HttpApi {
   _HttpApi(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://192.168.31.157:8080';
+    baseUrl ??= 'https://flrjk.52yfx.cn';
   }
 
   final Dio _dio;
