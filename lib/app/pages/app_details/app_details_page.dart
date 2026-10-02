@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_softlib/generated/assets.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
 import '../../config.dart';
@@ -29,7 +28,7 @@ class _AppDetailsPageState extends State<AppDetailsPage> {
         actions: [
           //浏览器图标
           IconButton(
-            icon: Icon(FontAwesomeIcons.chrome),
+            icon: Icon(Icons.language),
             onPressed: () => JumpUtil.openUrl(logic.dowUrl ?? ''),
           ),
           GetBuilder<AppDetailsLogic>(
