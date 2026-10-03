@@ -27,6 +27,8 @@ ConfigData _$ConfigDataFromJson(Map<String, dynamic> json) => ConfigData(
   feedbackGroup: json['feedback_group'] as String?,
   feedbackUser: json['feedback_user'] as String?,
   placard: json['placard'] as String?,
+  feedbackGroupOn: (json['feedback_group_on'] as num?)?.toInt(),
+  feedbackUserOn: (json['feedback_user_on'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$ConfigDataToJson(ConfigData instance) =>
@@ -34,4 +36,6 @@ Map<String, dynamic> _$ConfigDataToJson(ConfigData instance) =>
       'feedback_group': instance.feedbackGroup,
       'feedback_user': instance.feedbackUser,
       'placard': instance.placard,
+      'feedback_group_on': instance.feedbackGroupOn,
+      'feedback_user_on': instance.feedbackUserOn,
     };

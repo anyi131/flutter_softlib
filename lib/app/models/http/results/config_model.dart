@@ -29,8 +29,18 @@ class ConfigData {
   String? feedbackUser;
   @JsonKey(name: "placard")
   String? placard;
+  @JsonKey(name: "feedback_group_on")
+  int? feedbackGroupOn;
+  @JsonKey(name: "feedback_user_on")
+  int? feedbackUserOn;
 
-  ConfigData({this.feedbackGroup, this.feedbackUser, this.placard});
+  ConfigData({
+    this.feedbackGroup,
+    this.feedbackUser,
+    this.placard,
+    this.feedbackGroupOn,
+    this.feedbackUserOn,
+  });
 
   factory ConfigData.fromJson(Map<String, dynamic> json) =>
       _$ConfigDataFromJson(json);
