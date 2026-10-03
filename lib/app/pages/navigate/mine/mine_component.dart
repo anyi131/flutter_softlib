@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../generated/assets.dart';
+import '../../../../generated/assets.dart';
 import '../../../routes/app_pages.dart';
 import '../../navigate/navigate_logic.dart';
 
