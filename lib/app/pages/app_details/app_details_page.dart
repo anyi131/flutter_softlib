@@ -81,12 +81,17 @@ class _AppDetailsPageState extends State<AppDetailsPage> {
 
   /// 构建软件头部
   Widget _buildAppHeader(LzyFileInfoData appInfo) {
+    final isLocal = logic.item?.isLocal ?? false;
+    final accent = isLocal ? const Color(0xFF1D4ED8) : Get.theme.primaryColor;
+    final chipColor = isLocal
+        ? const Color(0xFFDBEAFE)
+        : const Color(0xFFFEF3C7);
+    final chipText = isLocal
+        ? const Color(0xFF1D4ED8)
+        : const Color(0xFFB45309);
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Get.theme.primaryColor.withValues(alpha: 0.6),
-          width: 1,
-        ),
+        border: Border.all(color: accent.withValues(alpha: 0.6), width: 1),
         borderRadius: BorderRadius.circular(18),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -118,60 +123,49 @@ class _AppDetailsPageState extends State<AppDetailsPage> {
             spacing: 8,
             runSpacing: 5,
             children: [
+              // 来源标识
               Container(
                 padding: EdgeInsets.symmetric(vertical: 2, horizontal: 6),
                 decoration: BoxDecoration(
-                  color: Get.theme.primaryColor.withValues(alpha: 0.8),
+                  color: chipColor,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  appInfo.fileSize ?? '未知大小',
+                  isLocal ? '服务器直传' : '蓝奏云解析',
                   style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: chipText,
                   ),
                 ),
               ),
+              if (appInfo.fileSize != null && appInfo.fileSize!.isNotEmpty)
+                _chip(appInfo.fileSize!, accent),
               if (appInfo.fileTime != null && appInfo.fileTime!.isNotEmpty)
-                Container(
-                  padding: EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-                  decoration: BoxDecoration(
-                    color: Get.theme.primaryColor.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    appInfo.fileTime ?? '未知时间',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color:
-                          Theme.of(context).brightness == Brightness.dark
-                              ? Colors.black
-                              : Colors.white,
-                    ),
-                  ),
-                ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-                decoration: BoxDecoration(
-                  color: Get.theme.primaryColor.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  appInfo.fileType ?? '未知类型',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.white,
-                  ),
-                ),
-              ),
+                _chip(appInfo.fileTime!, accent),
+              if (appInfo.fileType != null && appInfo.fileType!.isNotEmpty)
+                _chip(appInfo.fileType!, accent),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(String text, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.black
+              : Colors.white,
         ),
       ),
     );
@@ -290,6 +284,7 @@ class _AppDetailsPageState extends State<AppDetailsPage> {
 
   /// 构建下载按钮
   Widget _buildDownloadButton(AppDetailsLogic download) {
+    final isLocal = download.item?.isLocal ?? false;
     return SizedBox(
       height: 50,
       child: FilledButton(
@@ -298,14 +293,12 @@ class _AppDetailsPageState extends State<AppDetailsPage> {
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
-        onPressed:
-            () => download.addDownload(
-              logic.appInfo?.fileName ?? '未知文件名',
-              logic.dowUrl,
-            ),
-        child: const Text(
-          '下载软件',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        onPressed: () => download.addDownload(
+          download.appInfo?.fileName ?? '未知文件名',
+        ),
+        child: Text(
+          isLocal ? '直接下载' : '解析并下载',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );

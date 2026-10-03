@@ -7,9 +7,9 @@ abstract class Routes {
   static const index = _Paths.index;
   static const appDownload = _Paths.appDownload;
   static const appSearch = _Paths.appSearch;
-  static const appSearchResult = _Paths.appSearchResult;
   static const appDetails = _Paths.appDetails;
   static const articleReading = _Paths.articleReading;
+  static const vip = _Paths.vip;
 }
 
 abstract class _Paths {
@@ -18,7 +18,7 @@ abstract class _Paths {
   static const index = '/index';
   static const appDownload = '/appDownload';
   static const appSearch = '/appSearch';
-  static const appSearchResult = '/appSearchResult';
   static const appDetails = '/appDetails';
   static const articleReading = '/articleReading';
+  static const vip = '/vip';
 }

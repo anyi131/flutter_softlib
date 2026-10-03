@@ -4,10 +4,9 @@ import 'package:flutter_softlib/app/pages/app_download/app_download_binding.dart
 import 'package:flutter_softlib/app/pages/app_download/app_download_page.dart';
 import 'package:flutter_softlib/app/pages/app_search/app_search_binding.dart';
 import 'package:flutter_softlib/app/pages/app_search/app_search_page.dart';
-import 'package:flutter_softlib/app/pages/app_search_result/app_search_result_binding.dart';
-import 'package:flutter_softlib/app/pages/app_search_result/app_search_result_page.dart';
 import 'package:flutter_softlib/app/pages/article_reading/article_reading_binding.dart';
 import 'package:flutter_softlib/app/pages/article_reading/article_reading_page.dart';
+import 'package:flutter_softlib/app/pages/vip/vip_page.dart';
 import 'package:get/get.dart';
 
 import '../pages/navigate/navigate_binding.dart';
@@ -37,11 +36,6 @@ class AppPages {
       binding: AppSearchBinding(),
     ),
     GetPage(
-      name: _Paths.appSearchResult,
-      page: () => const AppSearchResultPage(),
-      binding: AppSearchResultBinding(),
-    ),
-    GetPage(
       name: _Paths.appDetails,
       page: () => const AppDetailsPage(),
       binding: AppDetailsBinding(),
@@ -50,6 +44,10 @@ class AppPages {
       name: _Paths.articleReading,
       page: () => const ArticleReadingPage(),
       binding: ArticleReadingBinding(),
+    ),
+    GetPage(
+      name: _Paths.vip,
+      page: () => const VipPage(),
     ),
   ];
 }
