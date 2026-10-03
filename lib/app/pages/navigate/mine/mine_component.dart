@@ -294,7 +294,7 @@ class MineComponent extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: kPrimary.withAlpha(70),
+              color: AppColor.primary.withAlpha(70),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),

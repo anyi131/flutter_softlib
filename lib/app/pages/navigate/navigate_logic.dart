@@ -108,30 +108,6 @@ class NavigateLogic extends GetxController {
     );
   }
 
-  /// 显示更新弹窗
-  void _showUpdateDialog(LatestVersionData versionData) {
-    String versionName = versionData.version ?? "未知版本";
-    String title = versionData.title ?? "发现新版本";
-    String content = versionData.content ?? "请及时更新以获取最佳体验";
-    String? downloadUrl = versionData.dowUrl;
-    bool forcedUpdate = versionData.forcedSwitch ?? false;
-
-    if (downloadUrl == null || downloadUrl.isEmpty) return;
-
-    showDialog(
-      context: Get.context!,
-      barrierDismissible: !forcedUpdate,
-      builder: (context) => _buildUpdateDialog(
-        context,
-        title,
-        versionName,
-        content,
-        downloadUrl,
-        forcedUpdate,
-      ),
-    );
-  }
-
   /// 构建更新弹窗
   Widget _buildUpdateDialog(
     BuildContext context,
