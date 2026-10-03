@@ -29,13 +29,19 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // 只打包 arm64-v8a，大幅减小 APK 体积（现代手机几乎全是 arm64）
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // 资源裁剪 + 代码混淆，进一步缩小体积
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
