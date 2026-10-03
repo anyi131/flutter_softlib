@@ -374,7 +374,7 @@ class _AppDetailsPageState extends State<AppDetailsPage> {
                     ),
                   ),
                   Text(
-                    '${calculateDownloadedSize(logic.appSize, downloadTask.progress)} / ${logic.appSize}',
+                    '${calculateDownloadedSize(logic.appInfo?.fileSize ?? "", downloadTask.progress)} / ${logic.appInfo?.fileSize ?? "未知大小"}',
                     style: Get.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w500,
                       color:

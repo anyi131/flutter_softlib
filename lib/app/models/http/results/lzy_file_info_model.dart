@@ -39,7 +39,9 @@ class LzyFileInfoData {
   String? fileImage;
 
   LzyFileInfoData({
+    this.fileIcon,
     this.fileName,
+    this.fileType,
     this.fileTime,
     this.fileSize,
     this.fileDesc,

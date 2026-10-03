@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../api/soft_service.dart';
+import '../../../api/soft_service.dart';
 import '../../../models/app_item.dart';
 import '../../../routes/app_pages.dart';
-import '../../widgets/app_card.dart';
+import '../../../widgets/app_card.dart';
 
 /// 应用 - 软件列表（双数据源：蓝奏云解析 / 服务器直传）
 class AppComponent extends StatefulWidget {

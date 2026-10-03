@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../models/app_item.dart';
+import '../models/app_item.dart';
 
 /// 软件卡片（现代圆角卡片风格）
 class AppCard extends StatelessWidget {

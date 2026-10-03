@@ -6,7 +6,7 @@ import 'package:flutter_softlib/app/pages/app_search/app_search_binding.dart';
 import 'package:flutter_softlib/app/pages/app_search/app_search_page.dart';
 import 'package:flutter_softlib/app/pages/article_reading/article_reading_binding.dart';
 import 'package:flutter_softlib/app/pages/article_reading/article_reading_page.dart';
-import 'package:flutter_softlib/app/pages/vip/vip_page.dart';
+import 'package:flutter_softlib/app/pages/vip_center/vip_page.dart';
 import 'package:get/get.dart';
 
 import '../pages/navigate/navigate_binding.dart';
