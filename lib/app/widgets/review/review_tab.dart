@@ -382,7 +382,9 @@ class _ReviewTabState extends State<ReviewTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: r.replies
-                    .map((rp) => Padding(
+                    .map((rp) => GestureDetector(
+                          onLongPress: () => _replyActions(rp),
+                          child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 3),
                           child: RichText(
                             text: TextSpan(
@@ -411,6 +413,7 @@ class _ReviewTabState extends State<ReviewTab> {
                               ],
                             ),
                           ),
+                        ),
                         ))
                     .toList(),
               ),
@@ -468,6 +471,33 @@ class _ReviewTabState extends State<ReviewTab> {
                 color: color ?? const Color(0xFF6B7280),
                 fontWeight: FontWeight.w600)),
       );
+
+  /// 回复操作（长按删除）
+  Future<void> _replyActions(ReviewReply rp) async {
+    final myId = UserService.instance.user?.id ?? 0;
+    final isAdmin = UserService.instance.user?.isAdmin == true;
+    if (rp.userId != myId && !isAdmin) return;
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: const Text('删除回复'),
+      content: Text('确定删除这条回复吗？\n「${rp.content}」'),
+      actions: [
+        TextButton(
+            onPressed: () => Get.back(result: false), child: const Text('取消')),
+        FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            onPressed: () => Get.back(result: true),
+            child: const Text('删除')),
+      ],
+    ));
+    if (ok != true) return;
+    final done = await _svc.removeReply(rp.id);
+    if (done) {
+      _toast('已删除');
+      _load();
+    } else {
+      _toast('删除失败');
+    }
+  }
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context)

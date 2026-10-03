@@ -120,6 +120,39 @@ class AdminService {
 
   Future<void> deleteCard(int id) async => _post('card_del', {'id': id});
 
+  // ── 线报详情/分类 ──
+  Future<Map<String, dynamic>> reportDetail(int id) async =>
+      Map<String, dynamic>.from((await _post('report_detail', {'id': id}))['data'] ?? {});
+
+  Future<List<Map<String, dynamic>>> reportCats() async {
+    final d = (await _post('report_cats'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  // ── 首页推荐位 ──
+  Future<List<Map<String, dynamic>>> referrals() async {
+    final d = (await _post('referrals'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> saveReferral(Map<String, dynamic> data) async =>
+      _post('referral_save', data);
+
+  Future<void> deleteReferral(int id) async =>
+      _post('referral_del', {'id': id});
+
+  // ── 版本更新 ──
+  Future<List<Map<String, dynamic>>> versions() async {
+    final d = (await _post('versions'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> saveVersion(Map<String, dynamic> data) async =>
+      _post('version_save', data);
+
+  Future<void> deleteVersion(int id) async =>
+      _post('version_del', {'id': id});
+
   Future<void> saveReport(Map<String, dynamic> data) async =>
       _post('report_save', data);
 
