@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../api/api_host.dart';
+import '../../../design/theme_controller.dart';
 import '../../../api/soft_service.dart';
 import '../../../api/user_service.dart';
 import '../../../utils/jump_util.dart';
@@ -218,6 +219,79 @@ class MineLogic extends GetxController {
     );
     if (code == null || code.isEmpty) return;
     toast('卡密兑换通道对接中，请联系管理员');
+  }
+
+  /// 切换浅色 / 深色主题
+  Future<void> switchTheme() async {
+    final tc = ThemeController.instance;
+    final next = await Get.dialog<ThemeMode>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.brightness_6_rounded, size: 21, color: Color(0xFF7B8CFF)),
+            SizedBox(width: 9),
+            Text('外观设置',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _themeOption(ThemeMode.light, '浅色模式',
+                Icons.light_mode_rounded, tc.mode.value == ThemeMode.light),
+            _themeOption(ThemeMode.dark, '深色模式', Icons.dark_mode_rounded,
+                tc.mode.value == ThemeMode.dark),
+            _themeOption(ThemeMode.system, '跟随系统',
+                Icons.settings_brightness_rounded,
+                tc.mode.value == ThemeMode.system),
+          ],
+        ),
+      ),
+    );
+    if (next != null) await tc.setMode(next);
+  }
+
+  Widget _themeOption(
+      ThemeMode m, String label, IconData icon, bool selected) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: InkWell(
+        onTap: () => Get.back(result: m),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFF5B6CFF).withAlpha(26)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF5B6CFF).withAlpha(120)
+                  : Colors.grey.withAlpha(40),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 19,
+                  color: selected ? const Color(0xFF5B6CFF) : Colors.grey),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight:
+                            selected ? FontWeight.w800 : FontWeight.w500)),
+              ),
+              if (selected)
+                const Icon(Icons.check_circle_rounded,
+                    size: 19, color: Color(0xFF5B6CFF)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// 打开内嵌管理系统（App 内，不跳浏览器）

@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../utils/apk_installer.dart';
 import '../../utils/toast_util.dart';
 
 ///下载信息类
@@ -162,7 +163,7 @@ class AppDownloadLogic extends GetxController {
     update(['downInfos']);
   }
 
-  /// 安装已下载的软件（三级兜底）
+  /// 安装已下载的软件（原生安装器）
   Future<void> openDownloadFile(DownInfo? dowInfo) async {
     final taskId = dowInfo?.taskId;
     if (taskId == null || taskId.isEmpty) {
@@ -170,15 +171,28 @@ class AppDownloadLogic extends GetxController {
       return;
     }
     if (Platform.isAndroid) {
-      try {
-        if (!await Permission.requestInstallPackages.isGranted) {
-          await Permission.requestInstallPackages.request();
-        }
-      } catch (_) {}
+      final ok = await ApkInstaller.canInstall();
+      if (!ok) {
+        await ApkInstaller.openInstallSettings();
+        ToastUtil.info('请开启「安装未知应用」权限后重试');
+        return;
+      }
     }
+    final path = await _findPath(taskId);
+    if (path == null) {
+      ToastUtil.error('未找到安装包');
+      return;
+    }
+    if (await ApkInstaller.install(path)) return;
     try {
-      if (await FlutterDownloader.open(taskId: taskId)) return;
+      await OpenFilex.open(path,
+          type: 'application/vnd.android.package-archive');
+      return;
     } catch (_) {}
+    ToastUtil.error('无法调起安装，请手动安装');
+  }
+
+  Future<String?> _findPath(String taskId) async {
     try {
       final tasks = await FlutterDownloader.loadTasksWithRawQuery(
         query: "SELECT * FROM task WHERE task_id='$taskId'",
@@ -186,12 +200,11 @@ class AppDownloadLogic extends GetxController {
       if (tasks != null && tasks.isNotEmpty) {
         final dir = tasks.first.savedDir ?? '';
         final name = tasks.first.filename;
-        String? path;
-        if (dir.isNotEmpty && name != null && name.isNotEmpty) {
-          final f = '$dir/$name';
-          if (File(f).existsSync()) path = f;
-        }
-        if (path == null && dir.isNotEmpty) {
+        if (dir.isNotEmpty) {
+          if (name != null && name.isNotEmpty) {
+            final f = '$dir/$name';
+            if (File(f).existsSync()) return f;
+          }
           final d = Directory(dir);
           if (d.existsSync()) {
             final apks = d
@@ -202,17 +215,12 @@ class AppDownloadLogic extends GetxController {
             if (apks.isNotEmpty) {
               apks.sort((a, b) =>
                   b.statSync().modified.compareTo(a.statSync().modified));
-              path = apks.first.path;
+              return apks.first.path;
             }
           }
         }
-        if (path != null) {
-          await OpenFilex.open(path,
-              type: 'application/vnd.android.package-archive');
-          return;
-        }
       }
     } catch (_) {}
-    ToastUtil.error('无法自动安装，请到文件管理器中安装');
+    return null;
   }
 }

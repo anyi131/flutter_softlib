@@ -756,6 +756,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               label: label,
               color: color,
               icon: icon,
+              gold: isVipItem,
               onTap: () => _onDownload(isVipItem, loggedIn, isVipUser),
             );
           },
@@ -764,30 +765,61 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
+  /// 底部主按钮（渐变 + 光晕，更精致）
   Widget _btn({
     required String label,
     required Color color,
     required IconData icon,
     required VoidCallback onTap,
+    bool gold = false,
   }) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: 50,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: color,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        ),
-        onPressed: onTap,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 19),
-            const SizedBox(width: 7),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
-          ],
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: gold
+            ? Deco.goldGradient
+            : LinearGradient(
+                colors: [
+                  Color.lerp(color, Colors.white, 0.18)!,
+                  color,
+                  Color.lerp(color, Colors.black, 0.12)!,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        borderRadius: BorderRadius.circular(R.full),
+        boxShadow: [
+          BoxShadow(
+            color: color.withAlpha(context.isDark ? 90 : 70),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(R.full),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon,
+                  size: 19,
+                  color: gold ? const Color(0xFF3A2E10) : Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.4,
+                  color: gold ? const Color(0xFF3A2E10) : Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

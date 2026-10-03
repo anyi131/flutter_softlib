@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 
 import 'app/routes/app_pages.dart';
 import 'app/design/app_theme.dart';
+import 'app/design/theme_controller.dart';
 import 'app/design/ui.dart';
 import 'app/widgets/pro_motion.dart';
 import 'app/api/user_service.dart';
@@ -42,6 +43,8 @@ Future<void> _initializeServices() async {
   Get.lazyPut(() => HttpApi(_createDioInstance()));
   // 恢复登录态（读取本地 token + 用户资料）
   await UserService.instance.restore();
+  // 恢复主题设置
+  await ThemeController.instance.restore();
   // 配置EasyLoading
   _configureEasyLoading();
   // 设置设备方向
@@ -99,7 +102,25 @@ class SoftLibApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
+    return Obx(() {
+      final isDark = ThemeController.instance.mode.value == ThemeMode.dark ||
+          (ThemeController.instance.mode.value == ThemeMode.system &&
+              MediaQuery.of(Get.context ?? context).platformBrightness ==
+                  Brightness.dark);
+      // 状态栏图标颜色随主题变化（避免反色看不清）
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+          systemNavigationBarColor: isDark
+              ? const Color(0xFF0E1016)
+              : const Color(0xFFF6F7FB),
+          systemNavigationBarIconBrightness:
+              isDark ? Brightness.light : Brightness.dark,
+        ),
+      );
+      return GetMaterialApp(
       title: '软件库App',
       debugShowCheckedModeBanner: false,
       initialRoute: Routes.splash,
@@ -117,7 +138,7 @@ class SoftLibApp extends StatelessWidget {
       opaqueRoute: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
-      themeMode: ThemeMode.light,
+      themeMode: ThemeController.instance.mode.value,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
@@ -125,7 +146,8 @@ class SoftLibApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale("zh", "CN"), Locale("en", "US")],
       locale: const Locale("zh", "CN"),
-    );
+      );
+    });
   }
 }
 

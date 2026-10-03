@@ -1,7 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+
+import '../../utils/toast_util.dart';
 
 import '../../design/ui.dart';
 import 'navigate_logic.dart';
@@ -17,10 +20,61 @@ class NavigatePage extends StatefulWidget {
 class _NavigatePageState extends State<NavigatePage> {
   final NavigateLogic logic = Get.find<NavigateLogic>();
 
+  DateTime? _lastBack;
+
+  /// 返回键：非首页先回首页；首页再按一次弹退出确认
+  Future<bool> _onBack() async {
+    if (logic.currentIndex != 0) {
+      logic.changePage(0);
+      return false;
+    }
+    final now = DateTime.now();
+    if (_lastBack == null ||
+        now.difference(_lastBack!) > const Duration(seconds: 2)) {
+      _lastBack = now;
+      ToastUtil.info('再按一次退出应用');
+      return false;
+    }
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.exit_to_app_rounded, color: Color(0xFFFB7185), size: 22),
+            SizedBox(width: 9),
+            Text('退出应用',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: const Text('确定要退出「安逸软件库」吗？',
+            style: TextStyle(fontSize: 14, height: 1.5)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('取消')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFFB7185)),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('退出'),
+          ),
+        ],
+      ),
+    );
+    return go == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final inset = MediaQuery.of(context).padding.bottom;
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (await _onBack()) SystemNavigator.pop();
+      },
+      child: Scaffold(
       extendBody: true,
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -36,6 +90,7 @@ class _NavigatePageState extends State<NavigatePage> {
       bottomNavigationBar: GetBuilder<NavigateLogic>(
         id: 'navigate',
         builder: (logic) => _bar(context, logic, inset),
+      ),
       ),
     );
   }

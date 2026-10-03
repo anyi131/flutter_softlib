@@ -53,6 +53,22 @@ class AdminService {
     return d is Map ? Map<String, dynamic>.from(d) : {};
   }
 
+  /// 上传图片（图标/截图/横幅）
+  Future<String> uploadImage(File file) async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(file.path,
+          filename: file.path.split('/').last),
+      'token': UserService.instance.token,
+    });
+    final r = await _dio.post('/api/softlib/admin/upload_image',
+        data: form,
+        options: Options(receiveTimeout: const Duration(seconds: 90)));
+    if (r.data is Map && r.data['code'] == 1) {
+      return (r.data['data']['url'] ?? '').toString();
+    }
+    throw Exception(r.data is Map ? (r.data['msg'] ?? '上传失败') : '上传失败');
+  }
+
   /// 上传本地安装包（multipart）
   Future<Map<String, dynamic>> uploadFile(File file) async {
     final form = FormData.fromMap({

@@ -21,6 +21,8 @@ class UserInfo {
   final String inviteCode;
   final String jointime;
   final bool isAdmin;
+  /// 自定义称号
+  final String title;
 
   UserInfo({
     required this.id,
@@ -38,6 +40,7 @@ class UserInfo {
     required this.inviteCode,
     required this.jointime,
     this.isAdmin = false,
+    this.title = '',
   });
 
   factory UserInfo.fromJson(Map json) {
@@ -58,6 +61,7 @@ class UserInfo {
       inviteCode: s('invite_code'),
       jointime: s('jointime'),
       isAdmin: json['is_admin'] == true || s('is_admin') == 'true' || s('is_admin') == '1',
+      title: s('title'),
     );
   }
 
@@ -80,6 +84,7 @@ class UserInfo {
         'invite_code': inviteCode,
         'jointime': jointime,
         'is_admin': isAdmin,
+        'title': title,
       };
 }
 

@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_refresh/easy_refresh.dart';
 import 'package:get/get.dart';
 
 import '../../../api/soft_service.dart';
@@ -20,7 +21,10 @@ class AppComponent extends StatefulWidget {
 
 class _AppComponentState extends State<AppComponent> {
   final _svc = SoftService.instance;
-  final _scroll = ScrollController();
+  final EasyRefreshController _refreshCtrl = EasyRefreshController(
+    controlFinishRefresh: true,
+    controlFinishLoad: true,
+  );
 
   List<AppCat> _cats = [];
   List<AppItem> _apps = [];
@@ -34,20 +38,13 @@ class _AppComponentState extends State<AppComponent> {
   @override
   void initState() {
     super.initState();
-    _scroll.addListener(() {
-      if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 260 &&
-          !_loadingMore &&
-          _hasMore) {
-        _load();
-      }
-    });
     _loadCats();
     _load(reset: true);
   }
 
   @override
   void dispose() {
-    _scroll.dispose();
+    _refreshCtrl.dispose();
     super.dispose();
   }
 
@@ -250,30 +247,31 @@ class _AppComponentState extends State<AppComponent> {
         ),
       );
     }
-    return RefreshIndicator(
-      onRefresh: () => _load(reset: true),
+    return EasyRefresh(
+      controller: _refreshCtrl,
+      header: const MaterialHeader(),
+      footer: const MaterialFooter(),
+      onRefresh: () async {
+        await _load(reset: true);
+        _refreshCtrl.finishRefresh();
+      },
+      onLoad: () async {
+        if (!_hasMore) {
+          _refreshCtrl.finishLoad(IndicatorResult.noMore);
+          return;
+        }
+        await _load();
+        _refreshCtrl.finishLoad(_hasMore
+            ? IndicatorResult.success
+            : IndicatorResult.noMore);
+      },
       child: ListView.builder(
-        controller: _scroll,
-        physics: const BouncingScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics()),
         padding: EdgeInsets.only(
             top: 6, bottom: tabBottomPadding(context) + 10),
-        itemCount: _apps.length + 1,
-        itemBuilder: (context, i) {
-          if (i == _apps.length) {
-            if (_loadingMore) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 22),
-                child: Center(
-                    child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2))),
-              );
-            }
-            return const SizedBox(height: 12);
-          }
-          return _card(_apps[i]);
-        },
+        itemCount: _apps.length,
+        itemBuilder: (context, i) => _card(_apps[i]),
       ),
     );
   }

@@ -17,6 +17,7 @@ import '../../models/app_item.dart';
 import '../../models/http/results/lzy_file_info_model.dart';
 import '../../api/api_host.dart';
 import '../../api/soft_service.dart';
+import '../../utils/apk_installer.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/posters/posters_widget.dart';
 
@@ -373,81 +374,115 @@ class AppDetailsLogic extends GetxController {
     update(['download']);
   }
 
-  /// 安装已下载的软件（三级兜底）
+  /// 安装已下载的软件（原生安装器 + 多级兜底）
   Future<void> openDownloadFile() async {
     if (taskId == null || taskId!.isEmpty) {
       ToastUtil.error('下载任务ID无效');
       return;
     }
 
-    // 1) 检查「安装未知来源应用」权限（Android 8+）
+    // 1) 检查「安装未知应用」权限
     if (Platform.isAndroid) {
-      try {
-        if (!await Permission.requestInstallPackages.isGranted) {
-          final st = await Permission.requestInstallPackages.request();
-          if (!st.isGranted) {
-            ToastUtil.error('请先允许「安装未知应用」权限');
-          }
+      final ok = await ApkInstaller.canInstall();
+      if (!ok) {
+        final go = await Get.dialog<bool>(
+          AlertDialog(
+            title: const Text('需要安装权限'),
+            content: const Text('安装应用需要您允许「安装未知应用」权限，前往设置开启？'),
+            actions: [
+              TextButton(
+                  onPressed: () => Get.back(result: false),
+                  child: const Text('取消')),
+              FilledButton(
+                  onPressed: () => Get.back(result: true),
+                  child: const Text('去设置')),
+            ],
+          ),
+        );
+        if (go == true) {
+          await ApkInstaller.openInstallSettings();
+          ToastUtil.info('开启权限后请重新点击安装');
         }
-      } catch (_) {}
+        return;
+      }
     }
 
-    // 2) 优先 FlutterDownloader 自带打开（内部走 FileProvider）
-    try {
-      final ok = await FlutterDownloader.open(taskId: taskId!);
-      if (ok) return;
-    } catch (e) {
-      logger.e('FlutterDownloader.open failed: $e');
+    // 2) 找安装包本地路径
+    final path = await _findApkPath();
+    if (path == null) {
+      ToastUtil.error('未找到安装包，请在下载管理中查看');
+      return;
     }
 
-    // 3) 兜底：查数据库拿到文件路径，用系统 Intent 安装
+    // 3) 调用原生安装器
+    final ok = await ApkInstaller.install(path);
+    if (ok) return;
+
+    // 4) 兜底：open_filex
     try {
+      await OpenFilex.open(path,
+          type: 'application/vnd.android.package-archive');
+      return;
+    } catch (_) {}
+
+    ToastUtil.error('无法调起安装，请到文件管理器手动安装');
+  }
+
+  /// 查找已下载 APK 的本地路径
+  Future<String?> _findApkPath() async {
+    try {
+      // 优先用 FlutterDownloader 的任务记录
       final tasks = await FlutterDownloader.loadTasksWithRawQuery(
         query: "SELECT * FROM task WHERE task_id='$taskId'",
       );
-      final path = tasks?.isNotEmpty == true
-          ? (tasks!.first.savedDir ?? '')
-          : '';
-      // FlutterDownloader 的任务里 filename 可能为空，用已存任务的本地路径
-      final local = await _resolveLocalPath(path, tasks?.first.filename);
-      if (local != null && File(local).existsSync()) {
-        await OpenFilex.open(local,
-            type: 'application/vnd.android.package-archive');
-        return;
+      if (tasks != null && tasks.isNotEmpty) {
+        final dir = tasks.first.savedDir ?? '';
+        final name = tasks.first.filename;
+        if (dir.isNotEmpty) {
+          if (name != null && name.isNotEmpty) {
+            final f = '$dir/$name';
+            if (File(f).existsSync()) return f;
+          }
+          final d = Directory(dir);
+          if (d.existsSync()) {
+            final apks = d
+                .listSync()
+                .whereType<File>()
+                .where((f) => f.path.toLowerCase().endsWith('.apk'))
+                .toList();
+            if (apks.isNotEmpty) {
+              apks.sort((a, b) =>
+                  b.statSync().modified.compareTo(a.statSync().modified));
+              return apks.first.path;
+            }
+          }
+        }
       }
     } catch (e) {
-      logger.e('open via file failed: $e');
+      logger.e('find apk path failed: $e');
     }
-
-    // 4) 最后：打开下载页让用户手动安装
-    ToastUtil.error('无法自动安装，请在「下载管理」中手动安装');
-    Get.toNamed('/appDownload');
+    // 兜底：扫描公共下载目录
+    for (final dir in [
+      '/storage/emulated/0/Download',
+      '/storage/emulated/0/Android/data/com.softlib.flutter_softlib/files',
+    ]) {
+      try {
+        final d = Directory(dir);
+        if (!d.existsSync()) continue;
+        final apks = d
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.toLowerCase().endsWith('.apk'))
+            .toList();
+        if (apks.isEmpty) continue;
+        apks.sort(
+            (a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+        return apks.first.path;
+      } catch (_) {}
+    }
+    return null;
   }
 
-  /// 拼出安装包的本地路径
-  Future<String?> _resolveLocalPath(String dir, String? name) async {
-    if (dir.isEmpty) return null;
-    if (name != null && name.isNotEmpty) {
-      final full = '$dir/$name';
-      if (File(full).existsSync()) return full;
-    }
-    // 目录里找最近的一个 apk
-    try {
-      final d = Directory(dir);
-      if (!d.existsSync()) return null;
-      final apks = d
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.toLowerCase().endsWith('.apk'))
-          .toList();
-      if (apks.isEmpty) return null;
-      apks.sort((a, b) =>
-          b.statSync().modified.compareTo(a.statSync().modified));
-      return apks.first.path;
-    } catch (_) {
-      return null;
-    }
-  }
 
   /// 分享：会员资源不允许分享下载链接（防止绕过会员校验）
   void showSharePopUps(BuildContext context) {
