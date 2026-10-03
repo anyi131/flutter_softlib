@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -10,6 +9,7 @@ import 'package:flutter_softlib/app/http/http_api.dart';
 import 'package:get/get.dart';
 
 import 'app/routes/app_pages.dart';
+import 'app/design/app_theme.dart';
 import 'app/widgets/pro_motion.dart';
 import 'app/api/user_service.dart';
 
@@ -88,63 +88,9 @@ const Color kBrandBgLight = Color(0xFFF5F6F7);
 /// 暗色卡片底
 const Color kBrandCardDark = Color(0xFF222222);
 
-/// 亮色主题：白底 + 浅灰分块 + 蓝紫主色
-ThemeData buildLightTheme() {
-  return FlexThemeData.light(
-    colors: FlexSchemeColor.from(
-      primary: kBrandPrimary,
-      secondary: kBrandAccent,
-    ),
-    subThemesData: const FlexSubThemesData(),
-  ).copyWith(
-    useMaterial3: true,
-    scaffoldBackgroundColor: kBrandBgLight,
-    cardColor: Colors.white,
-    appBarTheme: const AppBarTheme(
-      centerTitle: false,
-      elevation: 0,
-      backgroundColor: kBrandBgLight,
-      foregroundColor: Color(0xFF181818),
-    ),
-    // iOS 风格页面过渡（替换默认的 Android 缩放动画）
-    pageTransitionsTheme: const PageTransitionsTheme(builders: {
-      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
-    }),
-    splashFactory: InkSparkle.splashFactory,
-  );
-}
-
-/// 暗色主题：#1f1f1f 底 + #222 卡片 + 蓝紫主色
-ThemeData buildDarkTheme() {
-  return FlexThemeData.dark(
-    colors: FlexSchemeColor.from(
-      primary: kBrandPrimary,
-      secondary: kBrandAccent,
-    ),
-    subThemesData: const FlexSubThemesData(),
-  ).copyWith(
-    useMaterial3: true,
-    scaffoldBackgroundColor: const Color(0xFF1F1F1F),
-    cardColor: kBrandCardDark,
-    appBarTheme: const AppBarTheme(
-      centerTitle: false,
-      elevation: 0,
-      backgroundColor: Color(0xFF1F1F1F),
-    ),
-    pageTransitionsTheme: const PageTransitionsTheme(builders: {
-      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
-    }),
-    splashFactory: InkSparkle.splashFactory,
-  );
-}
+/// 亮色/暗色主题统一由设计系统构建（见 design/app_theme.dart）
+ThemeData buildLightTheme() => buildAppTheme(dark: false);
+ThemeData buildDarkTheme() => buildAppTheme(dark: true);
 
 /// 软件库应用主组件
 class SoftLibApp extends StatelessWidget {

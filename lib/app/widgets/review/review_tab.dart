@@ -54,9 +54,12 @@ class _ReviewTabState extends State<ReviewTab> {
     if (_loading) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 3));
     }
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
-      children: [
+    // 注意：本组件嵌在外层 ListView 中，必须用 Column（不能用 ListView 嵌套）
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 14, 0, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         _summaryCard(isDark),
         const SizedBox(height: 16),
         Row(
@@ -94,7 +97,8 @@ class _ReviewTabState extends State<ReviewTab> {
           )
         else
           ..._list.map((r) => _reviewTile(r, isDark)),
-      ],
+        ],
+      ),
     );
   }
 

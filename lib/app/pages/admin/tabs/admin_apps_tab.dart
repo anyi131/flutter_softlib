@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -225,6 +228,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
     final weigh = TextEditingController(text: '${a?['weigh'] ?? 0}');
     final shots = TextEditingController(text: '${a?['screenshots'] ?? ''}');
     String provider = '${a?['provider'] ?? 'lzy'}';
+    String filePath = '${a?['file_path'] ?? ''}';
     int catId = int.tryParse('${a?['cat_id'] ?? 0}') ?? 0;
 
     await showModalBottomSheet(
@@ -233,9 +237,52 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
         bool saving = false;
+        bool parsing = false;
         String err = '';
+        String okTip = '';
+
+        /// 自动解析（蓝奏云链接 → 名称/大小/图标/描述/版本）
+        Future<void> doParse() async {
+          if (url.text.trim().isEmpty) {
+            setS(() => err = '请先填写蓝奏云链接');
+            return;
+          }
+          setS(() {
+            parsing = true;
+            err = '';
+            okTip = '';
+          });
+          try {
+            final d = await _svc.parse(type: 'lzy', url: url.text.trim());
+            setS(() {
+              parsing = false;
+              if ((d['name'] ?? '').toString().isNotEmpty && title.text.isEmpty) {
+                title.text = d['name'].toString().replaceAll('.apk', '');
+              }
+              if ((d['size_str'] ?? '').toString().isNotEmpty) {
+                size.text = d['size_str'].toString();
+              }
+              if ((d['icon'] ?? '').toString().isNotEmpty) {
+                icon.text = d['icon'].toString();
+              }
+              if ((d['description'] ?? '').toString().isNotEmpty) {
+                desc.text = d['description'].toString();
+              }
+              if ((d['version'] ?? '').toString().isNotEmpty) {
+                ver.text = d['version'].toString();
+              }
+              okTip = '解析成功，已自动填充信息 ✅';
+            });
+          } catch (e) {
+            setS(() {
+              parsing = false;
+              err = e.toString().replaceFirst('Exception: ', '');
+            });
+          }
+        }
+
         return Container(
-          height: MediaQuery.of(ctx).size.height * 0.88,
+          height: MediaQuery.of(ctx).size.height * 0.9,
           decoration: BoxDecoration(
             color: Theme.of(ctx).brightness == Brightness.dark
                 ? const Color(0xFF1C1C1E)
@@ -264,39 +311,152 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
               Expanded(
                 child: ListView(
                   children: [
-                    _field('软件名称 *', title),
-                    // 来源
+                    // ===== 来源选择 =====
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Row(
                         children: [
-                          const Text('来源方式',
-                              style: TextStyle(fontSize: 13)),
-                          const SizedBox(width: 14),
                           ChoiceChip(
-                            label: const Text('蓝奏云'),
+                            label: const Text('蓝奏云链接'),
                             selected: provider == 'lzy',
                             onSelected: (_) => setS(() => provider = 'lzy'),
                           ),
                           const SizedBox(width: 8),
                           ChoiceChip(
-                            label: const Text('服务器直传'),
+                            label: const Text('服务器文件'),
                             selected: provider == 'local',
                             onSelected: (_) => setS(() => provider = 'local'),
                           ),
                         ],
                       ),
                     ),
-                    if (provider == 'lzy') _field('蓝奏云网址', url),
-                    if (provider == 'local')
-                      _field('服务器文件路径', TextEditingController(
-                          text: '${a?['file_path'] ?? ''}')),
+
+                    // ===== 蓝奏云：链接 + 一键解析 =====
+                    if (provider == 'lzy') ...[
+                      TextField(
+                        controller: url,
+                        style: const TextStyle(fontSize: 13.5),
+                        decoration: InputDecoration(
+                          labelText: '蓝奏云分享链接',
+                          hintText: 'https://xxx.lanzoup.com/xxxx',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          suffixIcon: IconButton(
+                            tooltip: '自动解析软件信息',
+                            icon: parsing
+                                ? const SizedBox(
+                                    width: 17,
+                                    height: 17,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Icon(Icons.auto_fix_high, size: 19),
+                            onPressed: parsing ? null : doParse,
+                          ),
+                        ),
+                        onChanged: (v) {},
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 40,
+                        child: OutlinedButton.icon(
+                          onPressed: parsing ? null : doParse,
+                          icon: const Icon(Icons.cloud_download_outlined,
+                              size: 17),
+                          label: Text(
+                            parsing ? '正在解析…' : '自动解析软件信息（名称/大小/图标/版本）',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // ===== 本地文件：上传 =====
+                    if (provider == 'local') ...[
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            try {
+                              final picked = await FilePicker.platform
+                                  .pickFiles(withData: false);
+                              if (picked == null || picked.files.isEmpty) return;
+                              final f = picked.files.first;
+                              setS(() {
+                                parsing = true;
+                                err = '';
+                              });
+                              final d = await _svc.uploadFile(File(f.path!));
+                              setS(() {
+                                parsing = false;
+                                filePath = '${d['file_path'] ?? ''}';
+                                if ((d['name'] ?? '').toString().isNotEmpty) {
+                                  title.text = '${d['name']}';
+                                }
+                                if ((d['size_str'] ?? '').toString().isNotEmpty) {
+                                  size.text = '${d['size_str']}';
+                                }
+                                okTip = '上传成功，已自动填充信息 ✅';
+                              });
+                            } catch (e) {
+                              setS(() {
+                                parsing = false;
+                                err = e.toString().replaceFirst('Exception: ', '');
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.upload_file, size: 17),
+                          label: Text(
+                            parsing
+                                ? '上传中…'
+                                : (filePath.isEmpty ? '选择并上传安装包' : '已上传 ✓ 点击重选'),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                      if (filePath.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text('文件路径：$filePath',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey[500])),
+                        ),
+                    ],
+
+                    if (okTip.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 9),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE7F9EE),
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          child: Text(okTip,
+                              style: const TextStyle(
+                                  fontSize: 12.5, color: Color(0xFF0E9F6E))),
+                        ),
+                      ),
+
+                    const SizedBox(height: 14),
+                    const Text('基础信息',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF6B7280))),
+                    const SizedBox(height: 8),
+                    _field('软件名称 *', title),
                     _field('图标 URL', icon),
                     _field('文件大小', size),
                     _field('版本号', ver),
                     _field('软件描述', desc, maxLines: 3),
                     _field('截图 URL（逗号分隔）', shots),
-                    // 分类
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: DropdownButtonFormField<int>(
@@ -343,6 +503,14 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                             setS(() => err = '软件名称不能为空');
                             return;
                           }
+                          if (provider == 'lzy' && url.text.trim().isEmpty) {
+                            setS(() => err = '请填写蓝奏云链接');
+                            return;
+                          }
+                          if (provider == 'local' && filePath.isEmpty) {
+                            setS(() => err = '请先上传安装包');
+                            return;
+                          }
                           setS(() {
                             saving = true;
                             err = '';
@@ -361,8 +529,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                               'cat_id': catId,
                               'weigh': int.tryParse(weigh.text) ?? 0,
                               'enable_switch': 1,
-                              if (a?['file_path'] != null)
-                                'file_path': a?['file_path'],
+                              'file_path': filePath,
                             });
                             if (ctx.mounted) Navigator.pop(ctx);
                             ToastUtil.success('保存成功');

@@ -46,6 +46,32 @@ class SoftService {
     throw Exception((data is Map ? data['msg'] : '获取软件列表失败') ?? '获取失败');
   }
 
+  /// 检查更新（兼容后端返回 List 或 Map）
+  /// 返回：null=已是最新；Map=有新版本
+  Future<Map<String, dynamic>?> checkVersion(String currentVersion) async {
+    try {
+      final resp = await _dio.get('/api/softlib/version/index',
+          queryParameters: {'oldversion': currentVersion});
+      final d = resp.data;
+      if (d is! Map || d['code'] != 1) return null;
+      final data = d['data'];
+      Map<String, dynamic>? latest;
+      if (data is List) {
+        for (final it in data) {
+          if (it is Map) latest = Map<String, dynamic>.from(it);
+        }
+      } else if (data is Map) {
+        latest = Map<String, dynamic>.from(data);
+      }
+      if (latest == null) return null;
+      final url = (latest['dow_url'] ?? '').toString();
+      if (url.isEmpty) return null;
+      return latest;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 软件分类（含数量）
   Future<List<AppCat>> fetchCats() async {
     try {

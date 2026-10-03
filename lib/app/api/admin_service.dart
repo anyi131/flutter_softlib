@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 
 import 'api_host.dart';
@@ -40,6 +42,32 @@ class AdminService {
   }
 
   Future<void> saveApp(Map<String, dynamic> data) async => _post('app_save', data);
+
+  /// 解析蓝奏云链接 / 本地文件 → 自动带出软件信息
+  Future<Map<String, dynamic>> parse({required String type, String url = '', String filePath = ''}) async {
+    final d = (await _post('parse', {
+      'type': type,
+      if (url.isNotEmpty) 'url': url,
+      if (filePath.isNotEmpty) 'file_path': filePath,
+    }))['data'];
+    return d is Map ? Map<String, dynamic>.from(d) : {};
+  }
+
+  /// 上传本地安装包（multipart）
+  Future<Map<String, dynamic>> uploadFile(File file) async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(file.path,
+          filename: file.path.split('/').last),
+      'token': UserService.instance.token,
+    });
+    final r = await _dio.post('/api/softlib/admin/upload',
+        data: form,
+        options: Options(receiveTimeout: const Duration(seconds: 120)));
+    if (r.data is Map && r.data['code'] == 1) {
+      return Map<String, dynamic>.from(r.data['data'] ?? {});
+    }
+    throw Exception(r.data is Map ? (r.data['msg'] ?? '上传失败') : '上传失败');
+  }
 
   Future<void> deleteApp(int id) async => _post('app_del', {'id': id});
 

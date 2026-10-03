@@ -11,7 +11,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../../models/http/results/latest_version_model.dart';
+import '../../api/soft_service.dart';
 import '../../utils/permission_utils.dart';
 import '../../widgets/icon_font.dart';
 
@@ -78,24 +78,34 @@ class NavigateLogic extends GetxController {
 
   ///检测更新（公开：首页四宫格"版本更新"入口）
   Future<void> checkUpdate({bool showLatestTip = false}) async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    String version = packageInfo.version;
     try {
-      LatestVersionModel result = await httpApi.getLatestVersion(version);
-
-      if (result.code == 1) {
-        LatestVersionData? latestVersionData = result.data;
-        if (latestVersionData != null) {
-          _showUpdateDialog(latestVersionData);
-        } else if (showLatestTip) {
-          ToastUtil.success('已是最新版本（v$version）');
-        }
-      } else {
-        ToastUtil.error(result.msg ?? '检查更新失败');
+      final packageInfo = await PackageInfo.fromPlatform();
+      final version = packageInfo.version;
+      final data = await SoftService.instance.checkVersion(version);
+      if (data != null) {
+        _showUpdateDialogRaw(data);
+      } else if (showLatestTip) {
+        ToastUtil.success('已是最新版本（v$version）');
       }
     } catch (e) {
-      if (showLatestTip) ToastUtil.error('检查更新失败：$e');
+      if (showLatestTip) ToastUtil.error('检查更新失败，请稍后重试');
     }
+  }
+
+  /// 显示更新弹窗（直接用 Map，避开 Retrofit 模型的类型限制）
+  void _showUpdateDialogRaw(Map<String, dynamic> d) {
+    final title = (d['title'] ?? '发现新版本').toString();
+    final ver = (d['version'] ?? '').toString();
+    final content = (d['content'] ?? '请及时更新以获取最佳体验').toString();
+    final url = (d['dow_url'] ?? '').toString();
+    final forced = '${d['forced_switch']}' == '1' || d['forced_switch'] == true;
+    if (url.isEmpty) return;
+    showDialog(
+      context: Get.context!,
+      barrierDismissible: !forced,
+      builder: (context) =>
+          _buildUpdateDialog(context, title, ver, content, url, forced),
+    );
   }
 
   /// 显示更新弹窗
