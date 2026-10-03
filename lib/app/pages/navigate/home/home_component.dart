@@ -85,9 +85,13 @@ class _HomeComponentState extends State<HomeComponent> {
             ),
           ),
           const SizedBox(width: 12),
-          _circleBtn(Icons.group_add_outlined, () => logic.joinGroup()),
-          const SizedBox(width: 8),
-          _circleBtn(Icons.support_agent_outlined, () => logic.joinUser()),
+          // 两个按钮可在后台配置（开关 + 链接）
+          if (logic.configData?.groupBtnOn != false) ...[
+            _circleBtn(Icons.group_add_outlined, () => logic.joinGroup()),
+            const SizedBox(width: 8),
+          ],
+          if (logic.configData?.userBtnOn != false)
+            _circleBtn(Icons.support_agent_outlined, () => logic.joinUser()),
         ],
       ),
     );

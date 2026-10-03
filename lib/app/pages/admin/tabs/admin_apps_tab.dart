@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -230,6 +231,8 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
     String provider = '${a?['provider'] ?? 'lzy'}';
     String filePath = '${a?['file_path'] ?? ''}';
     int catId = int.tryParse('${a?['cat_id'] ?? 0}') ?? 0;
+    bool isVip = '${a?['is_vip'] ?? 0}' == '1';
+    final vipPrice = TextEditingController(text: '${a?['vip_price'] ?? ''}');
 
     await showModalBottomSheet(
       context: context,
@@ -452,11 +455,114 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                             color: Color(0xFF6B7280))),
                     const SizedBox(height: 8),
                     _field('软件名称 *', title),
-                    _field('图标 URL', icon),
+                    // 图标：URL + 上传
+                    Row(
+                      children: [
+                        Expanded(child: _field('图标 URL', icon)),
+                        IconButton(
+                          tooltip: '上传图标',
+                          icon: const Icon(Icons.add_photo_alternate_outlined,
+                              size: 21),
+                          onPressed: () async {
+                            try {
+                              final picked = await ImagePicker()
+                                  .pickImage(source: ImageSource.gallery,
+                                      imageQuality: 85);
+                              if (picked == null) return;
+                              setS(() => parsing = true);
+                              final url = await _svc
+                                  .uploadImage(File(picked.path));
+                              setS(() {
+                                icon.text = url;
+                                parsing = false;
+                                okTip = '图标上传成功 ✅';
+                              });
+                            } catch (e) {
+                              setS(() {
+                                parsing = false;
+                                err = e.toString().replaceFirst('Exception: ', '');
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                     _field('文件大小', size),
                     _field('版本号', ver),
                     _field('软件描述', desc, maxLines: 3),
-                    _field('截图 URL（逗号分隔）', shots),
+                    Row(
+                      children: [
+                        Expanded(child: _field('截图 URL（逗号分隔）', shots)),
+                        IconButton(
+                          tooltip: '上传截图（可多选）',
+                          icon: const Icon(Icons.collections_outlined, size: 21),
+                          onPressed: () async {
+                            try {
+                              final picked = await ImagePicker()
+                                  .pickMultiImage(imageQuality: 80);
+                              if (picked.isEmpty) return;
+                              setS(() => parsing = true);
+                              final urls = <String>[];
+                              for (final f in picked) {
+                                urls.add(await _svc.uploadImage(File(f.path)));
+                              }
+                              final cur = shots.text.trim();
+                              shots.text = cur.isEmpty
+                                  ? urls.join(',')
+                                  : '$cur,${urls.join(',')}';
+                              setS(() {
+                                parsing = false;
+                                okTip = '已上传 ${urls.length} 张截图 ✅';
+                              });
+                            } catch (e) {
+                              setS(() {
+                                parsing = false;
+                                err = e.toString().replaceFirst('Exception: ', '');
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+
+                    // ===== 会员专享设置 =====
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF8E6),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFFE082)),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.workspace_premium_rounded,
+                                  size: 18, color: Color(0xFFC9A227)),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text('会员专享资源',
+                                    style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF8A6A16))),
+                              ),
+                              Switch(
+                                value: isVip,
+                                activeThumbColor: const Color(0xFFC9A227),
+                                onChanged: (v) => setS(() => isVip = v),
+                              ),
+                            ],
+                          ),
+                          if (isVip)
+                            _field('会员价（如 ¥9.9）', vipPrice),
+                          Text('开启后，非会员下载时会提示开通会员',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey[600])),
+                        ],
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: DropdownButtonFormField<int>(
@@ -530,6 +636,8 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                               'weigh': int.tryParse(weigh.text) ?? 0,
                               'enable_switch': 1,
                               'file_path': filePath,
+                              'is_vip': isVip ? 1 : 0,
+                              'vip_price': vipPrice.text.trim(),
                             });
                             if (ctx.mounted) Navigator.pop(ctx);
                             ToastUtil.success('保存成功');

@@ -25,6 +25,8 @@ class AppConfig {
   final String serviceUrl;
   final String agreement;
   final String privacy;
+  final bool groupBtnOn;
+  final bool userBtnOn;
 
   AppConfig({
     this.placard = '',
@@ -46,6 +48,8 @@ class AppConfig {
     this.serviceUrl = '',
     this.agreement = '',
     this.privacy = '',
+    this.groupBtnOn = true,
+    this.userBtnOn = true,
   });
 
   static bool _b(dynamic v) =>
@@ -79,5 +83,11 @@ class AppConfig {
         serviceUrl: _s(json['service_url']),
         agreement: _s(json['agreement']),
         privacy: _s(json['privacy']),
+        groupBtnOn: json.containsKey('feedback_group_on')
+            ? _b(json['feedback_group_on'])
+            : true,
+        userBtnOn: json.containsKey('feedback_user_on')
+            ? _b(json['feedback_user_on'])
+            : true,
       );
 }

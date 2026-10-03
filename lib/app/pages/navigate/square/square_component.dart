@@ -263,9 +263,34 @@ class _SquareComponentState extends State<SquareComponent> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(p.nickname.isEmpty ? '匿名用户' : p.nickname,
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w800)),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                  p.nickname.isEmpty ? '匿名用户' : p.nickname,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800)),
+                            ),
+                            if (p.isAdmin) ...[
+                              const SizedBox(width: 5),
+                              _badge('管理', const Color(0xFFDC2626),
+                                  const Color(0xFFFEF2F2)),
+                            ],
+                            if (p.isVip) ...[
+                              const SizedBox(width: 4),
+                              _badge('VIP', const Color(0xFFB45309),
+                                  const Color(0xFFFEF3C7)),
+                            ],
+                            if (p.title.isNotEmpty) ...[
+                              const SizedBox(width: 4),
+                              _badge(p.title, const Color(0xFF5B6CFF),
+                                  const Color(0xFFEEF1FF)),
+                            ],
+                          ],
+                        ),
                         const SizedBox(height: 2),
                         Row(
                           children: [
@@ -418,6 +443,17 @@ class _SquareComponentState extends State<SquareComponent> {
       ),
     );
   }
+
+  Widget _badge(String text, Color fg, Color bg) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 9.5, fontWeight: FontWeight.w800, color: fg)),
+      );
 
   Widget _avatar() => Container(
         width: 38,

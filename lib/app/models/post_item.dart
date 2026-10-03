@@ -11,6 +11,9 @@ class PostItem {
   final int commentCount;
   final int views;
   final int createtime;
+  final bool isAdmin;
+  final bool isVip;
+  final String title;
 
   PostItem({
     required this.id,
@@ -24,6 +27,9 @@ class PostItem {
     required this.commentCount,
     required this.views,
     required this.createtime,
+    this.isAdmin = false,
+    this.isVip = false,
+    this.title = '',
   });
 
   static int _i(dynamic v) => int.tryParse('${v ?? 0}') ?? 0;
@@ -47,6 +53,9 @@ class PostItem {
         commentCount: _i(j['comment_count']),
         views: _i(j['views']),
         createtime: _i(j['createtime']),
+        isAdmin: j['is_admin'] == 1 || j['is_admin'] == true,
+        isVip: j['is_vip'] == 1 || j['is_vip'] == true,
+        title: _s(j['title']),
       );
 
   static List<PostItem> listFrom(dynamic data) {
