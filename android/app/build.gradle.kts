@@ -32,7 +32,7 @@ android {
 
         // 只打包 arm64-v8a，大幅减小 APK 体积（现代手机几乎全是 arm64）
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters = listOf("arm64-v8a")
         }
     }
 
@@ -45,6 +45,16 @@ android {
         }
     }
 }
+
+    // 只生成 arm64-v8a 单个 ABI 的 APK（体积减半，兼容现代手机）
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = false
+        }
+    }
 
 flutter {
     source = "../.."
