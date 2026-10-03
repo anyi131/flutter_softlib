@@ -31,6 +31,9 @@ class AppItem {
   final List<String> screenshots;
   final double scoreAvg;
   final int scoreCount;
+  /// 后台「会员专享」开关
+  final bool isVipOnly;
+  final String vipPrice;
 
   AppItem({
     required this.id,
@@ -50,12 +53,14 @@ class AppItem {
     this.screenshots = const [],
     this.scoreAvg = 0,
     this.scoreCount = 0,
+    this.isVipOnly = false,
+    this.vipPrice = '',
   });
 
   bool get isLocal => provider == 'local';
 
-  /// 是否为会员专区资源（分类 id = 5）
-  bool get isVipItem => catId == 5;
+  /// 是否为会员专享资源（后台开关优先，兼容旧的"会员专区"分类）
+  bool get isVipItem => isVipOnly || catId == 5;
 
   /// 下载是否可直接进行（无需解析）
   bool get canDirectDownload => isLocal && file.isNotEmpty;
@@ -85,6 +90,8 @@ class AppItem {
           .toList(),
       scoreAvg: double.tryParse('${json['score_avg'] ?? 0}') ?? 0,
       scoreCount: i('score_count'),
+      isVipOnly: json['is_vip'] == 1 || json['is_vip'] == true,
+      vipPrice: s('vip_price'),
     );
   }
 

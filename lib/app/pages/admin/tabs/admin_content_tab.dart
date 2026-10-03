@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -351,6 +354,20 @@ class _AdminContentTabState extends State<AdminContentTab>
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
+        SizedBox(
+          height: 44,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5B6CFF),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22)),
+            ),
+            onPressed: () => _editCarousel(null),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('新增轮播图'),
+          ),
+        ),
+        const SizedBox(height: 12),
         for (final c in _carousels)
           Container(
             margin: const EdgeInsets.only(bottom: 8),
@@ -383,6 +400,9 @@ class _AdminContentTabState extends State<AdminContentTab>
                           fontSize: 14, fontWeight: FontWeight.w700)),
                 ),
                 IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 19),
+                    onPressed: () => _editCarousel(c)),
+                IconButton(
                   icon: const Icon(Icons.delete_outline,
                       size: 19, color: Color(0xFFDC2626)),
                   onPressed: () async {
@@ -404,6 +424,126 @@ class _AdminContentTabState extends State<AdminContentTab>
           ),
       ],
     );
+  }
+
+  Future<void> _editCarousel(Map? c) async {
+    final titleCtrl = TextEditingController(text: '${c?['title'] ?? ''}');
+    final imgCtrl = TextEditingController(text: '${c?['image'] ?? ''}');
+    final urlCtrl = TextEditingController(text: '${c?['url'] ?? ''}');
+    final weighCtrl = TextEditingController(text: '${c?['weigh'] ?? 0}');
+    String type = '${c?['type'] ?? 'no'}';
+    bool uploading = false;
+    String err = '';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(c == null ? '新增轮播图' : '编辑轮播图'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(labelText: '标题')),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                          controller: imgCtrl,
+                          decoration:
+                              const InputDecoration(labelText: '图片 URL')),
+                    ),
+                    IconButton(
+                      tooltip: '上传图片',
+                      icon: uploading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.image_outlined, size: 21),
+                      onPressed: uploading
+                          ? null
+                          : () async {
+                              try {
+                                final p = await ImagePicker().pickImage(
+                                    source: ImageSource.gallery,
+                                    imageQuality: 85);
+                                if (p == null) return;
+                                setD(() => uploading = true);
+                                final url = await _svc.uploadImage(File(p.path));
+                                setD(() {
+                                  imgCtrl.text = url;
+                                  uploading = false;
+                                });
+                              } catch (e) {
+                                setD(() {
+                                  uploading = false;
+                                  err = '上传失败';
+                                });
+                              }
+                            },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: type,
+                  decoration: const InputDecoration(labelText: '点击行为'),
+                  items: const [
+                    DropdownMenuItem(value: 'no', child: Text('不跳转')),
+                    DropdownMenuItem(value: 'url', child: Text('跳转网址')),
+                  ],
+                  onChanged: (v) => setD(() => type = v ?? 'no'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: urlCtrl,
+                    decoration: const InputDecoration(labelText: '跳转网址')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: weighCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: '权重')),
+                if (err.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(err,
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFFDC2626))),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Get.back(result: false),
+                child: const Text('取消')),
+            FilledButton(
+                onPressed: () => Get.back(result: true),
+                child: const Text('保存')),
+          ],
+        );
+      }),
+    );
+    if (ok != true) return;
+    try {
+      await _svc.saveCarousel({
+        'id': c?['id'] ?? 0,
+        'title': titleCtrl.text.trim(),
+        'image': imgCtrl.text.trim(),
+        'type': type,
+        'url': urlCtrl.text.trim(),
+        'weigh': int.tryParse(weighCtrl.text) ?? 0,
+        'enable_switch': 1,
+      });
+      ToastUtil.success('保存成功');
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   // ───── 线报 ─────
@@ -446,6 +586,9 @@ class _AdminContentTabState extends State<AdminContentTab>
                 ),
               ),
               IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 19),
+                  onPressed: () => _editReport(r)),
+              IconButton(
                 icon: const Icon(Icons.delete_outline,
                     size: 19, color: Color(0xFFDC2626)),
                 onPressed: () async {
@@ -459,6 +602,53 @@ class _AdminContentTabState extends State<AdminContentTab>
         );
       },
     );
+  }
+
+  Future<void> _editReport(Map r) async {
+    final titleCtrl = TextEditingController(text: '${r['title'] ?? ''}');
+    final contentCtrl = TextEditingController();
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('编辑线报'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(labelText: '文章标题')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: contentCtrl,
+                  maxLines: 5,
+                  decoration:
+                      const InputDecoration(labelText: '内容(留空不修改)')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Get.back(result: true),
+              child: const Text('保存')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await _svc.saveReport({
+        'id': r['id'],
+        'title': titleCtrl.text.trim(),
+        'content': contentCtrl.text,
+      });
+      ToastUtil.success('已保存');
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   Widget _configList() {

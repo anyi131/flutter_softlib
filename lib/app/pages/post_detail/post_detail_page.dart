@@ -1,13 +1,17 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../design/app_theme.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 
 import '../../api/post_service.dart';
 import '../../api/user_service.dart';
 import '../../models/post_item.dart';
+import '../navigate/square/emoji_panel.dart';
 
 /// 动态详情页（正文 + 图片 + 评论区）
 class PostDetailPage extends StatefulWidget {
@@ -26,6 +30,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
   final _ctrl = TextEditingController();
   bool _sending = false;
   String _err = '';
+  final List<String> _images = [];
+  final List<File> _imageFiles = [];
+  bool _showEmoji = false;
 
   @override
   void initState() {
@@ -301,6 +308,29 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 const SizedBox(height: 4),
                 Text('${c['content'] ?? ''}',
                     style: const TextStyle(fontSize: 14, height: 1.5)),
+                if (c['images'] is List && (c['images'] as List).isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 7),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: (c['images'] as List)
+                          .map((u) => ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: CachedNetworkImage(
+                                  imageUrl: '$u',
+                                  width: 70,
+                                  height: 70,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, __, ___) => Container(
+                                      width: 70,
+                                      height: 70,
+                                      color: Colors.black12),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -334,8 +364,81 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     style: const TextStyle(
                         fontSize: 12, color: Color(0xFFDC2626))),
               ),
+            // 已选图片预览
+            if (_images.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SizedBox(
+                  height: 62,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _images.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 6),
+                    itemBuilder: (_, i) => Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(9),
+                          child: Image.file(File(_images[i]),
+                              width: 62, height: 62, fit: BoxFit.cover),
+                        ),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: GestureDetector(
+                            onTap: () => setState(() {
+                              _images.removeAt(i);
+                              _imageFiles.removeAt(i);
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.all(1.5),
+                              decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle),
+                              child: const Icon(Icons.close,
+                                  size: 12, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            // 表情面板
+            if (_showEmoji)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: EmojiPanel(
+                  onPick: (e) {
+                    _ctrl.text += e;
+                    _ctrl.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _ctrl.text.length));
+                    setState(() {});
+                  },
+                ),
+              ),
             Row(
               children: [
+                // 图片按钮
+                GestureDetector(
+                  onTap: _pickImages,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(Icons.image_outlined,
+                        size: 22, color: context.t3),
+                  ),
+                ),
+                // 表情按钮
+                GestureDetector(
+                  onTap: () => setState(() => _showEmoji = !_showEmoji),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(Icons.emoji_emotions_outlined,
+                        size: 22,
+                        color: _showEmoji ? C.brand : context.t3),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Expanded(
                   child: TextField(
                     controller: _ctrl,
@@ -380,6 +483,22 @@ class _PostDetailPageState extends State<PostDetailPage> {
     );
   }
 
+  Future<void> _pickImages() async {
+    try {
+      final picked =
+          await ImagePicker().pickMultiImage(imageQuality: 82);
+      if (picked.isEmpty) return;
+      for (final f in picked) {
+        if (_images.length >= 6) break;
+        _images.add(f.path);
+        _imageFiles.add(File(f.path));
+      }
+      setState(() {});
+    } catch (_) {
+      setState(() => _err = '选择图片失败，请允许相册权限');
+    }
+  }
+
   Future<void> _send() async {
     final text = _ctrl.text.trim();
     if (text.isEmpty) {
@@ -391,22 +510,42 @@ class _PostDetailPageState extends State<PostDetailPage> {
       _sending = true;
       _err = '';
     });
+    // 上传图片
+    final urls = <String>[];
+    try {
+      for (final f in List<File>.from(_imageFiles)) {
+        urls.add(await PostService.instance.uploadImage(f));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _sending = false;
+          _err = '图片上传失败'; 
+        });
+      }
+      return;
+    }
     final ok = await _svc.comment(
       postId: _post!.id,
       nickname: user?.nickname ?? '匿名用户',
       content: text,
       avatar: user?.avatar ?? '',
+      images: urls,
     );
     if (!mounted) return;
     if (ok) {
       _ctrl.clear();
       setState(() {
         _sending = false;
+        _showEmoji = false;
         _comments.add({
           'nickname': user?.nickname ?? '匿名用户',
           'avatar': user?.avatar ?? '',
           'content': text,
+          'images': urls,
         });
+        _images.clear();
+        _imageFiles.clear();
       });
     } else {
       setState(() {

@@ -65,8 +65,11 @@ class UserInfo {
     );
   }
 
-  /// 账号（展示用）
-  String get account => id > 0 ? (262475940 + id).toString() : '';
+  /// 账号（展示用）：直接用后端 username，没有则用 id
+  String get account {
+    if (username.isNotEmpty) return username;
+    return id > 0 ? id.toString() : '';
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -254,6 +257,18 @@ class UserService {
   Future<List<Map<String, dynamic>>> donateRank() async {
     try {
       final r = await _dio.get('/api/softlib/user/donate_rank');
+      if (r.data is Map && r.data['code'] == 1 && r.data['data'] is List) {
+        return List<Map<String, dynamic>>.from(
+            (r.data['data'] as List).map((e) => Map<String, dynamic>.from(e)));
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// 积分兑换商品列表（后台可配）
+  Future<List<Map<String, dynamic>>> exchangeGoods() async {
+    try {
+      final r = await _dio.get('/api/softlib/user/exchange_goods');
       if (r.data is Map && r.data['code'] == 1 && r.data['data'] is List) {
         return List<Map<String, dynamic>>.from(
             (r.data['data'] as List).map((e) => Map<String, dynamic>.from(e)));

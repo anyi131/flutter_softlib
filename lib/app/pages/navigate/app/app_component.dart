@@ -344,48 +344,50 @@ class _AppComponentState extends State<AppComponent> {
     final vip = a.isVipItem;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          context.pagePadding, 6, context.pagePadding, 6),
+          context.pagePadding, 5, context.pagePadding, 5),
       child: Deco.glass(
         context,
         radius: R.lg,
-        alpha: 0.07,
+        alpha: 0.075,
         onTap: () => Get.toNamed(Routes.appDetails,
             arguments: {'appId': a.id.toString(), 'item': a}),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // 图标
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(R.md + 2),
+                borderRadius: BorderRadius.circular(R.md),
                 boxShadow: [
                   BoxShadow(
-                    color: C.brand.withAlpha(context.isDark ? 50 : 30),
-                    blurRadius: 14,
-                    offset: const Offset(0, 5),
+                    color: C.brand.withAlpha(context.isDark ? 45 : 26),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(R.md + 2),
+                borderRadius: BorderRadius.circular(R.md),
                 child: a.icon.isEmpty
                     ? _ph()
                     : CachedNetworkImage(
                         imageUrl: a.icon,
-                        width: 60,
-                        height: 60,
+                        width: 54,
+                        height: 54,
                         fit: BoxFit.cover,
                         placeholder: (_, __) => _ph(),
                         errorWidget: (_, __, ___) => _ph(),
                       ),
               ),
             ),
-            const SizedBox(width: 13),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 标题行
+                  // 标题 + 版本
                   Row(
                     children: [
                       Flexible(
@@ -393,86 +395,58 @@ class _AppComponentState extends State<AppComponent> {
                           a.title.isEmpty ? '未知应用' : a.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Ty.h3.copyWith(color: context.t1, fontSize: 15.5),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                            color: context.t1,
+                          ),
                         ),
                       ),
                       if (a.version.isNotEmpty) ...[
-                        const SizedBox(width: 7),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: context.isDark
-                                ? Colors.white.withAlpha(18)
-                                : const Color(0xFFF1F3F9),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            a.version,
+                        const SizedBox(width: 6),
+                        Text(a.version,
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: context.t3,
-                            ),
-                          ),
-                        ),
+                                fontSize: 10.5, color: context.t3)),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 7),
-                  // 标签行
+                  const SizedBox(height: 6),
+                  // 一行装完：会员/免费 + 评分 + 大小
                   Row(
                     children: [
                       _pill(vip ? '会员' : '免费', vip ? C.amber : C.mint),
-                      const SizedBox(width: 5),
-                      _pill('亲测可用', C.brandBright),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // 元信息行
-                  Row(
-                    children: [
+                      const SizedBox(width: 7),
                       if (a.scoreCount > 0) ...[
-                        const Icon(Icons.star_rounded, size: 13, color: C.amber),
-                        const SizedBox(width: 3),
+                        const Icon(Icons.star_rounded, size: 12, color: C.amber),
+                        const SizedBox(width: 2),
                         Text(a.scoreAvg.toStringAsFixed(1),
                             style: const TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 color: C.amber)),
-                        Text('(${a.scoreCount})',
-                            style: TextStyle(fontSize: 10.5, color: context.t3)),
-                        const SizedBox(width: 9),
+                        const SizedBox(width: 8),
                       ],
-                      if (a.size.isNotEmpty) ...[
-                        _meta(Icons.sd_storage_rounded, a.size),
-                        const SizedBox(width: 9),
-                      ],
-                      _meta(Icons.visibility_rounded, '${a.views}'),
+                      if (a.size.isNotEmpty)
+                        Text(a.size,
+                            style: TextStyle(
+                                fontSize: 11, color: context.t3)),
                     ],
                   ),
+                  if (a.description.isNotEmpty) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      a.description,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11.5, color: context.t3),
+                    ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(width: 6),
-            // 箭头
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: Deco.brandGradient,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: C.brand.withAlpha(70),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.arrow_forward_rounded,
-                  size: 16, color: Colors.white),
-            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right_rounded, size: 20, color: context.t3),
           ],
         ),
       ),

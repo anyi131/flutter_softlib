@@ -425,6 +425,7 @@ class MineLogic extends GetxController {
   /// 积分兑换
   Future<void> pointsExchange() async {
     if (!isLoggedIn) return openLogin();
+    final goodsList = await _userService.exchangeGoods();
     final goods = await Get.dialog<String>(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -444,9 +445,12 @@ class MineLogic extends GetxController {
                 style: const TextStyle(
                     fontSize: 14, fontWeight: FontWeight.w700)),
             const SizedBox(height: 14),
-            _exchangeItem('vip7', '7 天会员', 100),
-            _exchangeItem('vip30', '30 天会员', 300),
-            _exchangeItem('vip90', '90 天会员', 800),
+            for (final g in goodsList)
+              _exchangeItem(
+                '${g['key']}',
+                '${g['name']}',
+                int.tryParse('${g['cost']}') ?? 100,
+              ),
           ],
         ),
         actions: [

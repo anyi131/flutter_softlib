@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../utils/toast_util.dart';
-
 import '../../design/ui.dart';
+import '../../utils/toast_util.dart';
 import 'navigate_logic.dart';
 
-/// 主框架：沉浸式底部 Tab（悬浮玻璃胶囊）
+/// 主框架 —— iOS 26/27 风格玻璃底部 Tab
+///
+/// 特征：
+///  · 完全通透的玻璃胶囊（无实色底，强模糊 + 高光描边）
+///  · 选中项为独立的渐变浮岛（带光晕），未选中仅图标
+///  · 沉浸式延伸（内容穿过 Tab 显示）
 class NavigatePage extends StatefulWidget {
   const NavigatePage({super.key});
 
@@ -19,10 +23,8 @@ class NavigatePage extends StatefulWidget {
 
 class _NavigatePageState extends State<NavigatePage> {
   final NavigateLogic logic = Get.find<NavigateLogic>();
-
   DateTime? _lastBack;
 
-  /// 返回键：非首页先回首页；首页再按一次弹退出确认
   Future<bool> _onBack() async {
     if (logic.currentIndex != 0) {
       logic.changePage(0);
@@ -75,61 +77,62 @@ class _NavigatePageState extends State<NavigatePage> {
         if (await _onBack()) SystemNavigator.pop();
       },
       child: Scaffold(
-      extendBody: true,
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          Deco.pageBackground(context),
-          PageView(
-            physics: const NeverScrollableScrollPhysics(),
-            controller: logic.pageController,
-            children: logic.pages,
-          ),
-        ],
-      ),
-      bottomNavigationBar: GetBuilder<NavigateLogic>(
-        id: 'navigate',
-        builder: (logic) => _bar(context, logic, inset),
-      ),
+        extendBody: true,
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            Deco.pageBackground(context),
+            PageView(
+              physics: const NeverScrollableScrollPhysics(),
+              controller: logic.pageController,
+              children: logic.pages,
+            ),
+          ],
+        ),
+        bottomNavigationBar: GetBuilder<NavigateLogic>(
+          id: 'navigate',
+          builder: (logic) => _glassBar(context, logic, inset),
+        ),
       ),
     );
   }
 
-  Widget _bar(BuildContext context, NavigateLogic logic, double inset) {
+  /// iOS 26/27 玻璃 Tab
+  Widget _glassBar(BuildContext context, NavigateLogic logic, double inset) {
     final isDark = context.isDark;
     return Padding(
-      padding: EdgeInsets.fromLTRB(14, 0, 14, (inset > 0 ? inset : 10) + 4),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, (inset > 0 ? inset : 8) + 6),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(R.full),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+          // 强模糊 + 极低不透明度 = iOS 26 的"液态玻璃"
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
-            height: 62,
+            height: 66,
             decoration: BoxDecoration(
+              // 几乎完全透明，只保留一点点底色让图标可辨识
               color: isDark
-                  ? const Color(0xFF141721).withAlpha(215)
-                  : Colors.white.withAlpha(240),
+                  ? Colors.white.withAlpha(20)
+                  : Colors.white.withAlpha(120),
               borderRadius: BorderRadius.circular(R.full),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withAlpha(22)
-                    : Colors.black.withAlpha(8),
-                width: 0.8,
+                    ? Colors.white.withAlpha(38)
+                    : Colors.white.withAlpha(220),
+                width: 1.1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(isDark ? 110 : 30),
-                  blurRadius: 26,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withAlpha(isDark ? 90 : 26),
+                  blurRadius: 30,
+                  offset: const Offset(0, 12),
                 ),
               ],
             ),
             child: Row(
               children: List.generate(
                 logic.labels.length,
-                (i) => Expanded(
-                  child: _item(context, logic, i),
-                ),
+                (i) => Expanded(child: _item(context, logic, i)),
               ),
             ),
           ),
@@ -138,6 +141,7 @@ class _NavigatePageState extends State<NavigatePage> {
     );
   }
 
+  /// 单个 Tab 项
   Widget _item(BuildContext context, NavigateLogic logic, int i) {
     final sel = logic.currentIndex == i;
     final dest = logic.labels[i];
@@ -146,19 +150,19 @@ class _NavigatePageState extends State<NavigatePage> {
       onTap: () => logic.changePage(i),
       child: Center(
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
           padding: EdgeInsets.symmetric(
-              horizontal: sel ? 14 : 10, vertical: 7),
+              horizontal: sel ? 15 : 11, vertical: 8),
           decoration: BoxDecoration(
             gradient: sel ? Deco.brandGradient : null,
             borderRadius: BorderRadius.circular(R.full),
             boxShadow: sel
                 ? [
                     BoxShadow(
-                      color: C.brand.withAlpha(90),
-                      blurRadius: 16,
-                      offset: const Offset(0, 5),
+                      color: C.brand.withAlpha(110),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
                     ),
                   ]
                 : null,
@@ -169,13 +173,13 @@ class _NavigatePageState extends State<NavigatePage> {
               IconTheme(
                 data: IconThemeData(
                   size: 21,
-                  color: sel ? Colors.white : context.t3,
+                  color: sel ? Colors.white : context.t2,
                 ),
                 child: (sel ? dest.selectedIcon : dest.icon) ??
                     const SizedBox.shrink(),
               ),
               if (sel) ...[
-                const SizedBox(width: 7),
+                const SizedBox(width: 6),
                 Text(
                   dest.label,
                   style: const TextStyle(

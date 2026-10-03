@@ -75,9 +75,12 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   ),
                 );
               }
+              // 顶部留白避开悬浮玻璃顶栏，避免主卡被遮挡
+              final topInset = MediaQuery.of(context).padding.top;
               return ListView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
+                padding: EdgeInsets.fromLTRB(
+                    context.pagePadding, topInset + 56, context.pagePadding, 30),
                 children: [
                   _hero(),
                   const SizedBox(height: 14),
@@ -643,7 +646,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             if (task != null && task.status == DownloadTaskStatus.complete) {
               return _btn(
                 label: '安装',
-                color: const Color(0xFF0E9F6E),
+                color: C.mint,
                 icon: Icons.install_mobile_rounded,
                 onTap: download.openDownloadFile,
               );

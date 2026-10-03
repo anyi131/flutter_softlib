@@ -62,6 +62,7 @@ class PostService {
     String avatar = '',
   }) async {
     final r = await _dio.post('/api/softlib/post/create', data: {
+      'token': UserService.instance.token,
       'nickname': nickname,
       'content': content,
       'images': images.join(','),
@@ -107,12 +108,15 @@ class PostService {
     required String nickname,
     required String content,
     String avatar = '',
+    List<String> images = const [],
   }) async {
     final r = await _dio.post('/api/softlib/post/comment', data: {
+      'token': UserService.instance.token,
       'post_id': postId,
       'nickname': nickname,
       'content': content,
       'avatar': avatar,
+      'images': images.join(','),
     });
     return r.data is Map && r.data['code'] == 1;
   }
