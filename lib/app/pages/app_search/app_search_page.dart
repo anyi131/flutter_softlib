@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 
 import '../../models/app_item.dart';
 import '../../routes/app_pages.dart';
-import '../../services/soft_service.dart';
+import '../../api/soft_service.dart';
 import '../../widgets/app_card.dart';
 
 /// 软件搜索页（搜索已入库软件，含服务器直传 + 蓝奏云两种来源）

@@ -11,7 +11,7 @@ import '../../database/database.dart' as db;
 import '../../database/tables/download_task_table.dart';
 import '../../models/app_item.dart';
 import '../../models/http/results/lzy_file_info_model.dart';
-import '../../services/soft_service.dart';
+import '../../api/soft_service.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/posters/posters_widget.dart';
 

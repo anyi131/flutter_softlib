@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../models/app_item.dart';
-import '../../services/soft_service.dart';
+import '../../api/soft_service.dart';
 
 class AppSearchLogic extends GetxController {
   /// 搜索结果（供搜索结果页使用）

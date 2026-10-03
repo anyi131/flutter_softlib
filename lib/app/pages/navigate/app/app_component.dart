@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../services/soft_service.dart';
+import '../../api/soft_service.dart';
 import '../../../models/app_item.dart';
 import '../../../routes/app_pages.dart';
 import '../../widgets/app_card.dart';
