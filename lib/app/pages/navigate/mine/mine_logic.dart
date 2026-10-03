@@ -348,11 +348,210 @@ class MineLogic extends GetxController {
   }
 
   /// 赞助排行榜
-  void sponsorRank() => toast('赞助排行榜即将上线');
+  Future<void> sponsorRank() async {
+    final list = await _userService.donateRank();
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: double.maxFinite,
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.emoji_events_rounded,
+                      color: Color(0xFFFBBF24), size: 22),
+                  const SizedBox(width: 9),
+                  const Text('赞助排行榜',
+                      style: TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w800)),
+                  const Spacer(),
+                  IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: Get.back),
+                ],
+              ),
+              const SizedBox(height: 6),
+              if (list.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 30),
+                  child: Text('还没有赞助记录，欢迎成为第一位支持者',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 380),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: list.length,
+                    itemBuilder: (c, i) {
+                      final r = list[i];
+                      final rank = int.tryParse('${r['rank']}') ?? (i + 1);
+                      final medal = rank == 1
+                          ? '🥇'
+                          : (rank == 2 ? '🥈' : (rank == 3 ? '🥉' : '$rank'));
+                      return ListTile(
+                        dense: true,
+                        leading: SizedBox(
+                          width: 28,
+                          child: Center(
+                            child: Text('$medal',
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800)),
+                          ),
+                        ),
+                        title: Text('${r['nickname']}',
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w700)),
+                        trailing: Text('¥${r['amount']}',
+                            style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFFFBBF24))),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   /// 积分兑换
-  void pointsExchange() => toast('积分兑换即将上线');
+  Future<void> pointsExchange() async {
+    if (!isLoggedIn) return openLogin();
+    final goods = await Get.dialog<String>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.monetization_on_rounded,
+                color: Color(0xFFFB923C), size: 21),
+            SizedBox(width: 9),
+            Text('积分兑换',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('当前积分：$points',
+                style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 14),
+            _exchangeItem('vip7', '7 天会员', 100),
+            _exchangeItem('vip30', '30 天会员', 300),
+            _exchangeItem('vip90', '90 天会员', 800),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: Get.back, child: const Text('取消')),
+        ],
+      ),
+    );
+    if (goods == null) return;
+    try {
+      final msg = await _userService.exchange(goods);
+      await load();
+      ToastUtil.success(msg);
+    } catch (e) {
+      toast(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
 
-  /// 替换开屏
-  void replaceSplash() => toast('替换开屏功能即将上线');
+  Widget _exchangeItem(String goods, String label, int cost) {
+    final enough = points >= cost;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: enough ? () => Get.back(result: goods) : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: enough
+                ? const Color(0xFFFFF8E6)
+                : Colors.grey.withAlpha(20),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: enough
+                  ? const Color(0xFFFBBF24).withAlpha(120)
+                  : Colors.grey.withAlpha(40),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.card_giftcard_rounded,
+                  size: 18, color: Color(0xFFFBBF24)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(label,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w700)),
+              ),
+              Text('$cost 积分',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: enough
+                          ? const Color(0xFFC9A227)
+                          : Colors.grey)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 设置自定义称号（广场展示）
+  Future<void> setCustomTitle() async {
+    if (!isLoggedIn) return openLogin();
+    final ctrl = TextEditingController(text: account?.title ?? '');
+    final v = await Get.dialog<String>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('自定义称号',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: ctrl,
+              maxLength: 12,
+              decoration: const InputDecoration(
+                hintText: '如：技术大佬 / 热心网友',
+                labelText: '称号',
+              ),
+            ),
+            Text('称号会显示在你的广场动态旁',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: Get.back, child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Get.back(result: ctrl.text.trim()),
+              child: const Text('保存')),
+        ],
+      ),
+    );
+    if (v == null) return;
+    try {
+      await _userService.setTitle(v);
+      await load();
+      ToastUtil.success(v.isEmpty ? '已清除称号' : '称号已更新');
+    } catch (e) {
+      toast(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  /// 替换开屏（本地选择图片，仅当前设备生效）
+  Future<void> replaceSplash() async {
+    ToastUtil.info('开屏图由管理员在后台统一配置');
+  }
 }

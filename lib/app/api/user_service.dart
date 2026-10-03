@@ -250,6 +250,45 @@ class UserService {
     return score;
   }
 
+  /// 赞助排行榜
+  Future<List<Map<String, dynamic>>> donateRank() async {
+    try {
+      final r = await _dio.get('/api/softlib/user/donate_rank');
+      if (r.data is Map && r.data['code'] == 1 && r.data['data'] is List) {
+        return List<Map<String, dynamic>>.from(
+            (r.data['data'] as List).map((e) => Map<String, dynamic>.from(e)));
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// 积分兑换
+  Future<String> exchange(String goods) async {
+    if (_token.isEmpty) throw Exception('请先登录');
+    final r = _unwrap(await _dio.post('/api/softlib/user/exchange',
+        data: {'token': _token, 'goods': goods}));
+    if (r['code'] != 1) throw Exception(r['msg'] ?? '兑换失败');
+    if (r['data'] is Map) {
+      _user = UserInfo.fromJson(Map<String, dynamic>.from(r['data']));
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString(_kUser, jsonEncode(_user!.toJson()));
+    }
+    return (r['msg'] ?? '兑换成功').toString();
+  }
+
+  /// 修改自定义称号
+  Future<void> setTitle(String title) async {
+    if (_token.isEmpty) throw Exception('请先登录');
+    final r = _unwrap(await _dio.post('/api/softlib/user/set_title',
+        data: {'token': _token, 'title': title}));
+    if (r['code'] != 1) throw Exception(r['msg'] ?? '修改失败');
+    if (r['data'] is Map) {
+      _user = UserInfo.fromJson(Map<String, dynamic>.from(r['data']));
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString(_kUser, jsonEncode(_user!.toJson()));
+    }
+  }
+
   /// 查询 QQ 头像（注册前预览用）
   Future<String?> fetchQqAvatar(String qq) async {
     try {

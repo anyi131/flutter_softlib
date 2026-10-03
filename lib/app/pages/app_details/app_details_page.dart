@@ -166,7 +166,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     return Deco.glass(
       context,
       radius: R.xl,
-      alpha: 0.075,
+      alpha: 0.09,
       glow: C.brand,
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -174,15 +174,14 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 图标 + 光晕
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(R.lg),
                   boxShadow: [
                     BoxShadow(
                       color: C.brand.withAlpha(context.isDark ? 80 : 55),
-                      blurRadius: 22,
-                      offset: const Offset(0, 8),
+                      blurRadius: 24,
+                      offset: const Offset(0, 9),
                     ),
                   ],
                 ),
@@ -192,8 +191,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       ? _phIcon()
                       : CachedNetworkImage(
                           imageUrl: icon,
-                          width: 78,
-                          height: 78,
+                          width: 80,
+                          height: 80,
                           fit: BoxFit.cover,
                           placeholder: (_, __) => _phIcon(),
                           errorWidget: (_, __, ___) => _phIcon(),
@@ -211,36 +210,34 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                           : (it?.title ?? '未知软件'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Ty.h1.copyWith(color: context.t1, fontSize: 19),
+                      style: Ty.t2.copyWith(color: context.t1, fontSize: 19),
                     ),
                     const SizedBox(height: 9),
                     Wrap(
                       spacing: 6,
                       runSpacing: 5,
                       children: [
-                        _chip(
-                          isVipItem ? '会员专享' : '免费下载',
-                          isVipItem ? C.amber : C.mint,
-                          isVipItem
-                              ? Icons.workspace_premium_rounded
-                              : Icons.download_done_rounded,
-                        ),
+                        _chip(isVipItem ? '会员专享' : '免费下载',
+                            isVipItem ? C.amber : C.mint,
+                            isVipItem
+                                ? Icons.workspace_premium_rounded
+                                : Icons.download_done_rounded),
                         _chip('人工亲测', C.brandBright, Icons.verified_rounded),
                       ],
                     ),
-                    const SizedBox(height: 9),
+                    const SizedBox(height: 10),
+                    // 评分行
                     Row(
                       children: [
                         if ((it?.scoreCount ?? 0) > 0) ...[
-                          const Icon(Icons.star_rounded,
-                              size: 14, color: C.amber),
+                          const Icon(Icons.star_rounded, size: 15, color: C.amber),
                           const SizedBox(width: 3),
                           Text(it!.scoreAvg.toStringAsFixed(1),
                               style: const TextStyle(
-                                  fontSize: 12.5,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w900,
                                   color: C.amber)),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 3),
                           Text('(${it.scoreCount})',
                               style: Ty.tiny.copyWith(color: context.t3)),
                           const SizedBox(width: 10),
@@ -264,16 +261,28 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           // 安全检测条
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 13),
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 13),
             decoration: BoxDecoration(
-              color: C.mint.withAlpha(context.isDark ? 28 : 20),
+              gradient: LinearGradient(
+                colors: [
+                  C.mint.withAlpha(context.isDark ? 40 : 26),
+                  C.cyan.withAlpha(context.isDark ? 26 : 16),
+                ],
+              ),
               borderRadius: BorderRadius.circular(R.md),
-              border: Border.all(color: C.mint.withAlpha(70), width: 0.8),
+              border: Border.all(color: C.mint.withAlpha(75), width: 0.8),
             ),
             child: Row(
               children: [
-                const Icon(Icons.shield_rounded, size: 15, color: C.mint),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: C.mint.withAlpha(40),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.shield_rounded, size: 13, color: C.mint),
+                ),
+                const SizedBox(width: 9),
                 Expanded(
                   child: Text(
                     '已通过安全检测 · 无病毒 · 无恶意插件',
@@ -294,7 +303,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   Widget _chip(String text, Color color, IconData icon) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
         decoration: BoxDecoration(
-          color: color.withAlpha(context.isDark ? 36 : 26),
+          color: color.withAlpha(context.isDark ? 36 : 24),
           borderRadius: BorderRadius.circular(R.full),
           border: Border.all(color: color.withAlpha(75), width: 0.7),
         ),

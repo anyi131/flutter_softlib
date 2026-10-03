@@ -372,6 +372,8 @@ class MineComponent extends StatelessWidget {
           () => logic.showAgreementPage('agreement')),
       _S('隐私政策', Icons.privacy_tip_rounded, C.pink,
           () => logic.showAgreementPage('privacy')),
+      _S('自定义称号', Icons.badge_rounded, C.violet,
+          () => logic.setCustomTitle()),
       _S('外观设置', Icons.brightness_6_rounded, C.brandBright,
           () => logic.switchTheme()),
       _S('替换开屏', Icons.image_rounded, C.mint, () => logic.replaceSplash()),
