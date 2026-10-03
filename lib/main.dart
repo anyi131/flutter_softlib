@@ -74,27 +74,53 @@ void _configureEasyLoading() {
 }
 
 
-/// 构建亮色主题（现代靛蓝紫配色）
+// ============ SonPro 风格设计系统 ============
+/// 品牌主色（蓝紫）
+const Color kBrandPrimary = Color(0xFF465CFF);
+/// 强调色（橙红，用于按钮/徽标）
+const Color kBrandAccent = Color(0xFFFE5F14);
+/// 浅灰分块背景（亮色模式卡片底）
+const Color kBrandBgLight = Color(0xFFF5F6F7);
+/// 暗色卡片底
+const Color kBrandCardDark = Color(0xFF222222);
+
+/// 亮色主题：白底 + 浅灰分块 + 蓝紫主色
 ThemeData buildLightTheme() {
-  final scheme = FlexScheme.indigo;  // 品牌主色：靛蓝
-  final base = FlexThemeData.light(scheme: scheme).copyWith(
+  return FlexThemeData.light(
+    colors: FlexSchemeColor.from(
+      primary: kBrandPrimary,
+      secondary: kBrandAccent,
+    ),
+    subThemesData: const FlexSubThemesData(),
+  ).copyWith(
+    useMaterial3: true,
+    scaffoldBackgroundColor: kBrandBgLight,
+    cardColor: Colors.white,
     appBarTheme: const AppBarTheme(
       centerTitle: false,
       elevation: 0,
-    ),
-    cardTheme: const CardThemeData(
-      clipBehavior: Clip.antiAlias,
+      backgroundColor: kBrandBgLight,
+      foregroundColor: Color(0xFF181818),
     ),
   );
-  return base;
 }
 
-/// 构建暗色主题
+/// 暗色主题：#1f1f1f 底 + #222 卡片 + 蓝紫主色
 ThemeData buildDarkTheme() {
-  return FlexThemeData.dark(scheme: FlexScheme.indigo).copyWith(
+  return FlexThemeData.dark(
+    colors: FlexSchemeColor.from(
+      primary: kBrandPrimary,
+      secondary: kBrandAccent,
+    ),
+    subThemesData: const FlexSubThemesData(),
+  ).copyWith(
+    useMaterial3: true,
+    scaffoldBackgroundColor: const Color(0xFF1F1F1F),
+    cardColor: kBrandCardDark,
     appBarTheme: const AppBarTheme(
       centerTitle: false,
       elevation: 0,
+      backgroundColor: Color(0xFF1F1F1F),
     ),
   );
 }

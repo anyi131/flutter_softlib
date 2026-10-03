@@ -139,16 +139,16 @@ class _AppListWidgetState extends State<AppListWidget>
           ),
         ),
         trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
           decoration: BoxDecoration(
-            color: scheme.primaryContainer,
+            color: scheme.primary,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Text(
+          child: const Text(
             '查看',
             style: TextStyle(
-              color: scheme.onPrimaryContainer,
-              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
               fontSize: 13,
             ),
           ),
