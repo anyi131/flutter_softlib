@@ -13,6 +13,7 @@ abstract class Routes {
   static const login = _Paths.login;
   static const register = _Paths.register;
   static const reset = _Paths.reset;
+  static const splash = _Paths.splash;
 }
 
 abstract class _Paths {
@@ -27,4 +28,5 @@ abstract class _Paths {
   static const login = '/login';
   static const register = '/register';
   static const reset = '/reset';
+  static const splash = '/splash';
 }

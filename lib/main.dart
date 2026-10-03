@@ -10,6 +10,7 @@ import 'package:flutter_softlib/app/http/http_api.dart';
 import 'package:get/get.dart';
 
 import 'app/routes/app_pages.dart';
+import 'app/widgets/pro_motion.dart';
 import 'app/api/user_service.dart';
 
 /// 应用程序主入口
@@ -137,9 +138,14 @@ class SoftLibApp extends StatelessWidget {
     return GetMaterialApp(
       title: '软件库App',
       debugShowCheckedModeBanner: false,
-      initialRoute: Routes.index,
+      initialRoute: Routes.splash,
       getPages: AppPages.routes,
-      builder: EasyLoading.init(),
+      builder: (context, child) {
+        // 全局高刷：常驻 Ticker 请求设备最高刷新率
+        return HighRefreshScope(
+          child: EasyLoading.init()(context, child),
+        );
+      },
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: ThemeMode.system,

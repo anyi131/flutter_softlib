@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../api/user_service.dart';
+import '../../../utils/jump_util.dart';
 import '../../../utils/toast_util.dart';
 
 /// 我的页逻辑：本地资料（昵称/账号/积分/签到/会员到期）
@@ -34,6 +35,14 @@ class MineLogic extends GetxController {
   /// 已登录用户（为空则未登录）
   UserInfo? get account => _userService.user;
   bool get isLoggedIn => _userService.isLoggedIn;
+
+  /// 是否管理员（仅管理员显示"后台管理"入口）
+  bool get isAdmin => _userService.user?.isAdmin == true;
+
+  /// 打开管理后台（Web）
+  void openAdminPanel() {
+    JumpUtil.openUrl('https://flrjk.52yfx.cn/admin/index.php');
+  }
 
   @override
   void onInit() {
@@ -113,7 +122,8 @@ class MineLogic extends GetxController {
   /// 退出登录
   Future<void> logout() async {
     await _userService.logout();
-    await load();
+    _clearToGuest();
+    update();
     ToastUtil.success('已退出登录');
   }
 
@@ -150,22 +160,24 @@ class MineLogic extends GetxController {
         return;
       }
     }
-    // 未登录：回落到本地资料
-    isVipMember = false;
-    avatarUrl = '';
-    final sp = await SharedPreferences.getInstance();
-    nickname = sp.getString(_kNichname) ?? '';
-    uid = sp.getString(_kUid) ?? '';
-    points = sp.getInt(_kPoints) ?? 1005;
-    vipExpire = sp.getString(_kVipExpire) ?? '';
-    avatarPath = sp.getString(_kAvatar) ?? '';
-    signedDate = sp.getString(_kSignDate) ?? '';
-    if (uid.isEmpty) {
-      // 首次进入生成一个演示账号
-      uid = (262475940 + DateTime.now().millisecondsSinceEpoch % 100000).toString();
-      await sp.setString(_kUid, uid);
-    }
+    // 未登录：清空为游客态（不展示任何伪造账号/昵称/积分）
+    _clearToGuest();
     update();
+  }
+
+  /// 重置为游客状态
+  void _clearToGuest() {
+    nickname = '';
+    uid = '';
+    points = 0;
+    vipExpire = '';
+    avatarUrl = '';
+    avatarPath = '';
+    isVipMember = false;
+    signedDate = '';
+    followCount = 0;
+    fansCount = 0;
+    messageCount = 0;
   }
 
   void toast(String msg) {
@@ -205,6 +217,9 @@ class MineLogic extends GetxController {
 
   /// 签到
   Future<void> signIn() async {
+    if (!_userService.isLoggedIn) {
+      return openLogin();
+    }
     if (signedToday) {
       toast('今天已经签到过啦');
       return;
@@ -220,6 +235,7 @@ class MineLogic extends GetxController {
 
   /// 使用卡密
   Future<void> redeem() async {
+    if (!_userService.isLoggedIn) return openLogin();
     final ctrl = TextEditingController();
     final code = await Get.dialog<String>(
       AlertDialog(

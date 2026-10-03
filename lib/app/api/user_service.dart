@@ -19,6 +19,7 @@ class UserInfo {
   final String vipExpire;
   final String inviteCode;
   final String jointime;
+  final bool isAdmin;
 
   UserInfo({
     required this.id,
@@ -35,6 +36,7 @@ class UserInfo {
     required this.vipExpire,
     required this.inviteCode,
     required this.jointime,
+    this.isAdmin = false,
   });
 
   factory UserInfo.fromJson(Map json) {
@@ -54,6 +56,7 @@ class UserInfo {
       vipExpire: s('vip_expire'),
       inviteCode: s('invite_code'),
       jointime: s('jointime'),
+      isAdmin: json['is_admin'] == true || s('is_admin') == 'true' || s('is_admin') == '1',
     );
   }
 
@@ -75,6 +78,7 @@ class UserInfo {
         'vip_expire': vipExpire,
         'invite_code': inviteCode,
         'jointime': jointime,
+        'is_admin': isAdmin,
       };
 }
 

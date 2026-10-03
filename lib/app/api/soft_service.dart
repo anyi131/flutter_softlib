@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/app_config.dart';
 import '../models/app_item.dart';
 
 /// 软件数据服务（Dio 直连，不依赖 retrofit 生成代码）
@@ -16,6 +17,18 @@ class SoftService {
       receiveTimeout: const Duration(seconds: 15),
     ),
   );
+
+  /// 拉取全局配置（开屏/公告/远程控制）
+  Future<AppConfig?> fetchConfig() async {
+    try {
+      final resp = await _dio.get('/api/softlib/config/index');
+      final data = resp.data;
+      if (data is Map && data['code'] == 1 && data['data'] is Map) {
+        return AppConfig.fromJson(Map<String, dynamic>.from(data['data']));
+      }
+    } catch (_) {}
+    return null;
+  }
 
   /// 软件列表（catId=0 / keyword 为空表示全部）
   Future<List<AppItem>> fetchApps({int catId = 0, String keyword = ''}) async {

@@ -112,30 +112,32 @@ class MineComponent extends StatelessWidget {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      logic.uid.isEmpty ? '账号：未登录' : '账号：${logic.uid}',
+                      logic.isLoggedIn ? '账号：${logic.uid}' : '登录后享受完整功能',
                       style: TextStyle(fontSize: 12.5, color: Colors.grey[500]),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        // 积分胶囊
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEDE9FE),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '当前积分：${logic.points}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF6D28D9),
+                        if (logic.isLoggedIn) ...[
+                          // 积分胶囊（仅登录后展示）
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDE9FE),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '当前积分：${logic.points}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF6D28D9),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
+                          const SizedBox(width: 8),
+                        ],
                         // 会员标识
                         _vipBadge(logic),
                       ],
@@ -198,20 +200,20 @@ class MineComponent extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _statItem('消息', logic.messageCount.toString(),
-              badge: logic.messageCount > 0,
+          _statItem('消息', logic.isLoggedIn ? logic.messageCount.toString() : '-',
+              badge: logic.isLoggedIn && logic.messageCount > 0,
               icon: Icons.mark_chat_unread_outlined,
               color: const Color(0xFFEF4444),
               onTap: () => logic.toast('消息中心即将上线')),
-          _statItem('关注', logic.followCount.toString(),
+          _statItem('关注', logic.isLoggedIn ? logic.followCount.toString() : '-',
               icon: Icons.person_add_alt_outlined,
               color: const Color(0xFFF59E0B),
               onTap: () => logic.toast('关注列表即将上线')),
-          _statItem('粉丝', logic.fansCount.toString(),
+          _statItem('粉丝', logic.isLoggedIn ? logic.fansCount.toString() : '-',
               icon: Icons.groups_outlined,
               color: const Color(0xFF3B82F6),
               onTap: () => logic.toast('粉丝列表即将上线')),
-          _statItem('签到', logic.signedToday ? '✓' : '签到',
+          _statItem('签到', !logic.isLoggedIn ? '-' : (logic.signedToday ? '✓' : '签到'),
               icon: Icons.check_circle_outline,
               color: const Color(0xFFEF4444),
               onTap: logic.signIn),
@@ -267,7 +269,9 @@ class MineComponent extends StatelessWidget {
   // ===== 会员卡横幅（深蓝渐变 + 到期时间 + 续费） =====
   Widget _buildVipBar(BuildContext context, MineLogic logic) {
     return GestureDetector(
-      onTap: () => Get.toNamed(Routes.vip),
+      onTap: () => logic.isLoggedIn
+          ? Get.toNamed(Routes.vip)
+          : logic.openLogin(),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 14),
         padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
@@ -309,7 +313,11 @@ class MineComponent extends StatelessWidget {
                           fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
                   Text(
-                    logic.vipExpire.isEmpty ? '未开通' : '到期时间 ${logic.vipExpire}',
+                    !logic.isLoggedIn
+                        ? '登录后可开通会员'
+                        : (logic.vipExpire.isEmpty
+                            ? '未开通'
+                            : '到期时间 ${logic.vipExpire}'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -358,6 +366,10 @@ class MineComponent extends StatelessWidget {
           () => logic.showAgreement('隐私政策', '这是隐私政策内容占位，请在后台配置。')),
       _GridItem('替换开屏', Icons.image_outlined, const Color(0xFF8B5CF6),
           () => logic.toast('替换开屏功能即将上线')),
+      // ★ 仅管理员可见
+      if (logic.isAdmin)
+        _GridItem('后台管理', Icons.admin_panel_settings,
+            const Color(0xFFDC2626), () => logic.openAdminPanel()),
     ];
 
     return Container(
