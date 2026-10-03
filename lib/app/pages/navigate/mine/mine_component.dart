@@ -1,337 +1,315 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-
-import '../../../design/app_theme.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/assets.dart';
+import '../../../design/ui.dart';
 import '../../../routes/app_pages.dart';
 import '../../navigate/navigate_logic.dart';
-import '../../../widgets/tab_bottom_pad.dart';
 import 'mine_logic.dart';
 
-/// 我的 - 个人中心（按用户截图复刻：用户信息 / 积分VIP / 统计 / 会员卡 / 服务宫格）
+/// 我的 —— 沉浸式个人中心
+///
+/// 结构：
+///  ① 头像卡（玻璃 + 极光描边 + 积分/VIP 徽标）
+///  ② 数据条（消息/关注/粉丝/签到）
+///  ③ 会员横幅（金色渐变，独立视觉重量）
+///  ④ 服务宫格（4 列，渐变图标）
+///  ⑤ 退出/登录按钮
 class MineComponent extends StatelessWidget {
   const MineComponent({super.key});
-  static const Color kVipGold = Color(0xFFC9A227);
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark ? AppColor.bgDark : AppColor.bgLight;
-    final cardBg = isDark ? const Color(0xFF222222) : Colors.white;
-
     return Scaffold(
-      backgroundColor: scaffoldBg,
-      body: GetBuilder<MineLogic>(
-        init: Get.put(MineLogic(), tag: 'mine'),
-        tag: 'mine',
-        builder: (logic) {
-          return RefreshIndicator(
-            onRefresh: logic.load,
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _buildHeader(context, logic, isDark),
-                const SizedBox(height: 12),
-                _buildStats(context, logic, cardBg, isDark),
-                const SizedBox(height: 12),
-                _buildVipBar(context, logic),
-                const SizedBox(height: 14),
-                _buildServiceGrid(context, logic, cardBg, isDark),
-                SizedBox(height: tabBottomPadding(context)),
-              ],
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Deco.pageBackground(context),
+          SafeArea(
+            bottom: false,
+            child: GetBuilder<MineLogic>(
+              init: Get.put(MineLogic(), tag: 'mine'),
+              tag: 'mine',
+              builder: (logic) {
+                return RefreshIndicator(
+                  onRefresh: logic.load,
+                  child: ListView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 130),
+                    children: [
+                      _title(context),
+                      const SizedBox(height: 16),
+                      _profileCard(context, logic),
+                      const SizedBox(height: 14),
+                      _statsRow(context, logic),
+                      const SizedBox(height: 14),
+                      _vipBanner(context, logic),
+                      const SizedBox(height: 20),
+                      _sectionTitle(context, '我的服务'),
+                      const SizedBox(height: 10),
+                      _serviceGrid(context, logic),
+                      const SizedBox(height: 18),
+                      _actionButton(context, logic),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 
-  // ===== 顶部：头像 + 昵称 + 账号 + 积分/改名 =====
-  Widget _buildHeader(BuildContext context, MineLogic logic, bool isDark) {
-    final light = isDark ? const Color(0xFF222222) : Colors.white;
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      color: light,
-      padding: const EdgeInsets.fromLTRB(18, 50, 18, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('个人主页',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-              const Spacer(),
-              Icon(Icons.more_horiz, color: Colors.grey[500]),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text('欢迎使用安逸软件库',
-              style: TextStyle(fontSize: 12.5, color: Colors.grey[500])),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              // 头像
-              GestureDetector(
-                onTap: () => logic.isLoggedIn
-                    ? logic.openProfileEdit()
-                    : logic.openLogin(),
-                child: Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFEDEFF5),
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: logic.avatarUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: logic.avatarUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => _defaultAvatar(scheme),
-                          errorWidget: (_, __, ___) => _defaultAvatar(scheme),
-                        )
-                      : _defaultAvatar(scheme),
-                ),
+  Widget _title(BuildContext context) {
+    return Row(
+      children: [
+        Text('我的', style: Ty.display.copyWith(color: context.t1)),
+        const Spacer(),
+        GestureDetector(
+          onTap: () => Get.find<NavigateLogic>().changePage(0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: context.isDark ? Colors.white.withAlpha(12) : Colors.white,
+              borderRadius: BorderRadius.circular(R.full),
+              border: Border.all(
+                color: context.isDark
+                    ? Colors.white.withAlpha(18)
+                    : Colors.black.withAlpha(8),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.home_rounded, size: 14, color: context.t3),
+                const SizedBox(width: 5),
+                Text('回首页', style: Ty.tiny.copyWith(color: context.t3)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ───────── ① 头像卡 ─────────
+  Widget _profileCard(BuildContext context, MineLogic logic) {
+    final logged = logic.isLoggedIn;
+    return Deco.glass(
+      context,
+      radius: R.xl,
+      alpha: 0.07,
+      padding: const EdgeInsets.all(18),
+      glow: C.brand,
+      child: Row(
+        children: [
+          // 头像 + 光晕环
+          GestureDetector(
+            onTap: () =>
+                logged ? logic.openProfileEdit() : logic.openLogin(),
+            child: Container(
+              padding: const EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: logged ? Deco.goldGradient : Deco.brandGradient,
+              ),
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: C.bg2,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: logic.avatarUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: logic.avatarUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _defaultAvatar(),
+                        errorWidget: (_, __, ___) => _defaultAvatar(),
+                      )
+                    : _defaultAvatar(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () =>
+                      logged ? logic.openProfileEdit() : logic.openLogin(),
+                  child: Text(
+                    logic.nickname.isEmpty ? '点击登录' : logic.nickname,
+                    style: Ty.h1.copyWith(color: context.t1, fontSize: 21),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  logged ? '账号 ${logic.uid}' : '登录后享受完整功能',
+                  style: Ty.small.copyWith(color: context.t3),
+                ),
+                const SizedBox(height: 10),
+                Row(
                   children: [
-                    GestureDetector(
-                      onTap: () => logic.isLoggedIn
-                          ? logic.openProfileEdit()
-                          : logic.openLogin(),
-                      child: Text(
-                        logic.nickname.isEmpty ? '点击登录' : logic.nickname,
-                        style: const TextStyle(
-                            fontSize: 19, fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      logic.isLoggedIn ? '账号：${logic.uid}' : '登录后享受完整功能',
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey[500]),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        if (logic.isLoggedIn) ...[
-                          // 积分胶囊（仅登录后展示）
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEDE9FE),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '当前积分：${logic.points}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF6D28D9),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        // 会员标识
-                        _vipBadge(logic),
-                      ],
+                    if (logged) ...[
+                      _badge(context, '积分 ${logic.points}', C.violet),
+                      const SizedBox(width: 7),
+                    ],
+                    _badge(
+                      context,
+                      logic.isVip ? 'VIP 会员' : '未开通 VIP',
+                      logic.isVip ? C.amber : C.t3,
+                      icon: Icons.workspace_premium_rounded,
                     ),
                   ],
                 ),
-              ),
-              TextButton(
-                onPressed: () => logic.isLoggedIn
-                    ? logic.openProfileEdit()
-                    : logic.openLogin(),
-                child: Text(logic.isLoggedIn ? '编辑' : '登录',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-              ),
-            ],
+              ],
+            ),
           ),
+          Icon(Icons.chevron_right_rounded, color: context.t3, size: 22),
         ],
       ),
     );
   }
 
-  /// 未登录/无头像时的默认头像（干净的人形图标）
-  Widget _defaultAvatar(ColorScheme scheme) {
-    return Container(
-      color: const Color(0xFFEEF1F8),
-      alignment: Alignment.center,
-      child: Icon(Icons.person_rounded, size: 34, color: scheme.primary.withAlpha(170)),
-    );
-  }
+  Widget _defaultAvatar() => Container(
+        color: C.bg3,
+        alignment: Alignment.center,
+        child: const Icon(Icons.person_rounded, size: 34, color: C.brandBright),
+      );
 
-  Widget _vipBadge(MineLogic logic) {
-    final active = logic.isVip;
+  Widget _badge(BuildContext context, String text, Color color,
+      {IconData? icon}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        gradient: active
-            ? const LinearGradient(colors: [Color(0xFF2B2B2B), Color(0xFF4A3E22)])
-            : null,
-        color: active ? null : const Color(0xFFEFEFEF),
-        borderRadius: BorderRadius.circular(20),
+        color: color.withAlpha(context.isDark ? 38 : 26),
+        borderRadius: BorderRadius.circular(R.full),
+        border: Border.all(color: color.withAlpha(80), width: 0.7),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.workspace_premium_rounded,
-              size: 13, color: active ? const Color(0xFFF5D283) : Colors.grey[600]),
-          const SizedBox(width: 4),
-          Text(
-            active ? 'VIP 会员' : '未开通VIP',
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: active ? const Color(0xFFF5D283) : Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===== 统计行：消息 / 关注 / 粉丝 / 签到 =====
-  Widget _buildStats(
-      BuildContext context, MineLogic logic, Color cardBg, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14),
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          _statItem('消息', logic.isLoggedIn ? logic.messageCount.toString() : '-',
-              badge: logic.isLoggedIn && logic.messageCount > 0,
-              icon: Icons.mark_chat_unread_outlined,
-              color: const Color(0xFFEF4444),
-              onTap: () => logic.toast('消息中心即将上线')),
-          _statItem('关注', logic.isLoggedIn ? logic.followCount.toString() : '-',
-              icon: Icons.person_add_alt_outlined,
-              color: const Color(0xFFF59E0B),
-              onTap: () => logic.toast('关注列表即将上线')),
-          _statItem('粉丝', logic.isLoggedIn ? logic.fansCount.toString() : '-',
-              icon: Icons.groups_outlined,
-              color: const Color(0xFF3B82F6),
-              onTap: () => logic.toast('粉丝列表即将上线')),
-          _statItem('签到', !logic.isLoggedIn ? '-' : (logic.signedToday ? '✓' : '签到'),
-              icon: Icons.check_circle_outline,
-              color: const Color(0xFFEF4444),
-              onTap: logic.signIn),
-        ],
-      ),
-    );
-  }
-
-  Widget _statItem(
-    String label,
-    String value, {
-    required IconData icon,
-    required Color color,
-    VoidCallback? onTap,
-    bool badge = false,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(icon, size: 24, color: color),
-                if (badge)
-                  Positioned(
-                    right: -6,
-                    top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('1',
-                          style: TextStyle(color: Colors.white, fontSize: 10)),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(value,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
           ],
-        ),
+          Text(text,
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w800, color: color)),
+        ],
       ),
     );
   }
 
-  // ===== 会员卡横幅（深蓝渐变 + 到期时间 + 续费） =====
-  Widget _buildVipBar(BuildContext context, MineLogic logic) {
+  // ───────── ② 数据条 ─────────
+  Widget _statsRow(BuildContext context, MineLogic logic) {
+    final items = [
+      ('消息', logic.isLoggedIn ? '${logic.messageCount}' : '-',
+          Icons.chat_bubble_rounded, C.brandBright),
+      ('关注', logic.isLoggedIn ? '${logic.followCount}' : '-',
+          Icons.person_add_rounded, C.cyan),
+      ('粉丝', logic.isLoggedIn ? '${logic.fansCount}' : '-',
+          Icons.groups_rounded, C.mint),
+      ('签到', !logic.isLoggedIn
+          ? '-'
+          : (logic.signedToday ? '已签' : '签到'),
+          Icons.verified_rounded, C.amber),
+    ];
+    return Deco.glass(
+      context,
+      radius: R.lg,
+      alpha: 0.055,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          for (int i = 0; i < items.length; i++) ...[
+            if (i > 0)
+              Container(
+                width: 1,
+                height: 26,
+                color: context.isDark
+                    ? Colors.white.withAlpha(14)
+                    : Colors.black.withAlpha(8),
+              ),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  if (!logic.isLoggedIn) return logic.openLogin();
+                  if (items[i].$1 == '签到') logic.signIn();
+                },
+                child: Column(
+                  children: [
+                    Icon(items[i].$3, size: 19, color: items[i].$4),
+                    const SizedBox(height: 7),
+                    Text(items[i].$2,
+                        style: Ty.h3.copyWith(color: context.t1, fontSize: 14)),
+                    const SizedBox(height: 2),
+                    Text(items[i].$1,
+                        style: Ty.tiny.copyWith(color: context.t3)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ───────── ③ 会员横幅 ─────────
+  Widget _vipBanner(BuildContext context, MineLogic logic) {
     return GestureDetector(
-      onTap: () => logic.isLoggedIn
-          ? Get.toNamed(Routes.vip)
-          : logic.openLogin(),
+      onTap: () =>
+          logic.isLoggedIn ? Get.toNamed(Routes.vip) : logic.openLogin(),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 14),
-        padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+        padding: const EdgeInsets.fromLTRB(18, 17, 16, 17),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF3B4FE0), Color(0xFF2B36B8)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
+          gradient: Deco.goldGradient,
+          borderRadius: BorderRadius.circular(R.lg),
           boxShadow: [
             BoxShadow(
-              color: AppColor.primary.withAlpha(70),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
+              color: C.amber.withAlpha(context.isDark ? 60 : 45),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Color(0x33FFFFFF),
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(50),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.workspace_premium_rounded,
-                  color: Color(0xFFFFD666), size: 22),
+                  color: Color(0xFF3A2E10), size: 21),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 13),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('赞助会员',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFF3A2E10),
                           fontSize: 15,
-                          fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
+                          fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 3),
                   Text(
                     !logic.isLoggedIn
                         ? '登录后可开通会员'
                         : (logic.vipExpire.isEmpty
-                            ? '未开通'
-                            : '到期时间 ${logic.vipExpire}'),
+                            ? '开通享全部特权'
+                            : '有效期至 ${logic.vipExpire}'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: Colors.white.withAlpha(215), fontSize: 12.5),
+                    style: const TextStyle(
+                        color: Color(0xCC3A2E10), fontSize: 12),
                   ),
                 ],
               ),
@@ -339,14 +317,14 @@ class MineComponent extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                color: const Color(0xFF2B2410),
+                borderRadius: BorderRadius.circular(R.full),
               ),
-              child: const Text('续费会员',
+              child: const Text('立即开通',
                   style: TextStyle(
-                      color: Color(0xFF2B36B8),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12.5)),
+                      color: Color(0xFFF7D57A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900)),
             ),
           ],
         ),
@@ -354,123 +332,136 @@ class MineComponent extends StatelessWidget {
     );
   }
 
-  // ===== 服务宫格（四列，两组） =====
-  Widget _buildServiceGrid(
-      BuildContext context, MineLogic logic, Color cardBg, bool isDark) {
-    final items = <_GridItem>[
-      _GridItem('赞助排行榜', Icons.emoji_events, const Color(0xFFF59E0B),
-          () => logic.toast('赞助排行榜即将上线')),
-      _GridItem('使用卡密', Icons.confirmation_number, const Color(0xFFEF4444),
+  // ───────── ④ 服务宫格 ─────────
+  Widget _sectionTitle(BuildContext context, String t) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            gradient: Deco.aurora(),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 9),
+        Text(t, style: Ty.h3.copyWith(color: context.t1, fontSize: 16)),
+      ],
+    );
+  }
+
+  Widget _serviceGrid(BuildContext context, MineLogic logic) {
+    final items = <_S>[
+      _S('赞助排行', Icons.emoji_events_rounded, C.amber,
+          () => logic.sponsorRank()),
+      _S('使用卡密', Icons.confirmation_number_rounded, C.rose,
           () => logic.redeem()),
-      _GridItem('下载管理', Icons.download_rounded, const Color(0xFF10B981),
+      _S('下载管理', Icons.download_rounded, C.mint,
           () => Get.toNamed(Routes.appDownload)),
-      _GridItem('QQ通知群', Icons.forum, const Color(0xFF22C55E),
-          () => logic.joinGroup()),
-      _GridItem('积分兑换', Icons.monetization_on_outlined, const Color(0xFFF97316),
-          () => logic.toast('积分兑换即将上线')),
-      _GridItem('关于软件', Icons.info_outline, const Color(0xFF3B82F6),
+      _S('QQ通知群', Icons.forum_rounded, C.cyan, () => logic.joinGroup()),
+      _S('积分兑换', Icons.monetization_on_rounded, C.accentOrange,
+          () => logic.pointsExchange()),
+      _S('关于软件', Icons.info_rounded, C.brandBright,
           () => logic.about(context)),
-      _GridItem('用户协议', Icons.description_outlined, const Color(0xFF0EA5E9),
+      _S('用户协议', Icons.description_rounded, C.violet,
           () => logic.showAgreementPage('agreement')),
-      _GridItem('隐私政策', Icons.privacy_tip_outlined, const Color(0xFFB45309),
+      _S('隐私政策', Icons.privacy_tip_rounded, C.pink,
           () => logic.showAgreementPage('privacy')),
-      _GridItem('替换开屏', Icons.image_outlined, const Color(0xFF8B5CF6),
-          () => logic.toast('替换开屏功能即将上线')),
-      // ★ 仅管理员可见
+      _S('替换开屏', Icons.image_rounded, C.mint, () => logic.replaceSplash()),
       if (logic.isAdmin)
-        _GridItem('后台管理', Icons.admin_panel_settings,
-            const Color(0xFFDC2626), () => logic.openAdminPanel()),
+        _S('后台管理', Icons.admin_panel_settings_rounded, C.rose,
+            () => logic.openAdminPanel()),
     ];
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14),
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
+        color: context.isDark
+            ? Colors.white.withAlpha(14)
+            : Colors.white.withAlpha(240),
+        borderRadius: BorderRadius.circular(R.lg),
+        border: Border.all(
+          color: context.isDark
+              ? Colors.white.withAlpha(18)
+              : Colors.black.withAlpha(8),
+          width: 0.8,
+        ),
       ),
       child: Column(
         children: [
           for (int i = 0; i < items.length; i += 4)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
                   for (int j = i; j < i + 4; j++)
                     Expanded(
                       child: j < items.length
-                          ? _gridCell(items[j], isDark)
+                          ? _gridCell(context, items[j])
                           : const SizedBox.shrink(),
                     ),
                 ],
               ),
             ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  backgroundColor:
-                      isDark ? const Color(0xFF1A1A1A) : const Color(0xFF23262B),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  side: BorderSide.none,
-                ),
-                onPressed: () => logic.isLoggedIn
-                    ? logic.logout()
-                    : logic.openLogin(),
-                child: Text(logic.isLoggedIn ? '退出登录' : '登录 / 注册',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _gridCell(_GridItem item, bool isDark) {
-    return InkWell(
-      onTap: item.onTap,
+  Widget _gridCell(BuildContext context, _S s) {
+    return GestureDetector(
+      onTap: s.onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 6),
         child: Column(
           children: [
             Container(
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: item.color.withAlpha(isDark ? 46 : 26),
-                borderRadius: BorderRadius.circular(14),
+                color: s.color.withAlpha(context.isDark ? 34 : 24),
+                borderRadius: BorderRadius.circular(R.md),
+                border: Border.all(color: s.color.withAlpha(60), width: 0.8),
               ),
-              child: Icon(item.icon, color: item.color, size: 23),
+              child: Icon(s.icon, color: s.color, size: 22),
             ),
             const SizedBox(height: 8),
-            Text(
-              item.label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white70 : Colors.black87,
-              ),
-            ),
+            Text(s.label,
+                style: Ty.tiny.copyWith(
+                    color: context.t2, fontWeight: FontWeight.w700)),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ───────── ⑤ 底部按钮 ─────────
+  Widget _actionButton(BuildContext context, MineLogic logic) {
+    final logged = logic.isLoggedIn;
+    return SizedBox(
+      height: 52,
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor:
+              logged ? C.rose.withAlpha(30) : C.brand,
+          foregroundColor: logged ? C.rose : Colors.white,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(R.full)),
+        ),
+        onPressed: () => logged ? logic.logout() : logic.openLogin(),
+        child: Text(
+          logged ? '退出登录' : '登录 / 注册',
+          style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
         ),
       ),
     );
   }
 }
 
-class _GridItem {
+class _S {
   final String label;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  _GridItem(this.label, this.icon, this.color, this.onTap);
+  _S(this.label, this.icon, this.color, this.onTap);
 }

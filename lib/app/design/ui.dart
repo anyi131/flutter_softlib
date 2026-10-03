@@ -1,0 +1,374 @@
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+
+/// ═══════════════════════════════════════════════════════════════
+///  全新设计语言 v2 —— 「沉浸式玻璃拟态」
+///
+///  设计理念：
+///   · 深色为主基调，用渐变光晕营造空间感
+///   · 玻璃拟态卡片（半透明 + 模糊 + 细描边），替代纯色卡片堆叠
+///   · 大圆角（20-28）、大留白，信息层级靠排版对比而非分割线
+///   · 强调色作为「光」使用（渐变、光晕、描边），而非大面积填充
+/// ═══════════════════════════════════════════════════════════════
+
+/// ─────────── 配色 ───────────
+class C {
+  C._();
+
+  // 品牌色（极光蓝紫）
+  static const brand = Color(0xFF5B6CFF);
+  static const brandBright = Color(0xFF7B8CFF);
+  static const brandDeep = Color(0xFF3D4FE0);
+
+  // 强调色
+  static const cyan = Color(0xFF22D3EE);
+  static const violet = Color(0xFFA78BFA);
+  static const pink = Color(0xFFF472B6);
+  static const amber = Color(0xFFFBBF24);
+  static const mint = Color(0xFF34D399);
+  static const rose = Color(0xFFFB7185);
+  static const accentOrange = Color(0xFFFB923C);
+
+  // 深色底（三层景深）
+  static const bg0 = Color(0xFF0A0B10); // 最深（页面底）
+  static const bg1 = Color(0xFF101219); // 中间层
+  static const bg2 = Color(0xFF161923); // 卡片层
+  static const bg3 = Color(0xFF1E2230); // 悬浮层
+
+  // 浅色底
+  static const lbg0 = Color(0xFFF7F8FC);
+  static const lbg1 = Color(0xFFFFFFFF);
+  static const lbg2 = Color(0xFFF0F2F8);
+
+  // 文字（深色模式）
+  static const t1 = Color(0xFFF6F7FB); // 主
+  static const t2 = Color(0xFFA8AEC1); // 次
+  static const t3 = Color(0xFF6B7288); // 弱
+
+  // 文字（浅色模式）
+  static const lt1 = Color(0xFF14161E);
+  static const lt2 = Color(0xFF5A6172);
+  static const lt3 = Color(0xFF9AA1B2);
+
+  // 玻璃描边
+  static const stroke = Color(0xFFFFFFFF);
+}
+
+/// ─────────── 圆角 ───────────
+class R {
+  R._();
+  static const double xs = 8;
+  static const double sm = 12;
+  static const double md = 16;
+  static const double lg = 20;
+  static const double xl = 26;
+  static const double xxl = 32;
+  static const double full = 999;
+}
+
+/// ─────────── 玻璃 / 渐变 装饰 ───────────
+class Deco {
+  Deco._();
+
+  static bool dark(BuildContext c) =>
+      Theme.of(c).brightness == Brightness.dark;
+
+  /// 主背景：深色页面底 + 顶部品牌光晕
+  static Widget pageBackground(BuildContext context, {Widget? child}) {
+    final isDark = dark(context);
+    return Stack(
+      children: [
+        // 底色
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? C.bg0 : C.lbg0,
+            ),
+          ),
+        ),
+        // 顶部光晕（品牌色）
+        Positioned(
+          top: -160,
+          left: -80,
+          right: -80,
+          child: Container(
+            height: 380,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  C.brand.withAlpha(isDark ? 70 : 40),
+                  C.brand.withAlpha(0),
+                ],
+                radius: 0.75,
+              ),
+            ),
+          ),
+        ),
+        // 右侧副光晕（青色）
+        Positioned(
+          top: 220,
+          right: -120,
+          child: Container(
+            width: 300,
+            height: 300,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  C.cyan.withAlpha(isDark ? 38 : 22),
+                  C.cyan.withAlpha(0),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (child != null) Positioned.fill(child: child),
+      ],
+    );
+  }
+
+  /// 玻璃卡片
+  static Widget glass(
+    BuildContext context, {
+    required Widget child,
+    double radius = R.lg,
+    double blur = 18,
+    double alpha = 0.06,
+    EdgeInsets? padding,
+    EdgeInsets? margin,
+    VoidCallback? onTap,
+    Color? glow,
+    Gradient? gradient,
+  }) {
+    final isDark = dark(context);
+    final content = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        gradient: gradient,
+        color: gradient == null
+            ? (isDark
+                ? Colors.white.withAlpha((alpha * 255).round())
+                : Colors.white.withAlpha(235))
+            : null,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: isDark
+              ? C.stroke.withAlpha(22)
+              : Colors.black.withAlpha(9),
+          width: 0.8,
+        ),
+        boxShadow: glow != null
+            ? [
+                BoxShadow(
+                  color: glow.withAlpha(isDark ? 60 : 38),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : (isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: const Color(0xFF1A1D26).withAlpha(14),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]),
+      ),
+      child: child,
+    );
+
+    Widget wrapped = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: content,
+      ),
+    );
+    if (margin != null) {
+      wrapped = Padding(padding: margin, child: wrapped);
+    }
+    if (onTap != null) {
+      wrapped = GestureDetector(onTap: onTap, child: wrapped);
+    }
+    return wrapped;
+  }
+
+  /// 品牌渐变
+  static const brandGradient = LinearGradient(
+    colors: [C.brandBright, C.brand],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// 极光渐变（多色）
+  static LinearGradient aurora({double a = 1}) => LinearGradient(
+        colors: [
+          C.brand.withAlpha((255 * a).round()),
+          C.violet.withAlpha((255 * a).round()),
+          C.cyan.withAlpha((255 * a).round()),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  /// 金色（会员）
+  static const goldGradient = LinearGradient(
+    colors: [Color(0xFFF7D57A), Color(0xFFC9A227)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// 渐变描边容器（1px 光边）
+  static Widget gradientBorder({
+    required Widget child,
+    double radius = R.lg,
+    Gradient? gradient,
+    double width = 1.2,
+    EdgeInsets? padding,
+  }) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        gradient: gradient ?? brandGradient,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: C.bg2,
+          borderRadius: BorderRadius.circular(radius - width),
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  /// 光晕圆点（装饰）
+  static Widget orb(Color color, double size, {double alpha = 0.35}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color.withAlpha((255 * alpha).round()), color.withAlpha(0)],
+        ),
+      ),
+    );
+  }
+}
+
+/// ─────────── 排版 ───────────
+class Ty {
+  Ty._();
+  static const display = TextStyle(
+      fontSize: 30, fontWeight: FontWeight.w900, height: 1.15, letterSpacing: -1);
+  static const h1 = TextStyle(
+      fontSize: 23, fontWeight: FontWeight.w900, height: 1.2, letterSpacing: -0.6);
+  static const h2 = TextStyle(
+      fontSize: 18, fontWeight: FontWeight.w800, height: 1.25, letterSpacing: -0.3);
+  static const h3 = TextStyle(
+      fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -0.2);
+  static const body = TextStyle(fontSize: 14, height: 1.62);
+  static const small = TextStyle(fontSize: 12.5, height: 1.5);
+  static const tiny = TextStyle(fontSize: 11, height: 1.4);
+}
+
+/// 主题
+ThemeData buildNewTheme({required bool dark}) {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: C.brand,
+    brightness: dark ? Brightness.dark : Brightness.light,
+    primary: C.brand,
+  );
+  return ThemeData(
+    useMaterial3: true,
+    brightness: dark ? Brightness.dark : Brightness.light,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: dark ? C.bg0 : C.lbg0,
+    canvasColor: dark ? C.bg1 : C.lbg1,
+    cardColor: dark ? C.bg2 : Colors.white,
+    dividerColor: dark ? Colors.white.withAlpha(16) : Colors.black.withAlpha(10),
+    appBarTheme: AppBarTheme(
+      centerTitle: false,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: dark ? C.t1 : C.lt1,
+      titleTextStyle: TextStyle(
+        fontSize: 19,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -0.5,
+        color: dark ? C.t1 : C.lt1,
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: C.brand,
+        foregroundColor: Colors.white,
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(R.full)),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: dark ? Colors.white.withAlpha(10) : Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(R.md),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(R.md),
+        borderSide: BorderSide(
+            color: dark ? Colors.white.withAlpha(18) : Colors.black.withAlpha(8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(R.md),
+        borderSide: const BorderSide(color: C.brand, width: 1.5),
+      ),
+      hintStyle:
+          TextStyle(fontSize: 13.5, color: dark ? C.t3 : C.lt3),
+    ),
+    tabBarTheme: TabBarThemeData(
+      indicatorSize: TabBarIndicatorSize.label,
+      indicatorColor: C.brand,
+      labelColor: C.brand,
+      unselectedLabelColor: dark ? C.t2 : C.lt2,
+      dividerColor: Colors.transparent,
+      labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+      unselectedLabelStyle:
+          const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: dark ? C.bg2 : Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.xl)),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: dark ? C.bg1 : Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(R.xxl)),
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: dark ? C.bg3 : const Color(0xFF22252E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
+    ),
+    splashFactory: InkSparkle.splashFactory,
+    visualDensity: VisualDensity.adaptivePlatformDensity,
+  );
+}
+
+/// 便捷取色扩展
+extension CX on BuildContext {
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
+  Color get t1 => isDark ? C.t1 : C.lt1;
+  Color get t2 => isDark ? C.t2 : C.lt2;
+  Color get t3 => isDark ? C.t3 : C.lt3;
+  Color get cardBg => isDark ? C.bg2 : Colors.white;
+}

@@ -12,7 +12,10 @@ import 'package:photo_view/photo_view.dart';
 
 import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
+import 'dart:ui';
+
 import '../../config.dart';
+import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import '../../models/app_item.dart';
 import '../../routes/app_pages.dart';
@@ -42,115 +45,162 @@ class _AppDetailsPageState extends State<AppDetailsPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
     return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: bg,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        title: Text(item?.title ?? '软件详情',
-            style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share_outlined, size: 21),
-            onPressed: () => logic.showSharePopUps(context),
-          ),
-        ],
-      ),
-      body: GetBuilder<AppDetailsLogic>(
-        id: 'appInfo',
-        builder: (logic) {
-          if (logic.isLoadingInfo) {
-            return const Center(child: CircularProgressIndicator(strokeWidth: 3));
-          }
-          if (logic.appInfo == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Deco.pageBackground(context),
+          GetBuilder<AppDetailsLogic>(
+            id: 'appInfo',
+            builder: (logic) {
+              if (logic.isLoadingInfo) {
+                return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 3));
+              }
+              if (logic.appInfo == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.cloud_off_rounded,
+                          size: 54, color: context.t3.withAlpha(110)),
+                      const SizedBox(height: 14),
+                      Text(logic.msgError ?? '获取软件信息失败',
+                          style: Ty.small.copyWith(color: context.t2)),
+                      const SizedBox(height: 18),
+                      FilledButton.tonal(
+                          onPressed: logic.getAppInfo,
+                          child: const Text('重新加载')),
+                    ],
+                  ),
+                );
+              }
+              return ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
                 children: [
-                  Icon(Icons.cloud_off,
-                      size: 54, color: Colors.grey.withAlpha(110)),
+                  _hero(),
+                  const SizedBox(height: 14),
+                  _info(),
+                  const SizedBox(height: 16),
+                  _tabBarCard(context.isDark),
                   const SizedBox(height: 12),
-                  Text(logic.msgError ?? '获取软件信息失败',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-                  const SizedBox(height: 18),
-                  FilledButton.tonal(
-                      onPressed: logic.getAppInfo, child: const Text('重新加载')),
+                  AnimatedBuilder(
+                    animation: _tab,
+                    builder: (context, _) => _tab.index == 0
+                        ? _detail(context.isDark)
+                        : ReviewTab(appId: item?.id ?? 0),
+                  ),
                 ],
-              ),
-            );
-          }
-          // 单一 ListView：主卡/数据卡/Tab栏/内容全部是列表项，整页一个滚动容器
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-            children: [
-              _hero(isDark),
-              const SizedBox(height: 10),
-              _info(isDark),
-              const SizedBox(height: 12),
-              _tabBarCard(isDark),
-              const SizedBox(height: 10),
-              // Tab 内容（随页面一起滚动，不独立滚动）
-              AnimatedBuilder(
-                animation: _tab,
-                builder: (context, _) => _tab.index == 0
-                    ? _detail(isDark)
-                    : ReviewTab(appId: item?.id ?? 0),
-              ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+          // 顶部导航（玻璃）
+          _topBar(),
+        ],
       ),
       bottomNavigationBar: _bottom(),
     );
   }
 
-  // ============ 主卡 ============
-  Widget _hero(bool isDark) {
+  /// 顶部返回/分享（悬浮玻璃）
+  Widget _topBar() {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 6,
+              bottom: 8,
+              left: 12,
+              right: 12,
+            ),
+            color: (context.isDark ? C.bg0 : C.lbg0).withAlpha(150),
+            child: Row(
+              children: [
+                _topBtn(Icons.arrow_back_ios_new_rounded, () => Get.back()),
+                const Spacer(),
+                Text(
+                  item?.title ?? '软件详情',
+                  style: Ty.h3.copyWith(color: context.t1, fontSize: 15),
+                ),
+                const Spacer(),
+                _topBtn(Icons.ios_share_rounded,
+                    () => logic.showSharePopUps(context)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _topBtn(IconData i, VoidCallback f) => GestureDetector(
+        onTap: f,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: context.isDark ? Colors.white.withAlpha(14) : Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: context.isDark
+                  ? Colors.white.withAlpha(20)
+                  : Colors.black.withAlpha(8),
+            ),
+          ),
+          child: Icon(i, size: 16, color: context.t1),
+        ),
+      );
+
+  // ═════════ 主卡 ═════════
+  Widget _hero() {
     final it = item;
     final info = logic.appInfo;
     final isVipItem = it?.isVipItem ?? false;
     final icon = info?.fileIcon ?? '';
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColor.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return Deco.glass(
+      context,
+      radius: R.xl,
+      alpha: 0.075,
+      glow: C.brand,
+      padding: const EdgeInsets.all(18),
       child: Column(
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 图标 + 光晕
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(R.lg),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColor.primary.withAlpha(isDark ? 70 : 45),
-                      blurRadius: 16,
-                      offset: const Offset(0, 7),
+                      color: C.brand.withAlpha(context.isDark ? 80 : 55),
+                      blurRadius: 22,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(R.lg),
                   child: icon.isEmpty
                       ? _phIcon()
                       : CachedNetworkImage(
                           imageUrl: icon,
-                          width: 80,
-                          height: 80,
+                          width: 78,
+                          height: 78,
                           fit: BoxFit.cover,
                           placeholder: (_, __) => _phIcon(),
                           errorWidget: (_, __, ___) => _phIcon(),
                         ),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 15),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,52 +211,46 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                           : (it?.title ?? '未知软件'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
-                          height: 1.25,
-                          letterSpacing: -0.2),
+                      style: Ty.h1.copyWith(color: context.t1, fontSize: 19),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
+                    const SizedBox(height: 9),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 5,
                       children: [
-                        if (isVipItem)
-                          _chip('会员专享', AppColor.gold, const Color(0xFFFFF4D6),
-                              Icons.workspace_premium_rounded)
-                        else
-                          _chip('免费下载', const Color(0xFF0E9F6E),
-                              const Color(0xFFE3F9F0),
-                              Icons.download_done_rounded),
-                        const SizedBox(width: 6),
-                        _chip('安全无毒', const Color(0xFF2563EB),
-                            const Color(0xFFE8EEFF), Icons.verified_rounded),
+                        _chip(
+                          isVipItem ? '会员专享' : '免费下载',
+                          isVipItem ? C.amber : C.mint,
+                          isVipItem
+                              ? Icons.workspace_premium_rounded
+                              : Icons.download_done_rounded,
+                        ),
+                        _chip('人工亲测', C.brandBright, Icons.verified_rounded),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 9),
                     Row(
                       children: [
                         if ((it?.scoreCount ?? 0) > 0) ...[
                           const Icon(Icons.star_rounded,
-                              size: 14, color: Color(0xFFFFB300)),
-                          const SizedBox(width: 2),
+                              size: 14, color: C.amber),
+                          const SizedBox(width: 3),
                           Text(it!.scoreAvg.toStringAsFixed(1),
                               style: const TextStyle(
                                   fontSize: 12.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFFFF8F00))),
+                                  fontWeight: FontWeight.w900,
+                                  color: C.amber)),
                           const SizedBox(width: 4),
                           Text('(${it.scoreCount})',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[500])),
-                          const SizedBox(width: 8),
+                              style: Ty.tiny.copyWith(color: context.t3)),
+                          const SizedBox(width: 10),
                         ],
                         Flexible(
                           child: Text(
                             '版本 ${it?.version.isNotEmpty == true ? it!.version : '未知'}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 11.5, color: Colors.grey[500]),
+                            style: Ty.tiny.copyWith(color: context.t3),
                           ),
                         ),
                       ],
@@ -216,26 +260,28 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
+          // 安全检测条
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 13),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFEFF5FF), Color(0xFFE8F0FF)],
-              ),
-              borderRadius: BorderRadius.circular(12),
+              color: C.mint.withAlpha(context.isDark ? 28 : 20),
+              borderRadius: BorderRadius.circular(R.md),
+              border: Border.all(color: C.mint.withAlpha(70), width: 0.8),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.shield_outlined, size: 15, color: Color(0xFF2563EB)),
-                SizedBox(width: 7),
+                const Icon(Icons.shield_rounded, size: 15, color: C.mint),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Text('已通过安全检测 · 无病毒 · 无恶意插件',
-                      style: TextStyle(
-                          fontSize: 11.5,
-                          color: Color(0xFF2563EB),
-                          fontWeight: FontWeight.w700)),
+                  child: Text(
+                    '已通过安全检测 · 无病毒 · 无恶意插件',
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        color: C.mint,
+                        fontWeight: FontWeight.w700),
+                  ),
                 ),
               ],
             ),
@@ -245,47 +291,69 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  // ============ 数据卡 ============
-  Widget _info(bool isDark) {
+  Widget _chip(String text, Color color, IconData icon) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: color.withAlpha(context.isDark ? 36 : 26),
+          borderRadius: BorderRadius.circular(R.full),
+          border: Border.all(color: color.withAlpha(75), width: 0.7),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 11.5, color: color),
+            const SizedBox(width: 4),
+            Text(text,
+                style: TextStyle(
+                    fontSize: 10.5, fontWeight: FontWeight.w800, color: color)),
+          ],
+        ),
+      );
+
+  // ═════════ 数据卡 ═════════
+  Widget _info() {
     final it = item;
     final info = logic.appInfo;
     final cells = [
-      (Icons.sd_storage_rounded, info?.fileSize ?? it?.size ?? '-', '大小'),
-      (Icons.visibility_rounded, '${it?.views ?? 0}', '浏览'),
-      (Icons.schedule_rounded,
-          it?.uploadDate.isNotEmpty == true ? it!.uploadDate : '-', '上传'),
-      (Icons.face_rounded, it?.ageRating ?? '16+', '年龄'),
-    ];
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColor.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+      (Icons.sd_storage_rounded, info?.fileSize ?? it?.size ?? '-', '大小',
+          C.brandBright),
+      (Icons.visibility_rounded, '${it?.views ?? 0}', '浏览', C.cyan),
+      (
+        Icons.schedule_rounded,
+        it?.uploadDate.isNotEmpty == true ? it!.uploadDate : '-',
+        '上传',
+        C.violet
       ),
+      (Icons.face_rounded, it?.ageRating ?? '16+', '年龄', C.mint),
+    ];
+    return Deco.glass(
+      context,
+      radius: R.lg,
+      alpha: 0.055,
+      padding: const EdgeInsets.symmetric(vertical: 15),
       child: Row(
         children: [
           for (int i = 0; i < cells.length; i++) ...[
             if (i > 0)
               Container(
                 width: 1,
-                height: 30,
-                color: Colors.grey.withAlpha(isDark ? 40 : 30),
+                height: 28,
+                color: context.isDark
+                    ? Colors.white.withAlpha(14)
+                    : Colors.black.withAlpha(8),
               ),
             Expanded(
               child: Column(
                 children: [
-                  Icon(cells[i].$1, size: 17, color: AppColor.primary.withAlpha(200)),
-                  const SizedBox(height: 6),
+                  Icon(cells[i].$1, size: 17, color: cells[i].$4),
+                  const SizedBox(height: 7),
                   Text(cells[i].$2,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.2)),
-                  const SizedBox(height: 2),
+                      style: Ty.h3.copyWith(color: context.t1, fontSize: 13.5)),
+                  const SizedBox(height: 3),
                   Text(cells[i].$3,
-                      style: TextStyle(fontSize: 10.5, color: Colors.grey[500])),
+                      style: Ty.tiny.copyWith(color: context.t3)),
                 ],
               ),
             ),
@@ -295,13 +363,15 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  // ============ Tab ============
-  /// Tab 栏卡片（详情 / 评论）
   Widget _tabBarCard(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColor.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? Colors.white.withAlpha(14) : Colors.white,
+        borderRadius: BorderRadius.circular(R.lg),
+        border: Border.all(
+          color: isDark ? Colors.white.withAlpha(18) : Colors.black.withAlpha(8),
+          width: 0.8,
+        ),
       ),
       child: Column(
         children: [

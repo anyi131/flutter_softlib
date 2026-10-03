@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 
 import 'app/routes/app_pages.dart';
 import 'app/design/app_theme.dart';
+import 'app/design/ui.dart';
 import 'app/widgets/pro_motion.dart';
 import 'app/api/user_service.dart';
 
@@ -89,8 +90,8 @@ const Color kBrandBgLight = Color(0xFFF4F5F9);
 const Color kBrandCardDark = Color(0xFF1A1D23);
 
 /// 亮色/暗色主题统一由设计系统构建（见 design/app_theme.dart）
-ThemeData buildLightTheme() => buildAppTheme(dark: false);
-ThemeData buildDarkTheme() => buildAppTheme(dark: true);
+ThemeData buildLightTheme() => buildNewTheme(dark: false);
+ThemeData buildDarkTheme() => buildNewTheme(dark: true);
 
 /// 软件库应用主组件
 class SoftLibApp extends StatelessWidget {
@@ -116,7 +117,7 @@ class SoftLibApp extends StatelessWidget {
       opaqueRoute: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
