@@ -4,9 +4,11 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
 
+import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
 import '../../models/app_item.dart';
 import '../../routes/app_pages.dart';
+import '../../widgets/review/review_tab.dart';
 import 'app_details_logic.dart';
 
 /// 软件详情页
@@ -167,10 +169,33 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '版本 ${it?.version.isNotEmpty == true ? it!.version : '未知'}'
-                      '${it?.uploadDate.isNotEmpty == true ? '  ·  ${it!.uploadDate}' : ''}',
-                      style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+                    Row(
+                      children: [
+                        if ((it?.scoreCount ?? 0) > 0) ...[
+                          const Icon(Icons.star_rounded,
+                              size: 14, color: Color(0xFFFFB300)),
+                          const SizedBox(width: 2),
+                          Text(it!.scoreAvg.toStringAsFixed(1),
+                              style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFFFF8F00))),
+                          const SizedBox(width: 4),
+                          Text('(${it.scoreCount})',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey[500])),
+                          const SizedBox(width: 8),
+                        ],
+                        Flexible(
+                          child: Text(
+                            '版本 ${it?.version.isNotEmpty == true ? it!.version : '未知'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 11.5, color: Colors.grey[500]),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -284,10 +309,13 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           ),
           Divider(height: 1, thickness: 0.5, color: Colors.grey.withAlpha(30)),
           SizedBox(
-            height: 400,
+            height: 460,
             child: TabBarView(
               controller: _tab,
-              children: [_detail(isDark), _comments(isDark)],
+              children: [
+                _detail(isDark),
+                ReviewTab(appId: item?.id ?? 0),
+              ],
             ),
           ),
         ],
@@ -393,26 +421,104 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             ],
           ),
         ),
+        const SizedBox(height: 22),
+        _recommend(),
       ],
     );
   }
 
-  Widget _comments(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Icon(Icons.forum_outlined, size: 48, color: Colors.grey.withAlpha(95)),
-          const SizedBox(height: 10),
-          Text('暂无评论',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14)),
-          const SizedBox(height: 4),
-          Text('可以去广场发帖讨论哦',
-              style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-        ],
-      ),
+  // ===== 精品推荐（同类软件横滑） =====
+  Widget _recommend() {
+    return FutureBuilder<List<AppItem>>(
+      future: SoftService.instance.fetchApps(),
+      builder: (context, snap) {
+        final all = snap.data ?? [];
+        final others = all.where((e) => e.id != item?.id).take(8).toList();
+        if (others.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 3.5,
+                  height: 15,
+                  decoration: BoxDecoration(
+                      color: kBrand, borderRadius: BorderRadius.circular(2)),
+                ),
+                const SizedBox(width: 8),
+                const Text('精品推荐',
+                    style:
+                        TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('为你精选更多实用应用',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 118,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: others.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, i) {
+                  final a = others[i];
+                  return GestureDetector(
+                    onTap: () => Get.offAndToNamed(Routes.appDetails,
+                        arguments: {'appId': a.id.toString(), 'item': a}),
+                    child: SizedBox(
+                      width: 72,
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: a.icon.isEmpty
+                                ? Container(
+                                    width: 58,
+                                    height: 58,
+                                    color: kBrand.withAlpha(28),
+                                    child: const Icon(Icons.android,
+                                        color: kBrand, size: 27),
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: a.icon,
+                                    width: 58,
+                                    height: 58,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                        width: 58,
+                                        height: 58,
+                                        color: Colors.black12),
+                                    errorWidget: (_, __, ___) => Container(
+                                        width: 58,
+                                        height: 58,
+                                        color: kBrand.withAlpha(28),
+                                        child: const Icon(Icons.android,
+                                            color: kBrand, size: 27)),
+                                  ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            a.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
+
 
   // ============ 底部：单个下载按钮（无左右双栏） ============
   Widget _bottom() {

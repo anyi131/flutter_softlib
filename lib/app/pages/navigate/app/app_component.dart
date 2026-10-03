@@ -386,6 +386,17 @@ class _AppComponentState extends State<AppComponent> {
                           _meta(Icons.sd_storage_rounded, item.size),
                           const SizedBox(width: 10),
                           _meta(Icons.visibility_rounded, '${item.views}'),
+                          if (item.scoreCount > 0) ...[
+                            const SizedBox(width: 10),
+                            const Icon(Icons.star_rounded,
+                                size: 12, color: Color(0xFFFFB300)),
+                            const SizedBox(width: 2),
+                            Text(item.scoreAvg.toStringAsFixed(1),
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFFF8F00))),
+                          ],
                         ],
                       ),
                       if (item.description.isNotEmpty) ...[

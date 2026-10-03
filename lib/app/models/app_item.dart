@@ -29,6 +29,8 @@ class AppItem {
   final String uploadDate;
   final String ageRating;
   final List<String> screenshots;
+  final double scoreAvg;
+  final int scoreCount;
 
   AppItem({
     required this.id,
@@ -46,6 +48,8 @@ class AppItem {
     this.uploadDate = '',
     this.ageRating = '16+',
     this.screenshots = const [],
+    this.scoreAvg = 0,
+    this.scoreCount = 0,
   });
 
   bool get isLocal => provider == 'local';
@@ -79,6 +83,8 @@ class AppItem {
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList(),
+      scoreAvg: double.tryParse('${json['score_avg'] ?? 0}') ?? 0,
+      scoreCount: i('score_count'),
     );
   }
 
