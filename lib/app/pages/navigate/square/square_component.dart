@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
+
+import '../../../design/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -22,7 +24,7 @@ class SquareComponent extends StatefulWidget {
 }
 
 class _SquareComponentState extends State<SquareComponent> {
-  static const Color kBrand = Color(0xFF465CFF);
+  static const Color kBrand = AppColor.primary;
   final PostService _svc = PostService.instance;
   final EasyRefreshController _refresh =
       EasyRefreshController(controlFinishRefresh: true, controlFinishLoad: true);
@@ -86,7 +88,7 @@ class _SquareComponentState extends State<SquareComponent> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF121212) : const Color(0xFFF1F2F6);
+    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
@@ -159,7 +161,7 @@ class _SquareComponentState extends State<SquareComponent> {
               decoration: BoxDecoration(
                 gradient: sel
                     ? const LinearGradient(
-                        colors: [Color(0xFF5B6EFF), Color(0xFF465CFF)])
+                        colors: [Color(0xFF5B6EFF), AppColor.primary])
                     : null,
                 color: sel
                     ? null
@@ -217,7 +219,7 @@ class _SquareComponentState extends State<SquareComponent> {
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 6, 14, 6),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
@@ -453,7 +455,7 @@ class _SquareComponentState extends State<SquareComponent> {
         return Container(
           decoration: BoxDecoration(
             color: Theme.of(ctx).brightness == Brightness.dark
-                ? const Color(0xFF1C1C1E)
+                ? AppColor.cardDark
                 : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),

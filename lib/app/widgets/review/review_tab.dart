@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../design/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
@@ -22,7 +24,7 @@ class ReviewTab extends StatefulWidget {
 }
 
 class _ReviewTabState extends State<ReviewTab> {
-  static const Color kBrand = Color(0xFF465CFF);
+  static const Color kBrand = AppColor.primary;
   final ReviewService _svc = ReviewService.instance;
 
   ReviewSummary _summary = ReviewSummary.empty();
@@ -144,7 +146,7 @@ class _ReviewTabState extends State<ReviewTab> {
               Expanded(
                 child: Column(
                   children: [
-                    _bar(good, total, const Color(0xFF465CFF)),
+                    _bar(good, total, AppColor.primary),
                     const SizedBox(height: 5),
                     _bar(mid, total, const Color(0xFFFFB300)),
                     const SizedBox(height: 5),

@@ -6,6 +6,7 @@ import '../../../api/soft_service.dart';
 import '../../../models/app_cat.dart';
 import '../../../models/app_item.dart';
 import '../../../routes/app_pages.dart';
+import '../../../design/app_theme.dart';
 import '../../../widgets/tab_bottom_pad.dart';
 
 /// 软件 - 综合类软件大合集
@@ -20,8 +21,7 @@ class _AppComponentState extends State<AppComponent> {
   final SoftService _service = SoftService.instance;
   final ScrollController _scroll = ScrollController();
 
-  static const Color kBrand = Color(0xFF465CFF);
-  static const Color kVip = Color(0xFFC9A227);
+
 
   List<AppCat> _cats = [];
   List<AppItem> _apps = [];
@@ -114,7 +114,7 @@ class _AppComponentState extends State<AppComponent> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF121212) : const Color(0xFFF1F2F6);
+    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
@@ -208,7 +208,7 @@ class _AppComponentState extends State<AppComponent> {
                     : null,
                 color: selected
                     ? null
-                    : (isDark ? const Color(0xFF242424) : Colors.white),
+                    : (isDark ? AppColor.cardDark : AppColor.cardLight),
                 borderRadius: BorderRadius.circular(19),
                 boxShadow: selected
                     ? [
@@ -298,7 +298,7 @@ class _AppComponentState extends State<AppComponent> {
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 5, 14, 5),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : AppColor.cardLight,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Material(
@@ -359,13 +359,13 @@ class _AppComponentState extends State<AppComponent> {
                         children: [
                           _tag(
                             isVipItem ? '会员' : '免费',
-                            isVipItem ? kVip : const Color(0xFF0E9F6E),
+                            isVipItem ? kVip : AppColor.success,
                             isVipItem
                                 ? const Color(0xFFFFF4D6)
                                 : const Color(0xFFE3F9F0),
                           ),
                           const SizedBox(width: 5),
-                          _tag('人工亲测', const Color(0xFF2563EB),
+                          _tag('人工亲测', AppColor.primary,
                               const Color(0xFFE8EEFF)),
                           if (item.version.isNotEmpty) ...[
                             const SizedBox(width: 5),

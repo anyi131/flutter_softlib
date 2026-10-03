@@ -10,6 +10,7 @@ import '../../../models/http/results/referral_model.dart';
 import 'home_logic.dart';
 import '../../../routes/app_pages.dart';
 import '../navigate_logic.dart';
+import '../../../design/app_theme.dart';
 import '../../../widgets/tab_bottom_pad.dart';
 
 class HomeComponent extends StatefulWidget {
@@ -96,7 +97,7 @@ class _HomeComponentState extends State<HomeComponent> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF465CFF).withAlpha(77),
+              color: AppColor.primary.withAlpha(77),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
@@ -174,11 +175,11 @@ class _HomeComponentState extends State<HomeComponent> {
   /// 快捷入口四宫格（SonPro 风格图标方块）
   Widget buildQuickEntries() {
     final items = [
-      (Icons.download_rounded, '下载管理', const Color(0xFF465CFF), () => Get.toNamed(Routes.appDownload)),
-      (Icons.search_rounded, '软件搜索', const Color(0xFFFE5F14), () => Get.toNamed(Routes.appSearch)),
-      (Icons.article_outlined, '线报速递', const Color(0xFF12B76A),
+      (Icons.download_rounded, '下载管理', AppColor.primary, () => Get.toNamed(Routes.appDownload)),
+      (Icons.search_rounded, '软件搜索', AppColor.accent, () => Get.toNamed(Routes.appSearch)),
+      (Icons.article_outlined, '线报速递', AppColor.success,
           () => Get.find<NavigateLogic>().changePage(3)),
-      (Icons.history_rounded, '版本更新', const Color(0xFF9E77ED),
+      (Icons.history_rounded, '版本更新', const Color(0xFF8B5CF6),
           () => Get.find<NavigateLogic>().checkUpdate(showLatestTip: true)),
     ];
     return Padding(

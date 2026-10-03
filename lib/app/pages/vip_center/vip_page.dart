@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../design/app_theme.dart';
 import 'package:get/get.dart';
 
 /// 开通会员 / VIP 中心页
@@ -35,7 +37,7 @@ class _VipPageState extends State<VipPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF1F1F1F) : const Color(0xFFF5F6F7);
+    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
     final cardBg = isDark ? const Color(0xFF222222) : Colors.white;
 
     return Scaffold(

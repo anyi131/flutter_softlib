@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:flutter/material.dart';
+
+import '../../design/app_theme.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
@@ -30,7 +32,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   final AppDetailsLogic logic = Get.find<AppDetailsLogic>();
   late final TabController _tab = TabController(length: 2, vsync: this);
 
-  static const Color kBrand = Color(0xFF465CFF);
+  static const Color kBrand = AppColor.primary;
   static const Color kVip = Color(0xFFC9A227);
 
   @override
@@ -44,7 +46,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF121212) : const Color(0xFFF1F2F6);
+    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
@@ -118,7 +120,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -260,7 +262,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -301,7 +303,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   Widget _tabBarCard(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -546,7 +548,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(isDark ? 60 : 12),
@@ -917,7 +919,7 @@ class _GalleryDialogState extends State<_GalleryDialog> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 22, vertical: 11),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF465CFF),
+                    color: AppColor.primary,
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Row(

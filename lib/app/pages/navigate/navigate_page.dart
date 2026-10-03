@@ -1,6 +1,8 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+
+import '../../design/app_theme.dart';
 import 'package:get/get.dart';
 
 import 'navigate_logic.dart';
@@ -45,7 +47,7 @@ class _NavigatePageState extends State<NavigatePage> {
                   right: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: (isDark ? const Color(0xFF1C1C1E) : Colors.white)
+                  color: (isDark ? AppColor.cardDark : Colors.white)
                       .withAlpha(isDark ? 235 : 245),
                   border: Border(
                     top: BorderSide(

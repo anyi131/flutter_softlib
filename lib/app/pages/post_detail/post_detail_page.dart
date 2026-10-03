@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../design/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
 
@@ -16,7 +18,7 @@ class PostDetailPage extends StatefulWidget {
 }
 
 class _PostDetailPageState extends State<PostDetailPage> {
-  static const Color kBrand = Color(0xFF465CFF);
+  static const Color kBrand = AppColor.primary;
   final PostService _svc = PostService.instance;
 
   PostItem? _post;
@@ -57,7 +59,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF121212) : const Color(0xFFF1F2F6);
+    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
@@ -112,7 +114,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -273,7 +275,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(13),
       ),
       child: Row(
@@ -312,7 +314,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColor.cardDark : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(isDark ? 60 : 12),

@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../../design/app_theme.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/assets.dart';
@@ -12,13 +14,13 @@ import 'mine_logic.dart';
 class MineComponent extends StatelessWidget {
   const MineComponent({super.key});
 
-  static const Color kPrimary = Color(0xFF465CFF);
+  static const Color kPrimary = AppColor.primary;
   static const Color kVipGold = Color(0xFFC9A227);
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF1F1F1F) : const Color(0xFFF5F6F7);
+    final scaffoldBg = isDark ? AppColor.bgDark : AppColor.bgLight;
     final cardBg = isDark ? const Color(0xFF222222) : Colors.white;
 
     return Scaffold(
