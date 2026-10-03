@@ -87,6 +87,29 @@ class AdminService {
 
   Future<void> deleteApp(int id) async => _post('app_del', {'id': id});
 
+  Future<void> saveCat(Map<String, dynamic> data) async =>
+      _post('cat_save', data);
+
+  Future<void> deleteCat(int id) async => _post('cat_del', {'id': id});
+
+  Future<List<Map<String, dynamic>>> carousels() async {
+    final d = (await _post('carousels'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> saveCarousel(Map<String, dynamic> data) async =>
+      _post('carousel_save', data);
+
+  Future<void> deleteCarousel(int id) async =>
+      _post('carousel_del', {'id': id});
+
+  Future<List<Map<String, dynamic>>> reports() async {
+    final d = (await _post('reports'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> deleteReport(int id) async => _post('report_del', {'id': id});
+
   Future<List<Map<String, dynamic>>> appCats() async {
     final d = (await _post('app_cats'))['data'];
     return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
