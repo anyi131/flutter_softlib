@@ -329,11 +329,12 @@ class _VipPageState extends State<VipPage> {
   void _onBuy() {
     final plan = _plans[_selectedPlan];
     final pay = ['支付宝', '微信', 'QQ'][_payMethod];
-    Get.snackbar(
-      '确认订单',
-      '${plan.name} · ¥${plan.price}\n支付方式：$pay\n（支付通道对接中，请联系管理员开通）',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 3),
-    );
+    Get.dialog(AlertDialog(
+      title: const Text('确认订单'),
+      content: Text('${plan.name} · ¥${plan.price}\n支付方式：$pay\n\n支付通道对接中，请联系管理员开通。'),
+      actions: [
+        TextButton(onPressed: () => Get.back(), child: const Text('我知道了')),
+      ],
+    ));
   }
 }

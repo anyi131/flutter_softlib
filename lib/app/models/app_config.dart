@@ -23,6 +23,8 @@ class AppConfig {
   final bool maintainEnable;
   final String maintainText;
   final String serviceUrl;
+  final String agreement;
+  final String privacy;
 
   AppConfig({
     this.placard = '',
@@ -42,6 +44,8 @@ class AppConfig {
     this.maintainEnable = false,
     this.maintainText = '',
     this.serviceUrl = '',
+    this.agreement = '',
+    this.privacy = '',
   });
 
   static bool _b(dynamic v) =>
@@ -73,5 +77,7 @@ class AppConfig {
         maintainEnable: _b(json['maintain_enable']),
         maintainText: _s(json['maintain_text']),
         serviceUrl: _s(json['service_url']),
+        agreement: _s(json['agreement']),
+        privacy: _s(json['privacy']),
       );
 }

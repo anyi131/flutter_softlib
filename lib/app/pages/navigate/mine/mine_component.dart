@@ -371,9 +371,9 @@ class MineComponent extends StatelessWidget {
       _GridItem('关于软件', Icons.info_outline, const Color(0xFF3B82F6),
           () => logic.about(context)),
       _GridItem('用户协议', Icons.description_outlined, const Color(0xFF0EA5E9),
-          () => logic.showAgreement('用户协议', '这是用户协议内容占位，请在后台配置。')),
+          () => logic.showAgreementPage('agreement')),
       _GridItem('隐私政策', Icons.privacy_tip_outlined, const Color(0xFFB45309),
-          () => logic.showAgreement('隐私政策', '这是隐私政策内容占位，请在后台配置。')),
+          () => logic.showAgreementPage('privacy')),
       _GridItem('替换开屏', Icons.image_outlined, const Color(0xFF8B5CF6),
           () => logic.toast('替换开屏功能即将上线')),
       // ★ 仅管理员可见

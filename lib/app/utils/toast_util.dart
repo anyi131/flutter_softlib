@@ -15,6 +15,19 @@ class ToastUtil {
     );
   }
 
+  /// 普通提示
+  static void info(String message) {
+    Fluttertoast.cancel();
+    Fluttertoast.showToast(
+      msg: message,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 2,
+      backgroundColor: const Color(0xCC303030),
+      textColor: Colors.white,
+      fontSize: 15.0,
+    );
+  }
+
   /// 成功
   static void success(String message) {
     Fluttertoast.cancel();

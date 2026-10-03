@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../../utils/toast_util.dart';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -138,11 +140,7 @@ class ArticleReadingLogic extends GetxController {
           return true;
         }
       } catch (e2) {
-        Get.snackbar(
-          '链接错误',
-          '无法打开链接: $url',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        ToastUtil.error('无法打开链接: $url');
       }
     }
     return false;

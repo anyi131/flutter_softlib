@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'api_host.dart';
 
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -87,7 +88,7 @@ class UserService {
   UserService._();
   static final UserService instance = UserService._();
 
-  static const String baseUrl = 'https://flrjk.52yfx.cn';
+  static const String baseUrl = ApiHost.base;
   static const String _kToken = 'user_token';
   static const String _kUser = 'user_info';
 
@@ -122,7 +123,8 @@ class UserService {
     final sp = await SharedPreferences.getInstance();
     await sp.setString(_kToken, _token);
     if (_user != null) {
-      await sp.setString(_kUser, jsonEncode(_user!.toJson()));
+      final u = _user;
+    if (u != null) await sp.setString(_kUser, jsonEncode(u.toJson()));
     }
   }
 

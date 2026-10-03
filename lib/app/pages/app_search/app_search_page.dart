@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../models/app_item.dart';
 import '../../routes/app_pages.dart';
 import '../../api/soft_service.dart';
+import '../../utils/toast_util.dart';
 import '../../widgets/app_card.dart';
 
 /// 软件搜索页（搜索已入库软件，含服务器直传 + 蓝奏云两种来源）
@@ -33,8 +34,7 @@ class _AppSearchPageState extends State<AppSearchPage> {
   Future<void> _search() async {
     final kw = _ctrl.text.trim();
     if (kw.isEmpty) {
-      Get.snackbar('提示', '请输入搜索关键词',
-          snackPosition: SnackPosition.BOTTOM);
+      ToastUtil.error('请输入搜索关键词');
       return;
     }
     FocusScope.of(context).unfocus();
@@ -56,8 +56,7 @@ class _AppSearchPageState extends State<AppSearchPage> {
         _results = [];
         _loading = false;
       });
-      Get.snackbar('搜索失败', '网络异常，请稍后重试',
-          snackPosition: SnackPosition.BOTTOM);
+      ToastUtil.error('网络异常，请稍后重试');
     }
   }
 

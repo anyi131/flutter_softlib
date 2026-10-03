@@ -152,7 +152,7 @@ class _SplashPageState extends State<SplashPage> {
                 Text(
                   (_config?.maintainText ?? '').isEmpty
                       ? '请稍后再试'
-                      : _config!.maintainText,
+                      : _config?.maintainText ?? '',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white.withAlpha(180), height: 1.6),
                 ),
@@ -172,7 +172,8 @@ class _SplashPageState extends State<SplashPage> {
       );
     }
 
-    final img = _config?.splashImage ?? '';
+    final cfg = _config;
+    final img = cfg?.splashImage ?? '';
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -190,7 +191,7 @@ class _SplashPageState extends State<SplashPage> {
             _defaultSplash(),
 
           // 标题/副标题
-          if ((_config?.splashTitle ?? '').isNotEmpty)
+          if ((cfg?.splashTitle ?? '').isNotEmpty)
             Positioned(
               left: 0,
               right: 0,
@@ -198,7 +199,7 @@ class _SplashPageState extends State<SplashPage> {
               child: Column(
                 children: [
                   Text(
-                    _config!.splashTitle,
+                    cfg?.splashTitle ?? '',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 22,
@@ -206,10 +207,10 @@ class _SplashPageState extends State<SplashPage> {
                       color: Color(0xFF181818),
                     ),
                   ),
-                  if (_config!.splashDesc.isNotEmpty) ...[
+                  if ((cfg?.splashDesc ?? '').isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
-                      _config!.splashDesc,
+                      cfg?.splashDesc ?? '',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
@@ -259,11 +260,11 @@ class _SplashPageState extends State<SplashPage> {
           ),
 
           // 点击开屏图跳转
-          if ((_config?.splashUrl ?? '').isNotEmpty)
+          if ((cfg?.splashUrl ?? '').isNotEmpty)
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
-                onTap: () => JumpUtil.openUrl(_config!.splashUrl),
+                onTap: () => JumpUtil.openUrl(cfg?.splashUrl ?? ''),
               ),
             ),
         ],

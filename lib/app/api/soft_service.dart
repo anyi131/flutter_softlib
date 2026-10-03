@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'api_host.dart';
 
 import '../models/app_cat.dart';
 import '../models/app_config.dart';
@@ -9,7 +11,7 @@ class SoftService {
   SoftService._();
   static final SoftService instance = SoftService._();
 
-  static const String baseUrl = 'https://flrjk.52yfx.cn';
+  static const String baseUrl = ApiHost.base;
 
   final Dio _dio = Dio(
     BaseOptions(
@@ -27,7 +29,9 @@ class SoftService {
       if (data is Map && data['code'] == 1 && data['data'] is Map) {
         return AppConfig.fromJson(Map<String, dynamic>.from(data['data']));
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
     return null;
   }
 
@@ -48,7 +52,9 @@ class SoftService {
       final resp = await _dio.get('/api/softlib/app/cats');
       final data = resp.data;
       if (data is Map && data['code'] == 1) return AppCat.listFrom(data['data']);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
     return [];
   }
 
@@ -66,7 +72,7 @@ class SoftService {
   }
 
   /// 自建蓝奏云解析服务
-  static const String kLzyProxy = 'https://www.52yfx.cn/lzy.php';
+  static const String kLzyProxy = ApiHost.lzyProxy;
 
   /// 方案一：自建 API 解析直链（速度快、成功率高）
   Future<String?> resolveLzyByApi(String lzyUrl) async {
@@ -92,7 +98,9 @@ class SoftService {
           }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
     return null;
   }
 
@@ -109,7 +117,9 @@ class SoftService {
         final u = (data['data'] is Map) ? (data['data']['url'] ?? '') : '';
         if (u.toString().isNotEmpty) return u.toString();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
     return null;
   }
 
@@ -125,7 +135,9 @@ class SoftService {
     if (id <= 0) return;
     try {
       await _dio.get('/api/softlib/app/view', queryParameters: {'id': id});
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
   }
 
   /// 蓝奏云文件信息（文件名/大小/图标/描述）

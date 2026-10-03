@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'api_host.dart';
 
 import 'package:dio/dio.dart';
 
@@ -9,7 +11,7 @@ class PostService {
   PostService._();
   static final PostService instance = PostService._();
 
-  static const String baseUrl = 'https://flrjk.52yfx.cn';
+  static const String baseUrl = ApiHost.base;
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
     connectTimeout: const Duration(seconds: 12),
@@ -23,7 +25,9 @@ class PostService {
       if (r.data is Map && r.data['code'] == 1) {
         return PostCat.listFrom(r.data['data']);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
     return [];
   }
 
@@ -76,7 +80,9 @@ class PostService {
       if (r.data is Map && r.data['code'] == 1) {
         return int.tryParse('${r.data['data']?['like_count']}');
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
     return null;
   }
 
@@ -89,7 +95,9 @@ class PostService {
         return List<Map<String, dynamic>>.from((r.data['data'] as List)
             .map((e) => Map<String, dynamic>.from(e)));
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
     return [];
   }
 

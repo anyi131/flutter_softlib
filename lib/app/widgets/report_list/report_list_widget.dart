@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../generated/assets.dart';
 import '../../models/http/results/report_cat_list_model.dart';
+import '../../widgets/tab_bottom_pad.dart';
 import 'report_list_logic.dart';
 
 class ReportListWidget extends StatefulWidget {
@@ -66,7 +67,7 @@ class _ReportListWidgetState extends State<ReportListWidget>
           onRefresh: logic.reload,
           controller: logic.easyRefreshController,
           child: ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, tabBottomPadding(context)),
             itemCount: reports.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (_, index) {

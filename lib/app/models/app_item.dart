@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 /// 软件数据模型（对接 /api/softlib/app/index）
 ///
@@ -95,7 +96,9 @@ class AppItem {
     try {
       final j = jsonDecode(raw);
       if (j is Map && j['data'] != null) return listFrom(j['data']);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Softlib] $e');
+    }
     return [];
   }
 }
