@@ -78,15 +78,27 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               ),
             );
           }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 20),
-            children: [
-              _hero(isDark),
-              const SizedBox(height: 10),
-              _info(isDark),
-              const SizedBox(height: 10),
-              _tabs(isDark),
+          // 统一滚动：整个页面共用一个滚动容器，避免各卡片独立滚动不同步
+          return NestedScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            headerSliverBuilder: (context, _) => [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                  child: Column(
+                    children: [
+                      _hero(isDark),
+                      const SizedBox(height: 10),
+                      _info(isDark),
+                    ],
+                  ),
+                ),
+              ),
             ],
+            body: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
+              child: _tabsBody(isDark),
+            ),
           );
         },
       ),
@@ -282,44 +294,48 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   }
 
   // ============ Tab ============
-  Widget _tabs(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: TabBar(
-              controller: _tab,
-              indicatorSize: TabBarIndicatorSize.label,
-              indicatorWeight: 2.5,
-              indicatorColor: kBrand,
-              labelColor: kBrand,
-              unselectedLabelColor: Colors.grey[500],
-              labelStyle:
-                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-              unselectedLabelStyle:
-                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-              dividerColor: Colors.transparent,
-              tabs: const [Tab(text: '详情'), Tab(text: '评论')],
-            ),
+  /// Tab 栏（吸顶）+ 内容（跟随外层统一滚动）
+  Widget _tabsBody(bool isDark) {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
           ),
-          Divider(height: 1, thickness: 0.5, color: Colors.grey.withAlpha(30)),
-          SizedBox(
-            height: 460,
-            child: TabBarView(
-              controller: _tab,
-              children: [
-                _detail(isDark),
-                ReviewTab(appId: item?.id ?? 0),
-              ],
-            ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: TabBar(
+                  controller: _tab,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  indicatorWeight: 2.5,
+                  indicatorColor: kBrand,
+                  labelColor: kBrand,
+                  unselectedLabelColor: Colors.grey[500],
+                  labelStyle: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w800),
+                  unselectedLabelStyle:
+                      const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  dividerColor: Colors.transparent,
+                  tabs: const [Tab(text: '详情'), Tab(text: '评论')],
+                ),
+              ),
+              Divider(
+                  height: 1, thickness: 0.5, color: Colors.grey.withAlpha(30)),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        // 内容随页面统一滚动（不再各自独立滚动）
+        AnimatedBuilder(
+          animation: _tab,
+          builder: (context, _) => _tab.index == 0
+              ? _detail(isDark)
+              : ReviewTab(appId: item?.id ?? 0),
+        ),
+      ],
     );
   }
 
@@ -327,8 +343,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     final info = logic.appInfo;
     final desc = info?.fileDesc ?? '';
     final shots = item?.screenshots ?? const <String>[];
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [

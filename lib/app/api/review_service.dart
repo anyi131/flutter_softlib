@@ -85,6 +85,32 @@ class ReviewService {
     return r.data is Map && r.data['code'] == 1;
   }
 
+  /// 发布回复
+  Future<void> reply({
+    required int reviewId,
+    required String content,
+    String replyTo = '',
+  }) async {
+    final r = await _dio.post('/api/softlib/review/reply', data: {
+      'token': UserService.instance.token,
+      'review_id': reviewId,
+      'content': content,
+      'reply_to': replyTo,
+    });
+    if (r.data is Map && r.data['code'] != 1) {
+      throw Exception(r.data['msg'] ?? '回复失败');
+    }
+  }
+
+  /// 删除回复
+  Future<bool> removeReply(int id) async {
+    final r = await _dio.post('/api/softlib/review/reply_delete', data: {
+      'token': UserService.instance.token,
+      'id': id,
+    });
+    return r.data is Map && r.data['code'] == 1;
+  }
+
   /// 上传评价图片
   Future<String> uploadImage(File file) async {
     final form = FormData.fromMap({

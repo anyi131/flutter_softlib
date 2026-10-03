@@ -363,13 +363,61 @@ class _ReviewTabState extends State<ReviewTab> {
                   .toList(),
             ),
           ],
+          // ===== 回复列表 =====
+          if (r.replies.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF1A1A1A)
+                    : const Color(0xFFF6F7FA),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: r.replies
+                    .map((rp) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: RichText(
+                            text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                height: 1.55,
+                                color: isDark
+                                    ? Colors.grey[300]
+                                    : const Color(0xFF3C4043),
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: rp.nickname,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: kBrand),
+                                ),
+                                if (rp.replyTo.isNotEmpty)
+                                  TextSpan(
+                                    text: ' 回复 ${rp.replyTo}',
+                                    style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 12),
+                                  ),
+                                TextSpan(text: '：${rp.content}'),
+                              ],
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ],
           const SizedBox(height: 9),
           Row(
             children: [
               Text(r.timeText,
                   style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
               const SizedBox(width: 16),
-              _miniBtn('回复', () => _toast('回复功能即将上线')),
+              _miniBtn('回复', () => _openReply(r)),
               if (canDelete) ...[
                 const SizedBox(width: 12),
                 _miniBtn('删除', () async {
@@ -419,6 +467,104 @@ class _ReviewTabState extends State<ReviewTab> {
   void _toast(String msg) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 2)));
+  }
+
+  // ===== 回复弹窗 =====
+  Future<void> _openReply(ReviewItem r) async {
+    if (!UserService.instance.isLoggedIn) {
+      final go = await Get.dialog<bool>(AlertDialog(
+        title: const Text('需要登录'),
+        content: const Text('回复需要先登录账号'),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false), child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Get.back(result: true), child: const Text('去登录')),
+        ],
+      ));
+      if (go == true) await Get.toNamed(Routes.login);
+      if (!UserService.instance.isLoggedIn) return;
+    }
+    final ctrl = TextEditingController();
+    bool sending = false;
+    String err = '';
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('回复 ${r.nickname}',
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: ctrl,
+                maxLines: 3,
+                maxLength: 500,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '写下你的回复…',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              if (err.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(err,
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFFDC2626))),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: sending ? null : () => Navigator.pop(ctx),
+                child: const Text('取消')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: kBrand),
+              onPressed: sending
+                  ? null
+                  : () async {
+                      final text = ctrl.text.trim();
+                      if (text.isEmpty) {
+                        setD(() => err = '请输入回复内容');
+                        return;
+                      }
+                      setD(() {
+                        sending = true;
+                        err = '';
+                      });
+                      try {
+                        await _svc.reply(
+                            reviewId: r.id,
+                            content: text,
+                            replyTo: '');
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        _toast('回复成功');
+                        _load();
+                      } catch (e) {
+                        setD(() {
+                          sending = false;
+                          err = e.toString().replaceFirst('Exception: ', '');
+                        });
+                      }
+                    },
+              child: sending
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Text('发送'),
+            ),
+          ],
+        );
+      }),
+    );
   }
 
   // ===== 写评论弹窗 =====

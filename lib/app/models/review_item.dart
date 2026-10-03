@@ -11,6 +11,8 @@ class ReviewItem {
   final int createtime;
   final String level; // good | mid | bad
   final String timeText;
+  final int replyCount;
+  final List<ReviewReply> replies;
 
   ReviewItem({
     required this.id,
@@ -24,6 +26,8 @@ class ReviewItem {
     required this.createtime,
     required this.level,
     required this.timeText,
+    this.replyCount = 0,
+    this.replies = const [],
   });
 
   static int _i(dynamic v) => int.tryParse('${v ?? 0}') ?? 0;
@@ -43,6 +47,13 @@ class ReviewItem {
         createtime: _i(j['createtime']),
         level: _s(j['level']),
         timeText: _s(j['createtime_text']),
+        replyCount: _i(j['reply_count']),
+        replies: (j['replies'] is List)
+            ? (j['replies'] as List)
+                .whereType<Map>()
+                .map((e) => ReviewReply.fromJson(Map<String, dynamic>.from(e)))
+                .toList()
+            : const [],
       );
 
   static List<ReviewItem> listFrom(dynamic data) {
@@ -88,4 +99,38 @@ class ReviewSummary {
 
   static ReviewSummary empty() => ReviewSummary(
       avg: 0, count: 0, good: 0, mid: 0, bad: 0, goodRate: 100);
+}
+
+/// 评价回复
+class ReviewReply {
+  final int id;
+  final int userId;
+  final String nickname;
+  final String avatar;
+  final String replyTo;
+  final String content;
+  final String timeText;
+
+  ReviewReply({
+    required this.id,
+    required this.userId,
+    required this.nickname,
+    required this.avatar,
+    required this.replyTo,
+    required this.content,
+    required this.timeText,
+  });
+
+  static int _i(dynamic v) => int.tryParse('${v ?? 0}') ?? 0;
+  static String _s(dynamic v) => (v ?? '').toString();
+
+  factory ReviewReply.fromJson(Map j) => ReviewReply(
+        id: _i(j['id']),
+        userId: _i(j['user_id']),
+        nickname: _s(j['nickname']),
+        avatar: _s(j['avatar']),
+        replyTo: _s(j['reply_to']),
+        content: _s(j['content']),
+        timeText: _s(j['createtime_text']),
+      );
 }

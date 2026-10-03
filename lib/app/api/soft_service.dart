@@ -84,13 +84,19 @@ class SoftService {
       );
       final d = resp.data;
       if (d is Map) {
-        // 兼容多种返回结构
-        if (d['code'] == 200 || d['code'] == 1 || d['code'] == '200') {
-          for (final k in ['url', 'downurl', 'download', 'link', 'data']) {
+        // 兼容多种返回结构 + 字段大小写（自建服务返回 downUrl）
+        final okCode = d['code'] == 200 || d['code'] == 1 || d['code'] == '200';
+        if (okCode) {
+          for (final k in [
+            'downUrl', 'downurl', 'downURL', 'url', 'Url', 'URL',
+            'download', 'link', 'data',
+          ]) {
             final v = d[k];
             if (v is String && v.startsWith('http')) return v;
             if (v is Map) {
-              for (final k2 in ['url', 'downurl', 'download', 'link']) {
+              for (final k2 in [
+                'downUrl', 'downurl', 'url', 'download', 'link',
+              ]) {
                 final v2 = v[k2];
                 if (v2 is String && v2.startsWith('http')) return v2;
               }
