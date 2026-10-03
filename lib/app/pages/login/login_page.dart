@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../api/user_service.dart';
+import '../navigate/mine/mine_logic.dart';
 import 'register_page.dart';
 import 'reset_page.dart';
 import 'widgets/form_tip.dart';
@@ -46,6 +47,11 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await UserService.instance.login(account, pwd);
       if (!mounted) return;
+      // 通知"我的"页刷新登录态
+      try {
+        final mine = Get.find<MineLogic>(tag: 'mine');
+        await mine.load();
+      } catch (_) {}
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;

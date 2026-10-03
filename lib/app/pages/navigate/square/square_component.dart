@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../api/user_service.dart';
 import '../../../routes/app_pages.dart';
+import '../../../widgets/tab_bottom_pad.dart';
 
 /// 广场 - 社区动态（对接原生 PHP 后端 /api/softlib/post/*）
 class SquareComponent extends StatefulWidget {
@@ -280,7 +281,7 @@ class _SquareComponentState extends State<SquareComponent> {
                 _refreshController.finishLoad();
               },
               child: ListView.builder(
-                padding: const EdgeInsets.only(bottom: 20),
+                padding: EdgeInsets.only(bottom: tabBottomPadding(context)),
                 itemCount: _posts.length + 1,
                 itemBuilder: (context, index) {
                   if (index == 0) return _buildShortcuts();

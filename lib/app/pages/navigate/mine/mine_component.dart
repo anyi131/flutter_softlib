@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../generated/assets.dart';
 import '../../../routes/app_pages.dart';
 import '../../navigate/navigate_logic.dart';
+import '../../../widgets/tab_bottom_pad.dart';
 import 'mine_logic.dart';
 
 /// 我的 - 个人中心（按用户截图复刻：用户信息 / 积分VIP / 统计 / 会员卡 / 服务宫格）
@@ -23,7 +24,8 @@ class MineComponent extends StatelessWidget {
     return Scaffold(
       backgroundColor: scaffoldBg,
       body: GetBuilder<MineLogic>(
-        init: Get.put(MineLogic()),
+        init: Get.put(MineLogic(), tag: 'mine'),
+        tag: 'mine',
         builder: (logic) {
           return RefreshIndicator(
             onRefresh: logic.load,
@@ -37,7 +39,7 @@ class MineComponent extends StatelessWidget {
                 _buildVipBar(context, logic),
                 const SizedBox(height: 14),
                 _buildServiceGrid(context, logic, cardBg, isDark),
-                const SizedBox(height: 20),
+                SizedBox(height: tabBottomPadding(context)),
               ],
             ),
           );

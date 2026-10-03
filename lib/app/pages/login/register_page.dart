@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../api/user_service.dart';
+import '../navigate/mine/mine_logic.dart';
 import 'widgets/form_tip.dart';
 
 /// 注册页：QQ邮箱验证码 + QQ头像自动获取
@@ -126,6 +127,10 @@ class _RegisterPageState extends State<RegisterPage> {
         qq: _qq.text.trim(),
       );
       if (!mounted) return;
+      try {
+        final mine = Get.find<MineLogic>(tag: 'mine');
+        await mine.load();
+      } catch (_) {}
       Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));

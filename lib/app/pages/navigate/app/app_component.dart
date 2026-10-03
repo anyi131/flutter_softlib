@@ -6,6 +6,7 @@ import '../../../api/soft_service.dart';
 import '../../../models/app_cat.dart';
 import '../../../models/app_item.dart';
 import '../../../routes/app_pages.dart';
+import '../../../widgets/tab_bottom_pad.dart';
 
 /// 软件 - 综合类软件大合集（分类 Tab + 卡片列表）
 class AppComponent extends StatefulWidget {
@@ -208,7 +209,7 @@ class _AppComponentState extends State<AppComponent> {
       onRefresh: () => _loadApps(reset: true),
       child: ListView.builder(
         controller: _scroll,
-        padding: const EdgeInsets.only(top: 6, bottom: 24),
+        padding: EdgeInsets.only(top: 6, bottom: tabBottomPadding(context)),
         itemCount: _apps.length + 1,
         itemBuilder: (context, index) {
           if (index == _apps.length) {
@@ -290,11 +291,15 @@ class _AppComponentState extends State<AppComponent> {
                             fontSize: 15.5, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 5),
-                      // 认证标签
+                      // 价格 / 认证标签
                       Row(
                         children: [
-                          _tag('免费', const Color(0xFF16A34A),
-                              const Color(0xFFDCFCE7)),
+                          if (item.isVipItem)
+                            _tag('会员', const Color(0xFFB45309),
+                                const Color(0xFFFEF3C7))
+                          else
+                            _tag('免费', const Color(0xFF16A34A),
+                                const Color(0xFFDCFCE7)),
                           const SizedBox(width: 5),
                           _tag('人工亲测', const Color(0xFF2563EB),
                               const Color(0xFFDBEAFE)),

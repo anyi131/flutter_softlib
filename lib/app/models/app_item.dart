@@ -49,6 +49,9 @@ class AppItem {
 
   bool get isLocal => provider == 'local';
 
+  /// 是否为会员专区资源（分类 id = 5）
+  bool get isVipItem => catId == 5;
+
   /// 下载是否可直接进行（无需解析）
   bool get canDirectDownload => isLocal && file.isNotEmpty;
 

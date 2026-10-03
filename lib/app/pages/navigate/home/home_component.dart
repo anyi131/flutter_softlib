@@ -10,6 +10,7 @@ import '../../../models/http/results/referral_model.dart';
 import 'home_logic.dart';
 import '../../../routes/app_pages.dart';
 import '../navigate_logic.dart';
+import '../../../widgets/tab_bottom_pad.dart';
 
 class HomeComponent extends StatefulWidget {
   const HomeComponent({super.key});
@@ -55,7 +56,7 @@ class _HomeComponentState extends State<HomeComponent> {
           SliverToBoxAdapter(child: buildQuickEntries()),
           buildReferralTitleSliver(),
           buildReferralGridSliver(),
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          SliverToBoxAdapter(child: SizedBox(height: tabBottomPadding(context))),
         ],
       ),
     );
