@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../api/user_service.dart';
+import 'widgets/form_tip.dart';
 
 /// 找回密码页（邮箱验证码重置）
 class ResetPage extends StatefulWidget {
@@ -35,10 +36,10 @@ class _ResetPageState extends State<ResetPage> {
     super.dispose();
   }
 
+  String _error = '';
+
   void _tip(String msg) {
-    Get.snackbar('提示', msg,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2));
+    setState(() => _error = msg);
   }
 
   Future<void> _sendCode() async {
@@ -49,7 +50,7 @@ class _ResetPageState extends State<ResetPage> {
     setState(() => _sending = true);
     try {
       await UserService.instance.sendCode(email, scene: 'reset');
-      _tip('验证码已发送，请查收邮箱');
+      _tip('验证码已发送至 $email，5 分钟内有效');
       setState(() => _countdown = 60);
       _timer?.cancel();
       _timer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -102,7 +103,10 @@ class _ResetPageState extends State<ResetPage> {
           Text('输入注册邮箱，通过邮箱验证码重置密码',
               style: TextStyle(fontSize: 13.5, color: Colors.grey[500])),
           const SizedBox(height: 26),
-          TextField(
+          FormTip(
+            message: _error,
+            isError: !_error.contains('已发送'),
+            child: TextField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
@@ -111,6 +115,7 @@ class _ResetPageState extends State<ResetPage> {
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
+          ),
           ),
           const SizedBox(height: 16),
           Row(

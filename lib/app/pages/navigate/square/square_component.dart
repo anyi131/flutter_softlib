@@ -3,6 +3,9 @@ import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../api/user_service.dart';
+import '../../../routes/app_pages.dart';
+
 /// 广场 - 社区动态（对接原生 PHP 后端 /api/softlib/post/*）
 class SquareComponent extends StatefulWidget {
   const SquareComponent({super.key});
@@ -76,8 +79,31 @@ class _SquareComponentState extends State<SquareComponent> {
 
   /// 发布动态
   Future<void> _showComposeSheet() async {
+    // 要求先登录（用登录昵称）
+    final user = UserService.instance.user;
+    if (!UserService.instance.isLoggedIn) {
+      final go = await Get.dialog<bool>(
+        AlertDialog(
+          title: const Text('需要登录'),
+          content: const Text('发布动态需要先登录账号'),
+          actions: [
+            TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
+            FilledButton(onPressed: () => Get.back(result: true), child: const Text('去登录')),
+          ],
+        ),
+      );
+      if (go == true) {
+        await Get.toNamed(Routes.login);
+        if (!UserService.instance.isLoggedIn) return;
+      } else {
+        return;
+      }
+    }
     final contentCtrl = TextEditingController();
-    final nickCtrl = TextEditingController(text: _nickname);
+    final nickCtrl = TextEditingController(
+        text: _nickname.isNotEmpty ? _nickname : (user?.nickname ?? ''));
+    bool submitting = false;
+    String errText = '';
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -85,6 +111,7 @@ class _SquareComponentState extends State<SquareComponent> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setSheet) {
         return Padding(
           padding: EdgeInsets.only(
             left: 16, right: 16,
@@ -118,6 +145,20 @@ class _SquareComponentState extends State<SquareComponent> {
                   border: OutlineInputBorder(),
                 ),
               ),
+              if (errText.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Text(errText,
+                      style: const TextStyle(
+                          fontSize: 12.5, color: Color(0xFFDC2626))),
+                ),
+              ],
               const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
@@ -128,48 +169,68 @@ class _SquareComponentState extends State<SquareComponent> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: () async {
-                    final content = contentCtrl.text.trim();
-                    if (content.isEmpty) {
-                      Navigator.pop(ctx, 'empty');
-                      return;
-                    }
-                    final nick = nickCtrl.text.trim().isEmpty
-                        ? '匿名用户'
-                        : nickCtrl.text.trim();
-                    try {
-                      final resp = await _dio.post('/api/softlib/post/create',
-                          data: {'nickname': nick, 'content': content});
-                      if (resp.data['code'] == 1) {
-                        final sp = await SharedPreferences.getInstance();
-                        await sp.setString('square_nickname', nick);
-                        _nickname = nick;
-                        if (ctx.mounted) Navigator.pop(ctx, 'ok');
-                      } else {
-                        if (ctx.mounted) {
-                          Navigator.pop(ctx, '失败：${resp.data['msg'] ?? '未知错误'}');
-                        }
-                      }
-                    } catch (e) {
-                      if (ctx.mounted) Navigator.pop(ctx, '网络错误，请重试');
-                    }
-                  },
-                  child: const Text('发布',
-                      style: TextStyle(color: Colors.white, fontSize: 15)),
+                  onPressed: submitting
+                      ? null
+                      : () async {
+                          final content = contentCtrl.text.trim();
+                          if (content.isEmpty) {
+                            setSheet(() => errText = '请输入内容再发布');
+                            return;
+                          }
+                          setSheet(() {
+                            submitting = true;
+                            errText = '';
+                          });
+                          final nick = nickCtrl.text.trim().isEmpty
+                              ? (UserService.instance.user?.nickname ?? '匿名用户')
+                              : nickCtrl.text.trim();
+                          try {
+                            final resp = await _dio.post('/api/softlib/post/create',
+                                data: {
+                                  'nickname': nick,
+                                  'content': content,
+                                  // 已登录时带上 token，便于后端关联账号
+                                  if (UserService.instance.token.isNotEmpty)
+                                    'token': UserService.instance.token,
+                                });
+                            if (resp.data['code'] == 1) {
+                              final sp = await SharedPreferences.getInstance();
+                              await sp.setString('square_nickname', nick);
+                              _nickname = nick;
+                              if (ctx.mounted) Navigator.pop(ctx, true);
+                            } else {
+                              setSheet(() {
+                                submitting = false;
+                                errText = '发布失败：${resp.data['msg'] ?? '未知错误'}';
+                              });
+                            }
+                          } catch (e) {
+                            setSheet(() {
+                              submitting = false;
+                              errText = '网络异常，请重试';
+                            });
+                          }
+                        },
+                  child: submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('发布',
+                          style: TextStyle(color: Colors.white, fontSize: 15)),
                 ),
               ),
             ],
           ),
         );
+        });
       },
     );
-    if (ok == 'ok') {
+    if (ok == true) {
       _toast('发布成功 🎉');
       _fetchPosts(reset: true);
-    } else if (ok == 'empty') {
-      _toast('请输入内容再发布');
-    } else if (ok != null && ok != false) {
-      _toast('$ok');
     }
   }
 
@@ -402,6 +463,9 @@ class _SquareComponentState extends State<SquareComponent> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         final ctrl = TextEditingController();
+        bool sending = false;
+        String errText = '';
+        return StatefulBuilder(builder: (ctx, setSheet) {
         return Padding(
           padding: EdgeInsets.only(left: 16, right: 16, top: 16,
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
@@ -498,32 +562,80 @@ class _SquareComponentState extends State<SquareComponent> {
                           backgroundColor: const Color(0xFF465CFF),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 18, vertical: 13)),
-                      onPressed: () async {
-                        final text = ctrl.text.trim();
-                        if (text.isEmpty) return;
-                        try {
-                          final resp = await _dio.post('/api/softlib/post/comment',
-                              data: {'post_id': post['id'], 'content': text});
-                          if (resp.data['code'] == 1) {
-                            comments.add({
-                              'nickname': _nickname.isEmpty ? '我' : _nickname,
-                              'content': text,
-                            });
-                            post['comment_count'] =
-                                (int.tryParse('${post['comment_count']}') ?? 0) + 1;
-                            ctrl.clear();
-                            setState(() {});
-                          }
-                        } catch (_) {}
-                      },
-                      child: const Text('发送', style: TextStyle(color: Colors.white)),
+                      onPressed: sending
+                          ? null
+                          : () async {
+                              final text = ctrl.text.trim();
+                              if (text.isEmpty) {
+                                setSheet(() => errText = '请输入评论内容');
+                                return;
+                              }
+                              final nick = _nickname.isNotEmpty
+                                  ? _nickname
+                                  : (UserService.instance.user?.nickname ??
+                                      '匿名用户');
+                              setSheet(() {
+                                sending = true;
+                                errText = '';
+                              });
+                              try {
+                                final resp = await _dio.post(
+                                    '/api/softlib/post/comment',
+                                    data: {
+                                      'post_id': post['id'],
+                                      'nickname': nick,
+                                      'content': text,
+                                    });
+                                if (resp.data['code'] == 1) {
+                                  setSheet(() {
+                                    comments
+                                        .add({'nickname': nick, 'content': text});
+                                    sending = false;
+                                  });
+                                  post['comment_count'] =
+                                      (int.tryParse('${post['comment_count']}') ??
+                                              0) +
+                                          1;
+                                  ctrl.clear();
+                                  if (mounted) setState(() {});
+                                } else {
+                                  setSheet(() {
+                                    sending = false;
+                                    errText =
+                                        '评论失败：${resp.data['msg'] ?? '未知错误'}';
+                                  });
+                                }
+                              } catch (e) {
+                                setSheet(() {
+                                  sending = false;
+                                  errText = '网络异常，请重试';
+                                });
+                              }
+                            },
+                      child: sending
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('发送',
+                              style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
+                if (errText.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(errText,
+                        style: const TextStyle(
+                            fontSize: 12.5, color: Color(0xFFDC2626))),
+                  ),
               ],
             ),
           ),
         );
+        });
       },
     );
   }

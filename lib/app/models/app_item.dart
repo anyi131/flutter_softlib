@@ -24,6 +24,10 @@ class AppItem {
   final String description;
   final int catId;
   final int weigh;
+  final int views;
+  final String uploadDate;
+  final String ageRating;
+  final List<String> screenshots;
 
   AppItem({
     required this.id,
@@ -37,6 +41,10 @@ class AppItem {
     required this.description,
     required this.catId,
     required this.weigh,
+    this.views = 0,
+    this.uploadDate = '',
+    this.ageRating = '16+',
+    this.screenshots = const [],
   });
 
   bool get isLocal => provider == 'local';
@@ -59,6 +67,14 @@ class AppItem {
       description: s('description'),
       catId: i('cat_id'),
       weigh: i('weigh'),
+      views: i('views'),
+      uploadDate: s('upload_date'),
+      ageRating: s('age_rating').isEmpty ? '16+' : s('age_rating'),
+      screenshots: s('screenshots')
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
     );
   }
 

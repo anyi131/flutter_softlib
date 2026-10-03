@@ -49,6 +49,7 @@ class MineComponent extends StatelessWidget {
   // ===== 顶部：头像 + 昵称 + 账号 + 积分/改名 =====
   Widget _buildHeader(BuildContext context, MineLogic logic, bool isDark) {
     final light = isDark ? const Color(0xFF222222) : Colors.white;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       color: light,
       padding: const EdgeInsets.fromLTRB(18, 50, 18, 16),
@@ -87,12 +88,10 @@ class MineComponent extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: logic.avatarUrl,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) =>
-                              Image.asset(Assets.imagesMascot, fit: BoxFit.cover),
-                          errorWidget: (_, __, ___) =>
-                              Image.asset(Assets.imagesMascot, fit: BoxFit.cover),
+                          placeholder: (_, __) => _defaultAvatar(scheme),
+                          errorWidget: (_, __, ___) => _defaultAvatar(scheme),
                         )
-                      : Image.asset(Assets.imagesMascot, fit: BoxFit.cover),
+                      : _defaultAvatar(scheme),
                 ),
               ),
               const SizedBox(width: 14),
@@ -156,6 +155,15 @@ class MineComponent extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// 未登录/无头像时的默认头像（干净的人形图标）
+  Widget _defaultAvatar(ColorScheme scheme) {
+    return Container(
+      color: const Color(0xFFEEF1F8),
+      alignment: Alignment.center,
+      child: Icon(Icons.person_rounded, size: 34, color: scheme.primary.withAlpha(170)),
     );
   }
 

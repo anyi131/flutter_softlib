@@ -292,6 +292,9 @@ class AppDetailsLogic extends GetxController {
     );
   }
 
+  /// 对外分享/下载的地址
+  String get shareUrl => _shareUrl();
+
   /// 分享出去的地址：服务器直传用直链，蓝奏云用原分享页
   String _shareUrl() {
     if (item != null && item!.canDirectDownload) return item!.file;

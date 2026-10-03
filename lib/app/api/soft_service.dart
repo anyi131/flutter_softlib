@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/app_cat.dart';
 import '../models/app_config.dart';
 import '../models/app_item.dart';
 
@@ -39,6 +40,16 @@ class SoftService {
     final data = resp.data;
     if (data is Map && data['code'] == 1) return AppItem.listFrom(data['data']);
     throw Exception((data is Map ? data['msg'] : '获取软件列表失败') ?? '获取失败');
+  }
+
+  /// 软件分类（含数量）
+  Future<List<AppCat>> fetchCats() async {
+    try {
+      final resp = await _dio.get('/api/softlib/app/cats');
+      final data = resp.data;
+      if (data is Map && data['code'] == 1) return AppCat.listFrom(data['data']);
+    } catch (_) {}
+    return [];
   }
 
   /// 软件详情

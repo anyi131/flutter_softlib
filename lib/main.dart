@@ -106,6 +106,11 @@ ThemeData buildLightTheme() {
       backgroundColor: kBrandBgLight,
       foregroundColor: Color(0xFF181818),
     ),
+    // iOS 风格页面过渡（替换默认的 Android 缩放动画）
+    pageTransitionsTheme: const PageTransitionsTheme(builders: {
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+    }),
   );
 }
 
@@ -126,6 +131,10 @@ ThemeData buildDarkTheme() {
       elevation: 0,
       backgroundColor: Color(0xFF1F1F1F),
     ),
+    pageTransitionsTheme: const PageTransitionsTheme(builders: {
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+    }),
   );
 }
 
@@ -146,6 +155,9 @@ class SoftLibApp extends StatelessWidget {
           child: EasyLoading.init()(context, child),
         );
       },
+      // 统一使用 iOS 风格右滑过渡（GetX 路由）
+      defaultTransition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 260),
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: ThemeMode.system,
