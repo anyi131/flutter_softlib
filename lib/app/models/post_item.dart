@@ -1,6 +1,7 @@
 /// 广场动态
 class PostItem {
   final int id;
+  final int userId;
   final String nickname;
   final String avatar;
   final String content;
@@ -17,6 +18,7 @@ class PostItem {
 
   PostItem({
     required this.id,
+    this.userId = 0,
     required this.nickname,
     required this.avatar,
     required this.content,
@@ -37,6 +39,7 @@ class PostItem {
 
   factory PostItem.fromJson(Map j) => PostItem(
         id: _i(j['id']),
+        userId: _i(j['user_id']),
         nickname: _s(j['nickname']),
         avatar: _s(j['avatar']),
         content: _s(j['content']),

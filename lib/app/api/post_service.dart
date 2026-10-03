@@ -122,6 +122,15 @@ class PostService {
     return r.data is Map && r.data['code'] == 1;
   }
 
+  /// 删除动态（仅作者或管理员）
+  Future<bool> deletePost(int id) async {
+    final r = await _dio.post('/api/softlib/post/delete', data: {
+      'token': UserService.instance.token,
+      'id': id,
+    });
+    return r.data is Map && r.data['code'] == 1;
+  }
+
   /// 上传图片
   Future<String> uploadImage(File file) async {
     final form = FormData.fromMap({

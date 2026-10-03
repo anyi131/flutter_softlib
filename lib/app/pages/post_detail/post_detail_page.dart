@@ -10,6 +10,7 @@ import 'package:photo_view/photo_view.dart';
 
 import '../../api/post_service.dart';
 import '../../design/ui.dart';
+import '../../utils/toast_util.dart';
 import '../../api/user_service.dart';
 import '../../models/post_item.dart';
 import '../navigate/square/emoji_panel.dart';
@@ -76,6 +77,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
         centerTitle: true,
         title: const Text('动态详情',
             style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700)),
+        actions: [
+          if (_canDelete())
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 21),
+              onPressed: _deletePost,
+            ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(strokeWidth: 3))
@@ -482,6 +490,38 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ),
       ),
     );
+  }
+
+  /// 是否可删除（作者本人或管理员）
+  bool _canDelete() {
+    final p = _post;
+    if (p == null) return false;
+    final u = UserService.instance.user;
+    return u != null && (p.userId == u.id || u.isAdmin);
+  }
+
+  Future<void> _deletePost() async {
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: const Text('删除动态'),
+      content: const Text('确定删除这条动态吗？评论也会一并删除。'),
+      actions: [
+        TextButton(
+            onPressed: () => Get.back(result: false), child: const Text('取消')),
+        FilledButton(
+            style:
+                FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            onPressed: () => Get.back(result: true),
+            child: const Text('删除')),
+      ],
+    ));
+    if (ok != true) return;
+    final done = await _svc.deletePost(_post!.id);
+    if (done) {
+      ToastUtil.success('已删除');
+      Get.back();
+    } else {
+      ToastUtil.error('删除失败');
+    }
   }
 
   Future<void> _pickImages() async {
