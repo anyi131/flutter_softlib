@@ -119,12 +119,15 @@ class AppDetailsLogic extends GetxController {
           fileDesc: item!.description,
         );
       }
-      // 蓝奏云：补充解析出的文件信息
+      // 蓝奏云：补充解析出的文件信息（图标优先用后台配置的）
       if (item != null && !item!.isLocal && item!.url.isNotEmpty) {
         final info = await service.lzyFileInfo(item!.url);
         if (info != null) {
+          // 图标优先级：数据库 icon > 解析出的 icon > 空
+          final dbIcon = item!.icon;
+          final parsedIcon = (info['icon'] ?? '').toString();
           appInfo = LzyFileInfoData(
-            fileIcon: (info['icon'] ?? item!.icon).toString(),
+            fileIcon: dbIcon.isNotEmpty ? dbIcon : parsedIcon,
             fileName: item!.title.isNotEmpty
                 ? item!.title
                 : (info['name'] ?? '').toString(),

@@ -35,11 +35,21 @@ class _AppComponentState extends State<AppComponent> {
   static const _size = 15;
   String _kw = '';
 
+  /// 数据源（后台可配）：all / local / lzy
+  String _source = 'all';
+
   @override
   void initState() {
     super.initState();
+    _initSource();
     _loadCats();
-    _load(reset: true);
+  }
+
+  Future<void> _initSource() async {
+    final cfg = await _svc.fetchConfig();
+    if (!mounted) return;
+    setState(() => _source = cfg?.appSource ?? 'all');
+    await _load(reset: true);
   }
 
   @override
@@ -64,7 +74,12 @@ class _AppComponentState extends State<AppComponent> {
       setState(() => _loading = true);
     }
     try {
-      final all = await _svc.fetchApps(catId: _cat, keyword: _kw);
+      final all = await _svc.fetchApps(
+        catId: _cat,
+        keyword: _kw,
+        provider: _source == 'all' ? '' : _source,
+        force: reset,
+      );
       final start = (_page - 1) * _size;
       final slice = start >= all.length
           ? <AppItem>[]
@@ -403,6 +418,24 @@ class _AppComponentState extends State<AppComponent> {
                           ),
                         ),
                       ),
+                      if (a.isNew) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('NEW',
+                              style: TextStyle(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3)),
+                        ),
+                      ],
                       if (a.version.isNotEmpty) ...[
                         const SizedBox(width: 6),
                         Text(a.version,

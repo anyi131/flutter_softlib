@@ -34,6 +34,8 @@ class AppItem {
   /// 后台「会员专享」开关
   final bool isVipOnly;
   final String vipPrice;
+  /// 是否新上传（7天内）
+  final bool isNew;
 
   AppItem({
     required this.id,
@@ -55,6 +57,7 @@ class AppItem {
     this.scoreCount = 0,
     this.isVipOnly = false,
     this.vipPrice = '',
+    this.isNew = false,
   });
 
   bool get isLocal => provider == 'local';
@@ -92,6 +95,7 @@ class AppItem {
       scoreCount: i('score_count'),
       isVipOnly: json['is_vip'] == 1 || json['is_vip'] == true,
       vipPrice: s('vip_price'),
+      isNew: json['is_new'] == 1 || json['is_new'] == true,
     );
   }
 

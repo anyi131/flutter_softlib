@@ -35,16 +35,41 @@ class SoftService {
     return null;
   }
 
+  /// 本地缓存（避免重复请求，加快页面切换）
+  static final Map<String, _CacheEntry> _cache = {};
+  static const _cacheTtl = Duration(minutes: 3);
+
   /// 软件列表（catId=0 / keyword 为空表示全部）
-  Future<List<AppItem>> fetchApps({int catId = 0, String keyword = ''}) async {
+  /// force=true 时跳过缓存
+  Future<List<AppItem>> fetchApps({
+    int catId = 0,
+    String keyword = '',
+    String provider = '',
+    bool force = false,
+  }) async {
+    final key = 'apps_${catId}_${keyword}_$provider';
+    if (!force) {
+      final hit = _cache[key];
+      if (hit != null && !hit.expired) return hit.data as List<AppItem>;
+    }
+    final t0 = DateTime.now();
     final resp = await _dio.get('/api/softlib/app/index', queryParameters: {
       if (catId > 0) 'cat_id': catId,
       if (keyword.trim().isNotEmpty) 'keyword': keyword.trim(),
+      if (provider.isNotEmpty) 'provider': provider,
     });
     final data = resp.data;
-    if (data is Map && data['code'] == 1) return AppItem.listFrom(data['data']);
+    if (data is Map && data['code'] == 1) {
+      final list = AppItem.listFrom(data['data']);
+      _cache[key] = _CacheEntry(list);
+      debugPrint('[Softlib] fetchApps ${DateTime.now().difference(t0).inMilliseconds}ms (${list.length}条)');
+      return list;
+    }
     throw Exception((data is Map ? data['msg'] : '获取软件列表失败') ?? '获取失败');
   }
+
+  /// 清空缓存（下拉刷新时用）
+  static void clearCache() => _cache.clear();
 
   /// 检查更新（兼容后端返回 List 或 Map）
   /// 返回：null=已是最新；Map=有新版本
@@ -194,4 +219,12 @@ class SoftService {
     if (item.url.isNotEmpty) return resolveLzy(item.url);
     return null;
   }
+}
+
+
+class _CacheEntry {
+  final dynamic data;
+  final DateTime at;
+  _CacheEntry(this.data) : at = DateTime.now();
+  bool get expired => DateTime.now().difference(at) > SoftService._cacheTtl;
 }

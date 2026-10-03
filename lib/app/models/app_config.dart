@@ -27,6 +27,8 @@ class AppConfig {
   final String privacy;
   final bool groupBtnOn;
   final bool userBtnOn;
+  /// 软件列表数据源: all / local / lzy
+  final String appSource;
 
   AppConfig({
     this.placard = '',
@@ -50,6 +52,7 @@ class AppConfig {
     this.privacy = '',
     this.groupBtnOn = true,
     this.userBtnOn = true,
+    this.appSource = 'all',
   });
 
   static bool _b(dynamic v) =>
@@ -89,5 +92,8 @@ class AppConfig {
         userBtnOn: json.containsKey('feedback_user_on')
             ? _b(json['feedback_user_on'])
             : true,
+        appSource: _s(json['app_source']).isEmpty
+            ? 'all'
+            : _s(json['app_source']),
       );
 }

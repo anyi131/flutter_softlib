@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../utils/apk_installer.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+import 'dart:async';
 import 'package:flutter_softlib/app/http/http_api.dart';
 import 'package:flutter_softlib/app/pages/navigate/app/app_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/home/home_component.dart';
@@ -364,19 +368,134 @@ class NavigateLogic extends GetxController {
     );
   }
 
-  /// 处理更新按钮点击
+  /// 处理更新按钮点击：App 内解析直连下载，失败则询问跳浏览器
   Future<void> _handleUpdateButtonTap(
     BuildContext context,
     String downloadUrl,
     bool forcedUpdate,
   ) async {
-    try {
-      JumpUtil.openUrl(downloadUrl);
-    } catch (e) {
-      ToastUtil.error('打开下载链接失败');
-    }
-    if (!forcedUpdate) {
+    // 关闭更新弹窗
+    if (!forcedUpdate && Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
+
+    // 1) 解析真实直链（蓝奏云链接 → 直链；普通 URL 直接用）
+    String? direct = downloadUrl;
+    if (downloadUrl.contains('lanzou') || downloadUrl.contains('lzy')) {
+      ToastUtil.info('正在解析下载地址…');
+      try {
+        direct = await SoftService.instance.resolveLzy(downloadUrl);
+      } catch (_) {
+        direct = null;
+      }
+    }
+
+    // 2) 解析成功 → App 内直接下载
+    if (direct != null && direct.isNotEmpty) {
+      try {
+        final ok = await _downloadInApp(direct);
+        if (ok) return;
+      } catch (_) {}
+    }
+
+    // 3) 失败 → 询问是否跳浏览器
+    if (!mounted && Get.context == null) return;
+    final go = await showDialog<bool>(
+      context: Get.context!,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('下载地址解析失败'),
+        content: const Text('无法在应用内直接下载，是否跳转到浏览器打开原链接？'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('浏览器打开')),
+        ],
+      ),
+    );
+    if (go == true) {
+      JumpUtil.openUrl(downloadUrl);
+    }
   }
+
+  /// App 内下载 APK（用 FlutterDownloader，完成后提示安装）
+  Future<bool> _downloadInApp(String url) async {
+    try {
+      if (await Permission.notification.isDenied) {
+        await Permission.notification.request();
+      }
+      final fileName =
+          'softlib_update_${DateTime.now().millisecondsSinceEpoch}.apk';
+      final taskId = await FlutterDownloader.enqueue(
+        url: url,
+        fileName: fileName,
+        savedDir: '/storage/emulated/0/Download',
+        showNotification: true,
+        saveInPublicStorage: true,
+        openFileFromNotification: true,
+      );
+      if (taskId == null) return false;
+
+      // 轮询进度，完成后调用安装
+      Timer.periodic(const Duration(milliseconds: 800), (t) async {
+        final tasks = await FlutterDownloader.loadTasksWithRawQuery(
+          query: "SELECT * FROM task WHERE task_id='$taskId'",
+        );
+        if (tasks == null || tasks.isEmpty) {
+          t.cancel();
+          return;
+        }
+        final st = tasks.first.status;
+        if (st == DownloadTaskStatus.complete) {
+          t.cancel();
+          final path = '${tasks.first.savedDir}/${tasks.first.filename}';
+          _promptInstall(path);
+        } else if (st == DownloadTaskStatus.failed ||
+            st == DownloadTaskStatus.canceled) {
+          t.cancel();
+          ToastUtil.error('下载失败，请重试');
+        }
+      });
+      ToastUtil.success('开始下载新版本…');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 下载完成 → 询问安装
+  void _promptInstall(String path) {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    showDialog(
+      context: ctx,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Color(0xFF10B981), size: 22),
+            SizedBox(width: 8),
+            Text('下载完成',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: const Text('新版本已下载完成，是否立即安装？'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c), child: const Text('稍后')),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(c);
+              await ApkInstaller.install(path);
+            },
+            child: const Text('立即安装'),
+          ),
+        ],
+      ),
+    );
+  }
+
 }

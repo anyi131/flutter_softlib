@@ -134,7 +134,7 @@ class SoftLibApp extends StatelessWidget {
       // 统一使用 iOS 风格右滑过渡（GetX 路由）
       // iOS 风格右滑过渡（比默认的 Android 缩放自然很多）
       defaultTransition: Transition.cupertino,
-      transitionDuration: const Duration(milliseconds: 300),
+      transitionDuration: const Duration(milliseconds: 200),
       opaqueRoute: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
