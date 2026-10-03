@@ -7,7 +7,6 @@ import 'package:photo_view/photo_view.dart';
 import '../../api/user_service.dart';
 import '../../models/app_item.dart';
 import '../../routes/app_pages.dart';
-import '../../utils/jump_util.dart';
 import 'app_details_logic.dart';
 
 /// 软件详情页
@@ -37,15 +36,19 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF121212) : const Color(0xFFF1F2F6);
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF141414) : const Color(0xFFF2F3F7),
+      backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF141414) : const Color(0xFFF2F3F7),
+        backgroundColor: bg,
         elevation: 0,
-        title: const Text('软件详情', style: TextStyle(fontSize: 17)),
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        title: Text(item?.title ?? '软件详情',
+            style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined),
+            icon: const Icon(Icons.share_outlined, size: 21),
             onPressed: () => logic.showSharePopUps(context),
           ),
         ],
@@ -62,71 +65,69 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.cloud_off,
-                      size: 56, color: Colors.grey.withAlpha(110)),
+                      size: 54, color: Colors.grey.withAlpha(110)),
                   const SizedBox(height: 12),
                   Text(logic.msgError ?? '获取软件信息失败',
-                      style: TextStyle(color: Colors.grey[600])),
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                      onPressed: logic.getAppInfo, child: const Text('重试')),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                  const SizedBox(height: 18),
+                  FilledButton.tonal(
+                      onPressed: logic.getAppInfo, child: const Text('重新加载')),
                 ],
               ),
             );
           }
           return ListView(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 20),
             children: [
-              _heroCard(isDark),
-              const SizedBox(height: 12),
-              _statsCard(isDark),
-              const SizedBox(height: 12),
-              _tabsCard(isDark),
+              _hero(isDark),
+              const SizedBox(height: 10),
+              _info(isDark),
+              const SizedBox(height: 10),
+              _tabs(isDark),
             ],
           );
         },
       ),
-      bottomNavigationBar: _bottomBar(),
+      bottomNavigationBar: _bottom(),
     );
   }
 
-  // ===== 主卡：图标 + 标题 + 认证 + 价格标记 =====
-  Widget _heroCard(bool isDark) {
+  // ============ 主卡 ============
+  Widget _hero(bool isDark) {
     final it = item;
     final info = logic.appInfo;
-    final isVipItem = (it?.catId ?? 0) == 5; // 会员专区
+    final isVipItem = it?.isVipItem ?? false;
     final icon = info?.fileIcon ?? '';
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 图标 + 阴影
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: kBrand.withAlpha(isDark ? 60 : 40),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
+                      color: kBrand.withAlpha(isDark ? 70 : 45),
+                      blurRadius: 16,
+                      offset: const Offset(0, 7),
                     ),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(20),
                   child: icon.isEmpty
                       ? _phIcon()
                       : CachedNetworkImage(
                           imageUrl: icon,
-                          width: 76,
-                          height: 76,
+                          width: 80,
+                          height: 80,
                           fit: BoxFit.cover,
                           placeholder: (_, __) => _phIcon(),
                           errorWidget: (_, __, ___) => _phIcon(),
@@ -145,30 +146,31 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          height: 1.3),
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                          height: 1.25,
+                          letterSpacing: -0.2),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         if (isVipItem)
-                          _pill('会员专享', kVip, const Color(0xFFFFF6DC),
-                              icon: Icons.workspace_premium)
+                          _chip('会员专享', kVip, const Color(0xFFFFF4D6),
+                              Icons.workspace_premium_rounded)
                         else
-                          _pill('免费下载', const Color(0xFF16A34A),
-                              const Color(0xFFE7F9EE),
-                              icon: Icons.check_circle),
+                          _chip('免费下载', const Color(0xFF0E9F6E),
+                              const Color(0xFFE3F9F0),
+                              Icons.download_done_rounded),
                         const SizedBox(width: 6),
-                        _pill('人工亲测', const Color(0xFF2563EB),
-                            const Color(0xFFE7EEFF),
-                            icon: Icons.verified_user),
+                        _chip('安全无毒', const Color(0xFF2563EB),
+                            const Color(0xFFE8EEFF), Icons.verified_rounded),
                       ],
                     ),
-                    const SizedBox(height: 7),
+                    const SizedBox(height: 8),
                     Text(
-                      '版本 ${it?.version.isNotEmpty == true ? it!.version : '未知'}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      '版本 ${it?.version.isNotEmpty == true ? it!.version : '未知'}'
+                      '${it?.uploadDate.isNotEmpty == true ? '  ·  ${it!.uploadDate}' : ''}',
+                      style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
                     ),
                   ],
                 ),
@@ -176,23 +178,26 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             ],
           ),
           const SizedBox(height: 14),
-          // 认证条
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(10),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEFF5FF), Color(0xFFE8F0FF)],
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Row(
               children: [
-                Icon(Icons.verified, size: 16, color: Color(0xFF2563EB)),
-                SizedBox(width: 6),
-                Text('本应用已通过安全检测 · 无病毒 · 无广告插件',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF2563EB),
-                        fontWeight: FontWeight.w600)),
+                Icon(Icons.shield_outlined, size: 15, color: Color(0xFF2563EB)),
+                SizedBox(width: 7),
+                Expanded(
+                  child: Text('已通过安全检测 · 无病毒 · 无恶意插件',
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF2563EB),
+                          fontWeight: FontWeight.w700)),
+                ),
               ],
             ),
           ),
@@ -201,76 +206,88 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  // ===== 数据卡：大小 / 上传日期 / 浏览量 / 年龄 =====
-  Widget _statsCard(bool isDark) {
+  // ============ 数据卡 ============
+  Widget _info(bool isDark) {
     final it = item;
     final info = logic.appInfo;
     final cells = [
-      (Icons.sd_storage_outlined, info?.fileSize ?? it?.size ?? '-', '软件大小'),
-      (Icons.calendar_today_outlined,
-          it?.uploadDate.isNotEmpty == true ? it!.uploadDate : '-', '上传日期'),
-      (Icons.visibility_outlined, '${it?.views ?? 0}', '浏览量'),
-      (Icons.face_outlined, it?.ageRating ?? '16+', '适用年龄'),
+      (Icons.sd_storage_rounded, info?.fileSize ?? it?.size ?? '-', '大小'),
+      (Icons.visibility_rounded, '${it?.views ?? 0}', '浏览'),
+      (Icons.schedule_rounded,
+          it?.uploadDate.isNotEmpty == true ? it!.uploadDate : '-', '上传'),
+      (Icons.face_rounded, it?.ageRating ?? '16+', '年龄'),
     ];
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
-        children: cells
-            .map((c) => Expanded(
-                  child: Column(
-                    children: [
-                      Icon(c.$1, size: 19, color: kBrand.withAlpha(190)),
-                      const SizedBox(height: 7),
-                      Text(c.$2,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 14.5, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 3),
-                      Text(c.$3,
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey[500])),
-                    ],
-                  ),
-                ))
-            .toList(),
+        children: [
+          for (int i = 0; i < cells.length; i++) ...[
+            if (i > 0)
+              Container(
+                width: 1,
+                height: 30,
+                color: Colors.grey.withAlpha(isDark ? 40 : 30),
+              ),
+            Expanded(
+              child: Column(
+                children: [
+                  Icon(cells[i].$1, size: 17, color: kBrand.withAlpha(200)),
+                  const SizedBox(height: 6),
+                  Text(cells[i].$2,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2)),
+                  const SizedBox(height: 2),
+                  Text(cells[i].$3,
+                      style: TextStyle(fontSize: 10.5, color: Colors.grey[500])),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  // ===== 详情 / 评论 =====
-  Widget _tabsCard(bool isDark) {
+  // ============ Tab ============
+  Widget _tabs(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: TabBar(
               controller: _tab,
               indicatorSize: TabBarIndicatorSize.label,
+              indicatorWeight: 2.5,
               indicatorColor: kBrand,
               labelColor: kBrand,
               unselectedLabelColor: Colors.grey[500],
               labelStyle:
                   const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              unselectedLabelStyle:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
               dividerColor: Colors.transparent,
               tabs: const [Tab(text: '详情'), Tab(text: '评论')],
             ),
           ),
-          Divider(height: 1, color: Colors.grey.withAlpha(28)),
+          Divider(height: 1, thickness: 0.5, color: Colors.grey.withAlpha(30)),
           SizedBox(
-            height: 420,
+            height: 400,
             child: TabBarView(
               controller: _tab,
-              children: [_detailTab(isDark), _commentTab(isDark)],
+              children: [_detail(isDark), _comments(isDark)],
             ),
           ),
         ],
@@ -278,7 +295,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  Widget _detailTab(bool isDark) {
+  Widget _detail(bool isDark) {
     final info = logic.appInfo;
     final desc = info?.fileDesc ?? '';
     final shots = item?.screenshots ?? const <String>[];
@@ -289,44 +306,45 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           children: [
             Container(
               width: 3.5,
-              height: 16,
+              height: 15,
               decoration: BoxDecoration(
                   color: kBrand, borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(width: 8),
             const Text('软件介绍',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
             const Spacer(),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFEEF3FF),
+                color: kBrand.withAlpha(20),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Text('官方详情',
                   style: TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF3B5BDB),
-                      fontWeight: FontWeight.w600)),
+                      fontSize: 10.5,
+                      color: kBrand,
+                      fontWeight: FontWeight.w700)),
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 13),
         Text(
           desc.isEmpty ? '暂无详细介绍' : desc,
           style: TextStyle(
-            fontSize: 14.5,
-            height: 1.85,
-            color: isDark ? Colors.grey[300] : const Color(0xFF3C4043),
+            fontSize: 14,
+            height: 1.9,
+            letterSpacing: 0.1,
+            color: isDark ? Colors.grey[300] : const Color(0xFF41454B),
           ),
         ),
         if (shots.isNotEmpty) ...[
           const SizedBox(height: 24),
           const Text('应用截图',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
           SizedBox(
-            height: 260,
+            height: 250,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: shots.length,
@@ -337,12 +355,12 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   borderRadius: BorderRadius.circular(14),
                   child: CachedNetworkImage(
                     imageUrl: shots[i],
-                    width: 136,
+                    width: 130,
                     fit: BoxFit.cover,
                     placeholder: (_, __) =>
-                        Container(width: 136, color: Colors.black12),
+                        Container(width: 130, color: Colors.black12),
                     errorWidget: (_, __, ___) => Container(
-                      width: 136,
+                      width: 130,
                       color: Colors.black12,
                       child: const Icon(Icons.broken_image_outlined),
                     ),
@@ -352,25 +370,24 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             ),
           ),
         ],
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
         Container(
-          padding: const EdgeInsets.all(13),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF7F8FA),
-            borderRadius: BorderRadius.circular(12),
+            color: isDark ? const Color(0xFF262626) : const Color(0xFFF6F7F9),
+            borderRadius: BorderRadius.circular(11),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline, size: 15, color: Colors.grey[500]),
-              const SizedBox(width: 8),
+              Icon(Icons.tips_and_updates_outlined,
+                  size: 14, color: Colors.grey[500]),
+              const SizedBox(width: 7),
               Expanded(
                 child: Text(
-                  '提示：下载前请确认软件名称和更新时间，安装包以当前详情页展示为准。',
+                  '下载前请确认软件名称与更新时间，安装包以当前详情页为准。',
                   style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      height: 1.7),
+                      fontSize: 11.5, color: Colors.grey[600], height: 1.7),
                 ),
               ),
             ],
@@ -380,41 +397,38 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  Widget _commentTab(bool isDark) {
-    return Center(
+  Widget _comments(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.forum_outlined,
-              size: 52, color: Colors.grey.withAlpha(100)),
-          const SizedBox(height: 12),
-          Text('评论区即将开放',
+          Icon(Icons.forum_outlined, size: 48, color: Colors.grey.withAlpha(95)),
+          const SizedBox(height: 10),
+          Text('暂无评论',
               style: TextStyle(color: Colors.grey[500], fontSize: 14)),
-          const SizedBox(height: 6),
-          Text('可以先下载软件体验哦',
-              style: TextStyle(color: Colors.grey[400], fontSize: 12.5)),
+          const SizedBox(height: 4),
+          Text('可以去广场发帖讨论哦',
+              style: TextStyle(color: Colors.grey[400], fontSize: 12)),
         ],
       ),
     );
   }
 
-  // ===== 底部：价格 + 下载按钮 =====
-  Widget _bottomBar() {
+  // ============ 底部：单个下载按钮（无左右双栏） ============
+  Widget _bottom() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isLocal = item?.isLocal ?? false;
-    final isVipItem = (item?.catId ?? 0) == 5;
+    final isVipItem = item?.isVipItem ?? false;
     final loggedIn = UserService.instance.isLoggedIn;
     final isVipUser = UserService.instance.user?.isVip == true;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(14),
-            blurRadius: 12,
+            color: Colors.black.withAlpha(isDark ? 60 : 12),
+            blurRadius: 14,
             offset: const Offset(0, -3),
           ),
         ],
@@ -425,33 +439,16 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           id: 'download',
           builder: (download) {
             final task = download.downloadTask;
+            // 下载完成 → 安装
             if (task != null && task.status == DownloadTaskStatus.complete) {
-              return Row(
-                children: [
-                  Expanded(
-                    child: _vipMini(isVipItem),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: 48,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF16A34A),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24)),
-                        ),
-                        onPressed: download.openDownloadFile,
-                        child: const Text('安装',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                  ),
-                ],
+              return _btn(
+                label: '安装',
+                color: const Color(0xFF0E9F6E),
+                icon: Icons.install_mobile_rounded,
+                onTap: download.openDownloadFile,
               );
             }
+            // 下载中
             if (task != null) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
@@ -463,74 +460,64 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
                             value: task.progress / 100,
-                            minHeight: 8,
+                            minHeight: 7,
                             backgroundColor: Colors.grey.withAlpha(45),
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Text('${task.progress}%',
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w700)),
-                      const SizedBox(width: 8),
-                      _ctrlBtn(
+                      SizedBox(
+                        width: 38,
+                        child: Text('${task.progress}%',
+                            style: const TextStyle(
+                                fontSize: 12.5, fontWeight: FontWeight.w800)),
+                      ),
+                      _iconBtn(
                         task.status == DownloadTaskStatus.paused
-                            ? Icons.play_arrow
-                            : Icons.pause,
+                            ? Icons.play_arrow_rounded
+                            : Icons.pause_rounded,
                         task.status == DownloadTaskStatus.paused
                             ? download.resumeDownload
                             : download.pauseDownload,
                       ),
-                      const SizedBox(width: 6),
-                      _ctrlBtn(Icons.close, download.cancelDownload),
+                      const SizedBox(width: 5),
+                      _iconBtn(Icons.close_rounded, download.cancelDownload),
                     ],
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 4),
                   Text(
                     task.status == DownloadTaskStatus.paused
                         ? '已暂停'
                         : (task.status == DownloadTaskStatus.failed
-                            ? '下载失败，可重试'
+                            ? '下载失败'
                             : '正在下载…'),
-                    style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                   ),
                 ],
               );
             }
-            return Row(
-              children: [
-                Expanded(child: _vipMini(isVipItem)),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 50,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: kBrand,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25)),
-                      ),
-                      onPressed: () => _onDownload(isVipItem, loggedIn, isVipUser),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(isVipItem ? Icons.workspace_premium : Icons.download,
-                              size: 18),
-                          const SizedBox(width: 6),
-                          Text(
-                            isVipItem
-                                ? (isVipUser ? '会员下载' : '开通会员下载')
-                                : (isLocal ? '下载安装' : '解析并下载'),
-                            style: const TextStyle(
-                                fontSize: 15.5, fontWeight: FontWeight.w700),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            // 未下载
+            final String label;
+            final IconData icon;
+            final Color color;
+            if (isVipItem) {
+              label = isVipUser ? '会员下载' : '开通会员下载';
+              icon = Icons.workspace_premium_rounded;
+              color = kVip;
+            } else if (item?.isLocal == true) {
+              label = '下载安装';
+              icon = Icons.download_rounded;
+              color = kBrand;
+            } else {
+              label = '解析并下载';
+              icon = Icons.cloud_download_rounded;
+              color = kBrand;
+            }
+            return _btn(
+              label: label,
+              color: color,
+              icon: icon,
+              onTap: () => _onDownload(isVipItem, loggedIn, isVipUser),
             );
           },
         ),
@@ -538,100 +525,71 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  /// 左下角小卡：免费 / 会员价
-  Widget _vipMini(bool isVipItem) {
-    return Container(
+  Widget _btn({
+    required String label,
+    required Color color,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: double.infinity,
       height: 50,
-      decoration: BoxDecoration(
-        gradient: isVipItem
-            ? const LinearGradient(colors: [Color(0xFF3A3226), Color(0xFF241F18)])
-            : null,
-        color: isVipItem ? null : const Color(0xFFF1F3F9),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(isVipItem ? Icons.workspace_premium : Icons.download_for_offline,
-                  size: 15,
-                  color: isVipItem ? kVip : const Color(0xFF16A34A)),
-              const SizedBox(width: 4),
-              Text(
-                isVipItem ? '¥9.9' : '免费',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  color: isVipItem ? const Color(0xFFF5D283) : const Color(0xFF16A34A),
-                ),
-              ),
-            ],
-          ),
-          Text(
-            isVipItem ? '会员专享' : '立即下载',
-            style: TextStyle(
-                fontSize: 10,
-                color: isVipItem ? Colors.white70 : Colors.grey[600]),
-          ),
-        ],
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        ),
+        onPressed: onTap,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 19),
+            const SizedBox(width: 7),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
+          ],
+        ),
       ),
     );
   }
 
-  /// 下载前的权限判断
   void _onDownload(bool isVipItem, bool loggedIn, bool isVipUser) {
     if (isVipItem && !loggedIn) {
-      _askLogin('该资源为会员专享，请先登录');
+      _dialog('需要登录', '该资源为会员专享，请先登录账号', '去登录', Routes.login);
       return;
     }
     if (isVipItem && !isVipUser) {
-      final go = Get.dialog(
-        AlertDialog(
-          title: const Text('会员专享资源'),
-          content: const Text('该资源仅会员可下载，是否前往开通会员？'),
-          actions: [
-            TextButton(onPressed: () => Get.back(), child: const Text('取消')),
-            FilledButton(
-                onPressed: () {
-                  Get.back();
-                  Get.toNamed(Routes.vip);
-                },
-                child: const Text('去开通')),
-          ],
-        ),
-      );
-      go.then((_) {});
+      _dialog('会员专享资源', '该资源仅会员可下载，是否前往开通会员？', '去开通', Routes.vip);
       return;
     }
     logic.addDownload(logic.appInfo?.fileName ?? '未知文件名');
   }
 
-  void _askLogin(String msg) {
+  void _dialog(String title, String msg, String okText, String route) {
     Get.dialog(AlertDialog(
-      title: const Text('需要登录'),
+      title: Text(title),
       content: Text(msg),
       actions: [
         TextButton(onPressed: () => Get.back(), child: const Text('取消')),
         FilledButton(
             onPressed: () {
               Get.back();
-              Get.toNamed(Routes.login);
+              Get.toNamed(route);
             },
-            child: const Text('去登录')),
+            child: Text(okText)),
       ],
     ));
   }
 
-  Widget _ctrlBtn(IconData icon, VoidCallback onTap) {
+  Widget _iconBtn(IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(9),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
-          color: Colors.grey.withAlpha(30),
+          color: Colors.grey.withAlpha(28),
           borderRadius: BorderRadius.circular(9),
         ),
         child: Icon(icon, size: 18),
@@ -639,16 +597,15 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  Widget _pill(String text, Color fg, Color bg, {required IconData icon}) =>
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+  Widget _chip(String text, Color fg, Color bg, IconData icon) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
             color: bg, borderRadius: BorderRadius.circular(20)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 11, color: fg),
-            const SizedBox(width: 3),
+            Icon(icon, size: 11.5, color: fg),
+            const SizedBox(width: 4),
             Text(text,
                 style: TextStyle(
                     fontSize: 10.5, fontWeight: FontWeight.w800, color: fg)),
@@ -656,14 +613,12 @@ class _AppDetailsPageState extends State<AppDetailsPage>
         ),
       );
 
-  Widget _phIcon() {
-    return Container(
-      width: 76,
-      height: 76,
-      color: kBrand.withAlpha(38),
-      child: const Icon(Icons.android, color: kBrand, size: 36),
-    );
-  }
+  Widget _phIcon() => Container(
+        width: 80,
+        height: 80,
+        color: kBrand.withAlpha(35),
+        child: const Icon(Icons.android, color: kBrand, size: 38),
+      );
 
   void _preview(String url) {
     showDialog(

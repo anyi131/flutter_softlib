@@ -18,7 +18,7 @@ class MineLogic extends GetxController {
 
   String nickname = '';
   String uid = '';
-  int points = 1005;
+  int points = 0;
   String vipExpire = '';
   String avatarPath = '';
   /// 网络头像（QQ头像 / 自定义）
@@ -215,7 +215,7 @@ class MineLogic extends GetxController {
     ToastUtil.success('昵称已修改');
   }
 
-  /// 签到
+  /// 签到（后端 +5 积分，每天一次）
   Future<void> signIn() async {
     if (!_userService.isLoggedIn) {
       return openLogin();
@@ -224,13 +224,18 @@ class MineLogic extends GetxController {
       toast('今天已经签到过啦');
       return;
     }
-    signedDate = _today();
-    points += 10;
-    final sp = await SharedPreferences.getInstance();
-    await sp.setString(_kSignDate, signedDate);
-    await sp.setInt(_kPoints, points);
-    update();
-    ToastUtil.success('签到成功 +10 积分');
+    try {
+      final score = await _userService.signIn();
+      signedDate = _today();
+      points = score;
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString(_kSignDate, signedDate);
+      await sp.setInt(_kPoints, points);
+      update();
+      ToastUtil.success('签到成功 +5 积分');
+    } catch (e) {
+      toast(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   /// 使用卡密

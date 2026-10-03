@@ -54,6 +54,8 @@ class AppDetailsLogic extends GetxController {
     super.onInit();
     downloadTaskDao = DownloadTaskDao(appDatabase);
     _parseArguments();
+    // 浏览量 +1（真实数据采集）
+    if (appIdInt > 0) service.addAppView(appIdInt);
     getAppInfo();
     getTaskInfo();
     IsolateNameServer.removePortNameMapping('app_details_downloader_send_port');
@@ -176,6 +178,8 @@ class AppDetailsLogic extends GetxController {
 
     // 解析真实下载地址
     String? parseUrl;
+    String originalUrl = '';
+    bool useFallback = false;
     if (item != null && item!.canDirectDownload) {
       parseUrl = item!.file; // 服务器直传：无需解析
     } else {
@@ -186,16 +190,26 @@ class AppDetailsLogic extends GetxController {
         ToastUtil.error('下载地址为空');
         return;
       }
+      originalUrl = target;
       try {
+        // 方案一/二：自建 API → 后端解析
         parseUrl = await service.resolveLzy(target);
       } catch (e) {
         logger.e(e.toString());
       }
+      // 方案三：两种解析都失败 → 用原链接直接下载
+      if (parseUrl == null || parseUrl.isEmpty) {
+        parseUrl = target;
+        useFallback = true;
+      }
     }
 
-    if (parseUrl == null || parseUrl.isEmpty) {
-      ToastUtil.error('下载链接解析失败，请稍后重试');
+    if (parseUrl.isEmpty) {
+      ToastUtil.error('下载地址无效');
       return;
+    }
+    if (useFallback) {
+      ToastUtil.error('直链解析失败，已改用原链接下载');
     }
 
     fileName = fileName.trim().replaceAll(' ', '_');
@@ -285,11 +299,37 @@ class AppDetailsLogic extends GetxController {
     if (!results) ToastUtil.error('打开安装包失败');
   }
 
+  /// 分享：会员资源不允许分享下载链接（防止绕过会员校验）
   void showSharePopUps(BuildContext context) {
+    if (item?.isVipItem == true) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('会员专享资源'),
+          content: const Text('该资源为会员专享，不支持分享下载链接。\n如需分享，请在广场发帖推荐。'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context), child: const Text('我知道了')),
+          ],
+        ),
+      );
+      return;
+    }
+    // 分享出去的是「详情页地址」而不是下载直链，避免直链被直接拿走
     showDialog(
       context: context,
-      builder: (_) => PostersWidget(appInfo: appInfo, dowUrl: _shareUrl()),
+      builder: (_) => PostersWidget(
+        appInfo: appInfo,
+        dowUrl: shareUrl,
+        qrData: _sharePageUrl(),
+      ),
     );
+  }
+
+  /// 分享页地址（指向站点详情页，非下载直链）
+  String _sharePageUrl() {
+    if (item == null) return 'https://flrjk.52yfx.cn';
+    return 'https://flrjk.52yfx.cn/app.html?id=${item!.id}';
   }
 
   /// 对外分享/下载的地址

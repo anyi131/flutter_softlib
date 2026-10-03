@@ -8,7 +8,7 @@ import '../../../models/app_item.dart';
 import '../../../routes/app_pages.dart';
 import '../../../widgets/tab_bottom_pad.dart';
 
-/// 软件 - 综合类软件大合集（分类 Tab + 卡片列表）
+/// 软件 - 综合类软件大合集
 class AppComponent extends StatefulWidget {
   const AppComponent({super.key});
 
@@ -19,6 +19,9 @@ class AppComponent extends StatefulWidget {
 class _AppComponentState extends State<AppComponent> {
   final SoftService _service = SoftService.instance;
   final ScrollController _scroll = ScrollController();
+
+  static const Color kBrand = Color(0xFF465CFF);
+  static const Color kVip = Color(0xFFC9A227);
 
   List<AppCat> _cats = [];
   List<AppItem> _apps = [];
@@ -44,9 +47,10 @@ class _AppComponentState extends State<AppComponent> {
   }
 
   void _onScroll() {
-    if (_scroll.position.pixels >=
-        _scroll.position.maxScrollExtent - 240) {
-      if (!_loadingMore && _hasMore) _loadApps();
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 260 &&
+        !_loadingMore &&
+        _hasMore) {
+      _loadApps();
     }
   }
 
@@ -54,7 +58,10 @@ class _AppComponentState extends State<AppComponent> {
     final cats = await _service.fetchCats();
     if (!mounted) return;
     setState(() {
-      _cats = [AppCat(id: 0, title: '全部资源', count: 0), ...cats.where((c) => c.id != 0)];
+      _cats = [
+        AppCat(id: 0, title: '全部资源', count: 0),
+        ...cats.where((c) => c.id != 0),
+      ];
     });
   }
 
@@ -69,7 +76,6 @@ class _AppComponentState extends State<AppComponent> {
     }
     try {
       final all = await _service.fetchApps(catId: _currentCat);
-      // 前端分页（后端一次返回 300 条）
       final start = (_page - 1) * _pageSize;
       final slice = start >= all.length
           ? <AppItem>[]
@@ -108,51 +114,82 @@ class _AppComponentState extends State<AppComponent> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF1F1F1F) : const Color(0xFFF5F6F7);
+    final bg = isDark ? const Color(0xFF121212) : const Color(0xFFF1F2F6);
     return Scaffold(
       backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: bg,
-        elevation: 0,
-        titleSpacing: 16,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
           children: [
-            const Text('软件',
-                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
-            Text('综合类软件大合集',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            _topBar(isDark),
+            _catBar(isDark),
+            Expanded(child: _list(isDark)),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => Get.toNamed(Routes.appSearch),
-          ),
-          IconButton(
-            icon: const Icon(Icons.file_download_outlined),
-            onPressed: () => Get.toNamed(Routes.appDownload),
-          ),
-        ],
       ),
-      body: Column(
+    );
+  }
+
+  // ===== 顶部标题 =====
+  Widget _topBar(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+      child: Row(
         children: [
-          _buildCatBar(isDark),
-          Expanded(child: _buildList(isDark)),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('软件',
+                    style: TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5)),
+                SizedBox(height: 2),
+                Text('综合类软件大合集',
+                    style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+              ],
+            ),
+          ),
+          _circleBtn(Icons.search_rounded,
+              () => Get.toNamed(Routes.appSearch)),
+          _circleBtn(Icons.download_rounded,
+              () => Get.toNamed(Routes.appDownload)),
         ],
       ),
     );
   }
 
-  /// 分类 Tab 条（可横向滚动）
-  Widget _buildCatBar(bool isDark) {
-    if (_cats.isEmpty) return const SizedBox(height: 8);
+  Widget _circleBtn(IconData icon, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF262626)
+                : Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 20, color: const Color(0xFF4B5563)),
+        ),
+      ),
+    );
+  }
+
+  // ===== 分类胶囊条 =====
+  Widget _catBar(bool isDark) {
+    if (_cats.isEmpty) return const SizedBox(height: 10);
     return SizedBox(
-      height: 46,
+      height: 52,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
         itemCount: _cats.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
@@ -161,23 +198,36 @@ class _AppComponentState extends State<AppComponent> {
           return GestureDetector(
             onTap: () => _switchCat(cat.id),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+              duration: const Duration(milliseconds: 170),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               alignment: Alignment.center,
               decoration: BoxDecoration(
+                gradient: selected
+                    ? const LinearGradient(
+                        colors: [Color(0xFF5B6EFF), Color(0xFF465CFF)])
+                    : null,
                 color: selected
-                    ? const Color(0xFF465CFF)
-                    : (isDark ? const Color(0xFF2A2A2A) : Colors.white),
-                borderRadius: BorderRadius.circular(20),
+                    ? null
+                    : (isDark ? const Color(0xFF242424) : Colors.white),
+                borderRadius: BorderRadius.circular(19),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: kBrand.withAlpha(70),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
               child: Text(
                 cat.title,
                 style: TextStyle(
                   fontSize: 13.5,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
                   color: selected
                       ? Colors.white
-                      : (isDark ? Colors.white70 : Colors.black87),
+                      : (isDark ? Colors.white70 : const Color(0xFF4B5563)),
                 ),
               ),
             ),
@@ -187,7 +237,8 @@ class _AppComponentState extends State<AppComponent> {
     );
   }
 
-  Widget _buildList(bool isDark) {
+  // ===== 列表 =====
+  Widget _list(bool isDark) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 3));
     }
@@ -196,8 +247,8 @@ class _AppComponentState extends State<AppComponent> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox_outlined,
-                size: 60, color: Colors.grey.withAlpha(100)),
+            Icon(Icons.inbox_rounded,
+                size: 58, color: Colors.grey.withAlpha(95)),
             const SizedBox(height: 12),
             Text('该分类暂无软件',
                 style: TextStyle(color: Colors.grey[500], fontSize: 14)),
@@ -209,76 +260,87 @@ class _AppComponentState extends State<AppComponent> {
       onRefresh: () => _loadApps(reset: true),
       child: ListView.builder(
         controller: _scroll,
-        padding: EdgeInsets.only(top: 6, bottom: tabBottomPadding(context)),
+        padding: EdgeInsets.only(top: 2, bottom: tabBottomPadding(context)),
         itemCount: _apps.length + 1,
         itemBuilder: (context, index) {
           if (index == _apps.length) {
             if (_loadingMore) {
               return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
+                padding: EdgeInsets.symmetric(vertical: 20),
                 child: Center(
                   child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
               );
             }
             if (!_hasMore && _apps.length > _pageSize) {
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 18),
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Center(
                   child: Text('已经到底啦',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey[400])),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[400])),
                 ),
               );
             }
-            return const SizedBox(height: 8);
+            return const SizedBox(height: 10);
           }
-          return _buildCard(_apps[index], isDark);
+          return _card(_apps[index], isDark);
         },
       ),
     );
   }
 
-  /// 软件卡片（图标 + 名称 + 认证标签 + 来源 + 大小/时间/浏览量 + 查看按钮）
-  Widget _buildCard(AppItem item, bool isDark) {
-    final scheme = Theme.of(context).colorScheme;
+  // ===== 软件卡片 =====
+  Widget _card(AppItem item, bool isDark) {
+    final isVipItem = item.isVipItem;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      margin: const EdgeInsets.fromLTRB(14, 5, 14, 5),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF262626) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           onTap: () => Get.toNamed(Routes.appDetails, arguments: {
             'appId': item.id.toString(),
             'item': item,
           }),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(13),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: item.icon.isEmpty
-                      ? _phIcon(scheme)
-                      : CachedNetworkImage(
-                          imageUrl: item.icon,
-                          width: 52,
-                          height: 52,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => _phIcon(scheme),
-                          errorWidget: (_, __, ___) => _phIcon(scheme),
-                        ),
+                // 图标
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: kBrand.withAlpha(isDark ? 40 : 26),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: item.icon.isEmpty
+                        ? _ph()
+                        : CachedNetworkImage(
+                            imageUrl: item.icon,
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => _ph(),
+                            errorWidget: (_, __, ___) => _ph(),
+                          ),
+                  ),
                 ),
-                const SizedBox(width: 11),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,63 +350,79 @@ class _AppComponentState extends State<AppComponent> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 15.5, fontWeight: FontWeight.w700),
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2),
                       ),
-                      const SizedBox(height: 5),
-                      // 价格 / 认证标签
+                      const SizedBox(height: 6),
                       Row(
                         children: [
-                          if (item.isVipItem)
-                            _tag('会员', const Color(0xFFB45309),
-                                const Color(0xFFFEF3C7))
-                          else
-                            _tag('免费', const Color(0xFF16A34A),
-                                const Color(0xFFDCFCE7)),
+                          _tag(
+                            isVipItem ? '会员' : '免费',
+                            isVipItem ? kVip : const Color(0xFF0E9F6E),
+                            isVipItem
+                                ? const Color(0xFFFFF4D6)
+                                : const Color(0xFFE3F9F0),
+                          ),
                           const SizedBox(width: 5),
                           _tag('人工亲测', const Color(0xFF2563EB),
-                              const Color(0xFFDBEAFE)),
+                              const Color(0xFFE8EEFF)),
+                          if (item.version.isNotEmpty) ...[
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Text(item.version,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      color: Colors.grey[500])),
+                            ),
+                          ],
                         ],
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        [
-                          if (item.size.isNotEmpty) item.size,
-                          if (item.uploadDate.isNotEmpty)
-                            '上传时间 ${item.uploadDate}',
-                          if (item.views > 0) '${item.views} 浏览',
-                        ].join(' | '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          _meta(Icons.sd_storage_rounded, item.size),
+                          const SizedBox(width: 10),
+                          _meta(Icons.visibility_rounded, '${item.views}'),
+                        ],
                       ),
                       if (item.description.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 5),
                         Text(
                           item.description,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:
-                              TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              TextStyle(fontSize: 11.5, color: Colors.grey[500]),
                         ),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Container(
-                  margin: const EdgeInsets.only(top: 10),
+                  margin: const EdgeInsets.only(top: 12),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 7),
                   decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(18),
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFF5B6EFF), Color(0xFF465CFF)]),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: kBrand.withAlpha(60),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: const Text('查看',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 12.5,
-                          fontWeight: FontWeight.w700)),
+                          fontWeight: FontWeight.w800)),
                 ),
               ],
             ),
@@ -354,21 +432,32 @@ class _AppComponentState extends State<AppComponent> {
     );
   }
 
-  Widget _phIcon(ColorScheme scheme) => Container(
-        width: 52,
-        height: 52,
-        color: scheme.primaryContainer.withAlpha(110),
-        child: Icon(Icons.android, color: scheme.primary, size: 26),
-      );
+  Widget _meta(IconData icon, String text) {
+    if (text.isEmpty || text == '0') return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: Colors.grey[400]),
+        const SizedBox(width: 3),
+        Text(text,
+            style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+      ],
+    );
+  }
 
   Widget _tag(String text, Color fg, Color bg) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(4),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 2),
+        decoration:
+            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
         child: Text(text,
             style: TextStyle(
-                fontSize: 10.5, fontWeight: FontWeight.w700, color: fg)),
+                fontSize: 10, fontWeight: FontWeight.w800, color: fg)),
+      );
+
+  Widget _ph() => Container(
+        width: 56,
+        height: 56,
+        color: kBrand.withAlpha(30),
+        child: const Icon(Icons.android, color: kBrand, size: 27),
       );
 }

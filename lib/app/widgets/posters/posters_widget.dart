@@ -9,9 +9,11 @@ import 'posters_logic.dart';
 
 class PostersWidget extends StatefulWidget {
   final String? dowUrl;
+  /// 二维码内容（默认与 dowUrl 相同；会员防护场景传站点详情页地址）
+  final String? qrData;
   final LzyFileInfoData? appInfo;
 
-  const PostersWidget({super.key, this.appInfo, this.dowUrl});
+  const PostersWidget({super.key, this.appInfo, this.dowUrl, this.qrData});
 
   @override
   State<PostersWidget> createState() => _PostersWidgetState();
@@ -24,6 +26,8 @@ class _PostersWidgetState extends State<PostersWidget> {
   LzyFileInfoData? get appInfo => widget.appInfo;
 
   String? get dowUrl => widget.dowUrl;
+
+  String? get qrData => widget.qrData ?? widget.dowUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +119,7 @@ class _PostersWidgetState extends State<PostersWidget> {
                 border: Border.all(color: Colors.grey.shade300, width: 1),
               ),
               child: QrImageView(
-                data: dowUrl ?? '',
+                data: qrData ?? '',
                 size: 120,
                 gapless: true,
                 version: QrVersions.auto,

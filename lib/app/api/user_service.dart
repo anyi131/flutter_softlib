@@ -233,6 +233,16 @@ class UserService {
     return null;
   }
 
+  /// 每日签到（+5 积分）
+  Future<int> signIn() async {
+    if (_token.isEmpty) throw Exception('请先登录');
+    final r = _unwrap(await _dio.post('/api/softlib/user/sign', data: {'token': _token}));
+    if (r['code'] != 1) throw Exception(r['msg'] ?? '签到失败');
+    final score = int.tryParse('${r['data']?['score']}') ?? 0;
+    await refreshProfile();
+    return score;
+  }
+
   /// 查询 QQ 头像（注册前预览用）
   Future<String?> fetchQqAvatar(String qq) async {
     try {

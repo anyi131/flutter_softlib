@@ -7,6 +7,7 @@ import 'package:flutter_softlib/app/pages/app_search/app_search_page.dart';
 import 'package:flutter_softlib/app/pages/article_reading/article_reading_binding.dart';
 import 'package:flutter_softlib/app/pages/article_reading/article_reading_page.dart';
 import 'package:flutter_softlib/app/pages/login/login_page.dart';
+import 'package:flutter_softlib/app/pages/post_detail/post_detail_page.dart';
 import 'package:flutter_softlib/app/pages/splash/splash_page.dart';
 import 'package:flutter_softlib/app/pages/login/register_page.dart';
 import 'package:flutter_softlib/app/pages/login/reset_page.dart';
@@ -57,6 +58,7 @@ class AppPages {
       name: _Paths.vip,
       page: () => const VipPage(),
     ),
+    GetPage(name: _Paths.postDetail, page: () => const PostDetailPage()),
     GetPage(name: _Paths.login, page: () => const LoginPage()),
     GetPage(name: _Paths.register, page: () => const RegisterPage()),
     GetPage(name: _Paths.reset, page: () => const ResetPage()),

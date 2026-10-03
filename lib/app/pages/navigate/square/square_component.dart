@@ -1,14 +1,19 @@
-import 'package:dio/dio.dart';
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../api/post_service.dart';
 import '../../../api/user_service.dart';
+import '../../../models/post_item.dart';
 import '../../../routes/app_pages.dart';
 import '../../../widgets/tab_bottom_pad.dart';
+import 'emoji_panel.dart';
 
-/// 广场 - 社区动态（对接原生 PHP 后端 /api/softlib/post/*）
+/// 广场 - 社区动态
 class SquareComponent extends StatefulWidget {
   const SquareComponent({super.key});
 
@@ -17,223 +22,60 @@ class SquareComponent extends StatefulWidget {
 }
 
 class _SquareComponentState extends State<SquareComponent> {
-  static const String _baseUrl = 'https://flrjk.52yfx.cn';
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: _baseUrl,
-    connectTimeout: const Duration(seconds: 8),
-    receiveTimeout: const Duration(seconds: 8),
-  ));
-  final EasyRefreshController _refreshController =
+  static const Color kBrand = Color(0xFF465CFF);
+  final PostService _svc = PostService.instance;
+  final EasyRefreshController _refresh =
       EasyRefreshController(controlFinishRefresh: true, controlFinishLoad: true);
 
-  final List<Map<String, dynamic>> _posts = [];
+  List<PostCat> _cats = [];
+  List<PostItem> _posts = [];
+  int _currentCat = 0;
   int _page = 1;
   bool _loading = true;
-  String _nickname = '';
 
   @override
   void initState() {
     super.initState();
-    _loadNickname();
-    _fetchPosts(reset: true);
+    _loadCats();
+    _load(reset: true);
   }
 
-  Future<void> _loadNickname() async {
-    final sp = await SharedPreferences.getInstance();
-    _nickname = sp.getString('square_nickname') ?? '';
+  Future<void> _loadCats() async {
+    final cats = await _svc.fetchCats();
+    if (!mounted) return;
+    setState(() => _cats = cats);
   }
 
-  /// 拉取动态列表
-  Future<void> _fetchPosts({bool reset = false}) async {
+  Future<void> _load({bool reset = false}) async {
     if (reset) _page = 1;
     try {
-      final resp = await _dio.get('/api/softlib/post/index', queryParameters: {'pages': _page});
-      final data = resp.data;
-      if (data['code'] == 1 && data['data'] is List) {
-        final list = List<Map<String, dynamic>>.from(
-            (data['data'] as List).map((e) => Map<String, dynamic>.from(e)));
-        setState(() {
-          if (reset) _posts.clear();
+      final list = await _svc.fetchPosts(page: _page, catId: _currentCat);
+      if (!mounted) return;
+      setState(() {
+        if (reset) {
+          _posts = list;
+        } else {
           _posts.addAll(list);
-          _loading = false;
-          if (reset) _refreshController.finishRefresh();
-        });
-        return;
-      }
-    } catch (_) {}
-    setState(() {
-      _loading = false;
-      _refreshController.finishRefresh();
-      _refreshController.finishLoad();
-    });
+        }
+        _loading = false;
+      });
+      reset ? _refresh.finishRefresh() : _refresh.finishLoad(
+          list.length < 20 ? IndicatorResult.noMore : IndicatorResult.success);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      reset ? _refresh.finishRefresh() : _refresh.finishLoad();
+    }
   }
 
-  /// 点赞
-  Future<void> _like(Map<String, dynamic> post) async {
-    final id = post['id'];
+  void _switchCat(int id) {
+    if (_currentCat == id) return;
     setState(() {
-      post['like_count'] = (int.tryParse('${post['like_count']}') ?? 0) + 1;
+      _currentCat = id;
+      _posts = [];
+      _loading = true;
     });
-    try {
-      await _dio.post('/api/softlib/post/like', data: {'id': id});
-    } catch (_) {}
-  }
-
-  /// 发布动态
-  Future<void> _showComposeSheet() async {
-    // 要求先登录（用登录昵称）
-    final user = UserService.instance.user;
-    if (!UserService.instance.isLoggedIn) {
-      final go = await Get.dialog<bool>(
-        AlertDialog(
-          title: const Text('需要登录'),
-          content: const Text('发布动态需要先登录账号'),
-          actions: [
-            TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
-            FilledButton(onPressed: () => Get.back(result: true), child: const Text('去登录')),
-          ],
-        ),
-      );
-      if (go == true) {
-        await Get.toNamed(Routes.login);
-        if (!UserService.instance.isLoggedIn) return;
-      } else {
-        return;
-      }
-    }
-    final contentCtrl = TextEditingController();
-    final nickCtrl = TextEditingController(
-        text: _nickname.isNotEmpty ? _nickname : (user?.nickname ?? ''));
-    bool submitting = false;
-    String errText = '';
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setSheet) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16, right: 16,
-            top: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('发动态',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: nickCtrl,
-                maxLength: 20,
-                decoration: const InputDecoration(
-                  labelText: '昵称',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: contentCtrl,
-                maxLines: 5,
-                maxLength: 2000,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: '分享你的想法…',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              if (errText.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child: Text(errText,
-                      style: const TextStyle(
-                          fontSize: 12.5, color: Color(0xFFDC2626))),
-                ),
-              ],
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF465CFF),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: submitting
-                      ? null
-                      : () async {
-                          final content = contentCtrl.text.trim();
-                          if (content.isEmpty) {
-                            setSheet(() => errText = '请输入内容再发布');
-                            return;
-                          }
-                          setSheet(() {
-                            submitting = true;
-                            errText = '';
-                          });
-                          final nick = nickCtrl.text.trim().isEmpty
-                              ? (UserService.instance.user?.nickname ?? '匿名用户')
-                              : nickCtrl.text.trim();
-                          try {
-                            final resp = await _dio.post('/api/softlib/post/create',
-                                data: {
-                                  'nickname': nick,
-                                  'content': content,
-                                  // 已登录时带上 token，便于后端关联账号
-                                  if (UserService.instance.token.isNotEmpty)
-                                    'token': UserService.instance.token,
-                                });
-                            if (resp.data['code'] == 1) {
-                              final sp = await SharedPreferences.getInstance();
-                              await sp.setString('square_nickname', nick);
-                              _nickname = nick;
-                              if (ctx.mounted) Navigator.pop(ctx, true);
-                            } else {
-                              setSheet(() {
-                                submitting = false;
-                                errText = '发布失败：${resp.data['msg'] ?? '未知错误'}';
-                              });
-                            }
-                          } catch (e) {
-                            setSheet(() {
-                              submitting = false;
-                              errText = '网络异常，请重试';
-                            });
-                          }
-                        },
-                  child: submitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('发布',
-                          style: TextStyle(color: Colors.white, fontSize: 15)),
-                ),
-              ),
-            ],
-          ),
-        );
-        });
-      },
-    );
-    if (ok == true) {
-      _toast('发布成功 🎉');
-      _fetchPosts(reset: true);
-    }
+    _load(reset: true);
   }
 
   void _toast(String msg) {
@@ -241,108 +83,257 @@ class _SquareComponentState extends State<SquareComponent> {
         .showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 2)));
   }
 
-  /// 相对时间
-  String _relTime(dynamic ts) {
-    final t = int.tryParse('$ts') ?? 0;
-    if (t <= 0) return '';
-    final diff = DateTime.now().millisecondsSinceEpoch ~/ 1000 - t;
-    if (diff < 60) return '刚刚';
-    if (diff < 3600) return '${diff ~/ 60} 分钟前';
-    if (diff < 86400) return '${diff ~/ 3600} 小时前';
-    if (diff < 86400 * 30) return '${diff ~/ 86400} 天前';
-    final d = DateTime.fromMillisecondsSinceEpoch(t * 1000);
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF121212) : const Color(0xFFF1F2F6);
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('广场', style: TextStyle(fontWeight: FontWeight.w700)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_rounded),
-            tooltip: '发动态',
-            onPressed: _showComposeSheet,
-          ),
-        ],
+      backgroundColor: bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _topBar(),
+            _catBar(isDark),
+            Expanded(child: _body(isDark)),
+          ],
+        ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : EasyRefresh(
-              controller: _refreshController,
-              onRefresh: () => _fetchPosts(reset: true),
-              onLoad: () async {
-                _page++;
-                await _fetchPosts();
-                _refreshController.finishLoad();
-              },
-              child: ListView.builder(
-                padding: EdgeInsets.only(bottom: tabBottomPadding(context)),
-                itemCount: _posts.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) return _buildShortcuts();
-                  return _buildPostCard(_posts[index - 1], isDark, scheme);
-                },
-              ),
-            ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: kBrand,
+        onPressed: _compose,
+        child: const Icon(Icons.edit_rounded, color: Colors.white),
+      ),
     );
   }
 
-  /// 快捷双卡片
-  Widget _buildShortcuts() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+  Widget _topBar() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 2),
       child: Row(
         children: [
-          _shortcutCard(Icons.edit_note_rounded, '写篇文章',
-              '创作你的技术分享', const [Color(0xFF465CFF), Color(0xFF7B8CFF)]),
-          const SizedBox(width: 12),
-          _shortcutCard(Icons.forum_rounded, '发个动态',
-              '分享你的精彩生活', const [Color(0xFFFE5F14), Color(0xFFFF9A66)]),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('广场',
+                    style: TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5)),
+                SizedBox(height: 2),
+                Text('交流分享 · 发现好软',
+                    style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _shortcutCard(IconData icon, String title, String sub, List<Color> gradient) {
-    return Expanded(
+  Widget _catBar(bool isDark) {
+    if (_cats.isEmpty) return const SizedBox(height: 8);
+    return SizedBox(
+      height: 50,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        itemCount: _cats.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final c = _cats[i];
+          final sel = _currentCat == c.id;
+          return GestureDetector(
+            onTap: () => _switchCat(c.id),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 170),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: sel
+                    ? const LinearGradient(
+                        colors: [Color(0xFF5B6EFF), Color(0xFF465CFF)])
+                    : null,
+                color: sel
+                    ? null
+                    : (isDark ? const Color(0xFF242424) : Colors.white),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                c.title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
+                  color: sel ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF4B5563)),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _body(bool isDark) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 3));
+    }
+    if (_posts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.forum_outlined, size: 56, color: Colors.grey.withAlpha(95)),
+            const SizedBox(height: 12),
+            Text('还没有动态，快来发第一条',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14)),
+          ],
+        ),
+      );
+    }
+    return EasyRefresh(
+      controller: _refresh,
+      onRefresh: () => _load(reset: true),
+      onLoad: () async {
+        _page++;
+        await _load();
+      },
+      child: ListView.builder(
+        padding: EdgeInsets.only(top: 4, bottom: tabBottomPadding(context) + 60),
+        itemCount: _posts.length,
+        itemBuilder: (context, i) => _postCard(_posts[i], isDark),
+      ),
+    );
+  }
+
+  Widget _postCard(PostItem p, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
-        onTap: _showComposeSheet,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () async {
+          await Get.toNamed(Routes.postDetail, arguments: {'id': p.id, 'item': p});
+          _load(reset: true);
+        },
+        child: Padding(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                  color: gradient.first.withAlpha(70),
-                  blurRadius: 12,
-                  offset: const Offset(0, 5)),
-            ],
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(51),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: Colors.white, size: 22),
+              // 头部：头像 + 昵称 + 分类/时间
+              Row(
+                children: [
+                  ClipOval(
+                    child: p.avatar.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: p.avatar, width: 38, height: 38, fit: BoxFit.cover)
+                        : _avatar(),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.nickname.isEmpty ? '匿名用户' : p.nickname,
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            if (p.catTitle.isNotEmpty) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: kBrand.withAlpha(22),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(p.catTitle,
+                                    style: const TextStyle(
+                                        fontSize: 10,
+                                        color: kBrand,
+                                        fontWeight: FontWeight.w700)),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(p.relTime,
+                                style: TextStyle(
+                                    fontSize: 11, color: Colors.grey[500])),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+              if (p.content.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(p.content,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        height: 1.55,
+                        color: isDark ? Colors.grey[200] : const Color(0xFF2C2C2C))),
+              ],
+              // 图片九宫格
+              if (p.images.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _imageGrid(p.images),
+              ],
               const SizedBox(height: 10),
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-              const SizedBox(height: 2),
-              Text(sub,
-                  style: TextStyle(color: Colors.white.withAlpha(179), fontSize: 11)),
+              Divider(height: 1, color: Colors.grey.withAlpha(25)),
+              const SizedBox(height: 8),
+              // 底部：点赞 + 评论 + 浏览
+              Row(
+                children: [
+                  _action(
+                    icon: Icons.favorite_border_rounded,
+                    label: '${p.likeCount}',
+                    onTap: () async {
+                      final n = await _svc.like(p.id);
+                      if (n != null && mounted) {
+                        setState(() => _posts[_posts.indexOf(p)] =
+                            PostItem(
+                          id: p.id,
+                          nickname: p.nickname,
+                          avatar: p.avatar,
+                          content: p.content,
+                          images: p.images,
+                          catId: p.catId,
+                          catTitle: p.catTitle,
+                          likeCount: n,
+                          commentCount: p.commentCount,
+                          views: p.views,
+                          createtime: p.createtime,
+                        ));
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 20),
+                  _action(
+                    icon: Icons.chat_bubble_outline_rounded,
+                    label: '${p.commentCount}',
+                    onTap: () async {
+                      await Get.toNamed(Routes.postDetail,
+                          arguments: {'id': p.id, 'item': p});
+                      _load(reset: true);
+                    },
+                  ),
+                  const Spacer(),
+                  Icon(Icons.visibility_outlined,
+                      size: 13, color: Colors.grey[400]),
+                  const SizedBox(width: 3),
+                  Text('${p.views}',
+                      style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+                ],
+              ),
             ],
           ),
         ),
@@ -350,295 +341,336 @@ class _SquareComponentState extends State<SquareComponent> {
     );
   }
 
-  /// 动态卡片
-  Widget _buildPostCard(Map<String, dynamic> p, bool isDark, ColorScheme scheme) {
-    final likes = int.tryParse('${p['like_count']}') ?? 0;
-    final comments = int.tryParse('${p['comment_count']}') ?? 0;
-    final nick = '${p['nickname'] ?? '匿名用户'}';
-    return InkWell(
-      onTap: () => _showComments(p),
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-      margin: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF222222) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: isDark
-            ? null
-            : [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))],
+  Widget _imageGrid(List<String> images) {
+    final n = images.length;
+    if (n == 1) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: CachedNetworkImage(
+            imageUrl: images[0], height: 180, fit: BoxFit.cover),
+      );
+    }
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 5,
+        crossAxisSpacing: 5,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              ClipOval(
-                child: Container(
-                  width: 40, height: 40,
-                  color: scheme.primaryContainer,
-                  alignment: Alignment.center,
-                  child: Text(nick.isEmpty ? '?' : nick.substring(0, 1),
-                      style: TextStyle(
-                          color: scheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w700, fontSize: 16)),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(nick,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14.5,
-                            color: isDark ? Colors.white : Colors.black87)),
-                    Text(_relTime(p['createtime']),
-                        style: TextStyle(
-                            fontSize: 12, color: isDark ? Colors.grey[500] : Colors.grey)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text('${p['content'] ?? ''}',
-              style: TextStyle(
-                  fontSize: 14.5,
-                  height: 1.5,
-                  color: isDark ? Colors.grey[200] : Colors.black87)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              InkWell(
-                onTap: () => _like(p),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Row(children: [
-                    const Icon(Icons.favorite_border, size: 18, color: Color(0xFFFE5F14)),
-                    const SizedBox(width: 4),
-                    Text('$likes',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                  ]),
-                ),
-              ),
-              const SizedBox(width: 18),
-              InkWell(
-                onTap: () => _showComments(p),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Row(children: [
-                    Icon(Icons.chat_bubble_outline, size: 18, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text('$comments',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                  ]),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      itemCount: n > 9 ? 9 : n,
+      itemBuilder: (context, i) => ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CachedNetworkImage(
+          imageUrl: images[i],
+          fit: BoxFit.cover,
+          placeholder: (_, __) => Container(color: Colors.black12),
+          errorWidget: (_, __, ___) => Container(
+              color: Colors.black12,
+              child: const Icon(Icons.broken_image, size: 18)),
+        ),
       ),
     );
   }
 
-  /// 评论列表弹窗
-  Future<void> _showComments(Map<String, dynamic> post) async {
-    List<Map<String, dynamic>> comments = [];
-    try {
-      final resp = await _dio.get('/api/softlib/post/comment_list',
-          queryParameters: {'post_id': post['id']});
-      if (resp.data['code'] == 1 && resp.data['data'] is List) {
-        comments = List<Map<String, dynamic>>.from(
-            (resp.data['data'] as List).map((e) => Map<String, dynamic>.from(e)));
-      }
-    } catch (_) {}
-    if (!mounted) return;
-    showModalBottomSheet(
+  Widget _action(
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+        child: Row(
+          children: [
+            Icon(icon, size: 17, color: const Color(0xFF8A8F98)),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(fontSize: 12.5, color: Colors.grey[600])),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _avatar() => Container(
+        width: 38,
+        height: 38,
+        color: kBrand.withAlpha(26),
+        child: const Icon(Icons.person, size: 20, color: kBrand),
+      );
+
+  // ================= 发布 =================
+  Future<void> _compose() async {
+    if (!UserService.instance.isLoggedIn) {
+      final go = await Get.dialog<bool>(AlertDialog(
+        title: const Text('需要登录'),
+        content: const Text('发布动态需要先登录账号'),
+        actions: [
+          TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
+          FilledButton(onPressed: () => Get.back(result: true), child: const Text('去登录')),
+        ],
+      ));
+      if (go == true) await Get.toNamed(Routes.login);
+      if (!UserService.instance.isLoggedIn) return;
+    }
+    final user = UserService.instance.user;
+    final contentCtrl = TextEditingController();
+    final List<String> images = [];
+    final List<File> localImages = [];
+    int catId = _currentCat == 0 ? 2 : _currentCat;
+    bool sending = false;
+    String err = '';
+    bool showEmoji = false;
+
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) {
-        final ctrl = TextEditingController();
-        bool sending = false;
-        String errText = '';
-        return StatefulBuilder(builder: (ctx, setSheet) {
-        return Padding(
-          padding: EdgeInsets.only(left: 16, right: 16, top: 16,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: SizedBox(
-            height: MediaQuery.of(ctx).size.height * 0.55,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
+        Future<void> pickImage() async {
+          try {
+            final picker = ImagePicker();
+            final files = await picker.pickMultiImage(imageQuality: 82);
+            if (files.isEmpty) return;
+            for (final f in files) {
+              if (images.length >= 9) break;
+              localImages.add(File(f.path));
+              images.add(f.path);
+            }
+            setSheet(() {});
+          } catch (e) {
+            setSheet(() => err = '选择图片失败：请在设置中允许相册权限');
+          }
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).brightness == Brightness.dark
+                ? const Color(0xFF1C1C1E)
+                : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ===== 帖子详情头部 =====
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Theme.of(ctx).colorScheme.primary.withAlpha(20),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 15,
-                            backgroundColor:
-                                Theme.of(ctx).colorScheme.primaryContainer,
-                            child: Text(
-                              '${post['nickname'] ?? '?'}'.substring(0, 1),
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color:
-                                      Theme.of(ctx).colorScheme.onPrimaryContainer),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('${post['nickname'] ?? '匿名用户'}',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 14)),
-                          const Spacer(),
-                          Text(_relTime(post['createtime']),
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey[500])),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text('${post['content'] ?? ''}',
-                          style: const TextStyle(fontSize: 15, height: 1.6)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text('评论 ${comments.length}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: comments.isEmpty
-                      ? const Center(
-                          child: Text('还没有评论，快来抢沙发~',
-                              style: TextStyle(color: Colors.grey)))
-                      : ListView(
-                          children: comments
-                              .map((c) => Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('${c['nickname']}',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w700, fontSize: 13)),
-                                        const SizedBox(height: 3),
-                                        Text('${c['content']}',
-                                            style: const TextStyle(fontSize: 14)),
-                                      ],
-                                    ),
-                                  ))
-                              .toList()),
-                ),
-                const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: ctrl,
-                        decoration: const InputDecoration(
-                          hintText: '写评论…',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF465CFF),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 13)),
-                      onPressed: sending
-                          ? null
-                          : () async {
-                              final text = ctrl.text.trim();
-                              if (text.isEmpty) {
-                                setSheet(() => errText = '请输入评论内容');
-                                return;
-                              }
-                              final nick = _nickname.isNotEmpty
-                                  ? _nickname
-                                  : (UserService.instance.user?.nickname ??
-                                      '匿名用户');
-                              setSheet(() {
-                                sending = true;
-                                errText = '';
-                              });
-                              try {
-                                final resp = await _dio.post(
-                                    '/api/softlib/post/comment',
-                                    data: {
-                                      'post_id': post['id'],
-                                      'nickname': nick,
-                                      'content': text,
-                                    });
-                                if (resp.data['code'] == 1) {
-                                  setSheet(() {
-                                    comments
-                                        .add({'nickname': nick, 'content': text});
-                                    sending = false;
-                                  });
-                                  post['comment_count'] =
-                                      (int.tryParse('${post['comment_count']}') ??
-                                              0) +
-                                          1;
-                                  ctrl.clear();
-                                  if (mounted) setState(() {});
-                                } else {
-                                  setSheet(() {
-                                    sending = false;
-                                    errText =
-                                        '评论失败：${resp.data['msg'] ?? '未知错误'}';
-                                  });
-                                }
-                              } catch (e) {
-                                setSheet(() {
-                                  sending = false;
-                                  errText = '网络异常，请重试';
-                                });
-                              }
-                            },
-                      child: sending
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text('发送',
-                              style: TextStyle(color: Colors.white)),
+                    const Text('发布动态',
+                        style: TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
-                if (errText.isNotEmpty)
+                // 分类
+                SizedBox(
+                  height: 34,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _cats.where((c) => c.id != 0).length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 7),
+                    itemBuilder: (_, i) {
+                      final c = _cats.where((e) => e.id != 0).toList()[i];
+                      final sel = catId == c.id;
+                      return GestureDetector(
+                        onTap: () => setSheet(() => catId = c.id),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: sel ? kBrand : Colors.grey.withAlpha(28),
+                            borderRadius: BorderRadius.circular(17),
+                          ),
+                          child: Text(c.title,
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight:
+                                      sel ? FontWeight.w800 : FontWeight.w500,
+                                  color: sel ? Colors.white : Colors.grey[700])),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: contentCtrl,
+                  maxLines: 5,
+                  maxLength: 2000,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: '分享你的想法…',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                // 已选图片
+                if (images.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 7,
+                    children: [
+                      for (int i = 0; i < images.length; i++)
+                        Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(9),
+                              child: Image.file(File(images[i]),
+                                  width: 74, height: 74, fit: BoxFit.cover),
+                            ),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: GestureDetector(
+                                onTap: () => setSheet(() {
+                                  images.removeAt(i);
+                                  localImages.removeAt(i);
+                                }),
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close,
+                                      size: 13, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ],
+                // 表情面板
+                if (showEmoji)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text(errText,
+                    child: EmojiPanel(
+                      onPick: (e) {
+                        contentCtrl.text += e;
+                        contentCtrl.selection = TextSelection.fromPosition(
+                            TextPosition(offset: contentCtrl.text.length));
+                        setSheet(() {});
+                      },
+                    ),
+                  ),
+                if (err.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text(err,
                         style: const TextStyle(
                             fontSize: 12.5, color: Color(0xFFDC2626))),
                   ),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: pickImage,
+                      icon: const Icon(Icons.image_outlined,
+                          color: Color(0xFF4B5563)),
+                      tooltip: '添加图片',
+                    ),
+                    IconButton(
+                      onPressed: () => setSheet(() => showEmoji = !showEmoji),
+                      icon: Icon(Icons.emoji_emotions_outlined,
+                          color: showEmoji ? kBrand : const Color(0xFF4B5563)),
+                      tooltip: '表情',
+                    ),
+                    const Spacer(),
+                    SizedBox(
+                      height: 44,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: kBrand,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(22)),
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                        ),
+                        onPressed: sending
+                            ? null
+                            : () async {
+                                final text = contentCtrl.text.trim();
+                                if (text.isEmpty && images.isEmpty) {
+                                  setSheet(() => err = '请输入内容或添加图片');
+                                  return;
+                                }
+                                setSheet(() {
+                                  sending = true;
+                                  err = '';
+                                });
+                                try {
+                                  // 先上传本地图片
+                                  final urls = <String>[];
+                                  for (int i = 0; i < images.length; i++) {
+                                    if (images[i].startsWith('http')) {
+                                      urls.add(images[i]);
+                                    } else {
+                                      urls.add(await PostService.instance
+                                          .uploadImage(localImages.removeAt(0)));
+                                    }
+                                  }
+                                  await _svc.create(
+                                    nickname: user?.nickname ?? '匿名用户',
+                                    content: text,
+                                    images: urls,
+                                    catId: catId,
+                                    avatar: user?.avatar ?? '',
+                                  );
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  if (mounted) {
+                                    _toast('发布成功 🎉');
+                                    _load(reset: true);
+                                  }
+                                } catch (e) {
+                                  setSheet(() {
+                                    sending = false;
+                                    err = e.toString().replaceFirst('Exception: ', '');
+                                  });
+                                }
+                              },
+                        child: sending
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : const Text('发布',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         );
-        });
-      },
+      }),
     );
   }
 }
