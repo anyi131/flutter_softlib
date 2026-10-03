@@ -110,7 +110,11 @@ ThemeData buildLightTheme() {
     pageTransitionsTheme: const PageTransitionsTheme(builders: {
       TargetPlatform.android: CupertinoPageTransitionsBuilder(),
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
     }),
+    splashFactory: InkSparkle.splashFactory,
   );
 }
 
@@ -134,7 +138,11 @@ ThemeData buildDarkTheme() {
     pageTransitionsTheme: const PageTransitionsTheme(builders: {
       TargetPlatform.android: CupertinoPageTransitionsBuilder(),
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
     }),
+    splashFactory: InkSparkle.splashFactory,
   );
 }
 
@@ -156,8 +164,10 @@ class SoftLibApp extends StatelessWidget {
         );
       },
       // 统一使用 iOS 风格右滑过渡（GetX 路由）
+      // iOS 风格右滑过渡（比默认的 Android 缩放自然很多）
       defaultTransition: Transition.cupertino,
-      transitionDuration: const Duration(milliseconds: 260),
+      transitionDuration: const Duration(milliseconds: 300),
+      opaqueRoute: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: ThemeMode.system,

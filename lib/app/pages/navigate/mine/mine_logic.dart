@@ -220,9 +220,9 @@ class MineLogic extends GetxController {
     toast('卡密兑换通道对接中，请联系管理员');
   }
 
-  /// 打开管理后台
+  /// 打开内嵌管理系统（App 内，不跳浏览器）
   void openAdminPanel() {
-    JumpUtil.openUrl(ApiHost.admin);
+    Get.toNamed('/admin');
   }
 
   /// 加入 QQ 通知群

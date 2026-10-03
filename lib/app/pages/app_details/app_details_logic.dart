@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 import 'dart:ui';
 
@@ -41,6 +42,7 @@ class AppDetailsLogic extends GetxController {
   late DownloadTaskDao downloadTaskDao;
   DownloadTask? downloadTask;
   String? taskId;
+  Timer? _progressTimer;
 
   @pragma('vm:entry-point')
   static void downloadCallback(String id, int status, int progress) {
@@ -66,7 +68,12 @@ class AppDetailsLogic extends GetxController {
     );
     port.listen((dynamic data) {
       if (data is List && data.length >= 3) {
+        final status = data[1] is int ? data[1] as int : 0;
         getTaskInfo();
+        // 下载完成 → 弹窗确认安装
+        if (status == 3 /* complete */) {
+          _onDownloadComplete();
+        }
       }
     });
     FlutterDownloader.registerCallback(downloadCallback);
@@ -155,6 +162,47 @@ class AppDetailsLogic extends GetxController {
     }
   }
 
+  /// 下载完成：弹窗确认是否安装
+  bool _askedInstall = false;
+  Future<void> _onDownloadComplete() async {
+    if (_askedInstall) return;
+    _askedInstall = true;
+    await Future.delayed(const Duration(milliseconds: 400));
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final name = appInfo?.fileName ?? '安装包';
+    final go = await showDialog<bool>(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 22),
+            SizedBox(width: 8),
+            Text('下载完成', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: Text('$name 已下载完成，是否立即安装？',
+            style: const TextStyle(fontSize: 14, height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('稍后'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('立即安装'),
+          ),
+        ],
+      ),
+    );
+    _askedInstall = false;
+    if (go == true) {
+      await openDownloadFile();
+    }
+  }
+
   Future<void> getTaskInfo() async {
     String? taskIdTemp = await downloadTaskDao.queryDownloadTaskByAppId(appId);
     taskId = taskIdTemp;
@@ -239,7 +287,39 @@ class AppDetailsLogic extends GetxController {
       appName: appInfo?.fileName ?? fileName,
       appSize: appInfo?.fileSize ?? '',
     );
-    getTaskInfo();
+    _askedInstall = false;
+    await getTaskInfo();
+    // 轮询进度（FlutterDownloader 回调在部分机型不稳定）
+    _startProgressPolling();
+  }
+
+  /// 轮询下载进度（保证进度条实时更新）
+  void _startProgressPolling() {
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(const Duration(milliseconds: 700), (t) async {
+      if (taskId == null || taskId!.isEmpty) {
+        t.cancel();
+        return;
+      }
+      final tasks = await FlutterDownloader.loadTasksWithRawQuery(
+        query: "SELECT * FROM task WHERE task_id='$taskId'",
+      );
+      if (tasks == null || tasks.isEmpty) {
+        t.cancel();
+        return;
+      }
+      final t0 = tasks.first;
+      downloadTask = t0;
+      update(['download']);
+      if (t0.status == DownloadTaskStatus.complete) {
+        t.cancel();
+        _onDownloadComplete();
+      }
+      if (t0.status == DownloadTaskStatus.canceled ||
+          t0.status == DownloadTaskStatus.failed) {
+        t.cancel();
+      }
+    });
   }
 
   Future<void> pauseDownload() async {

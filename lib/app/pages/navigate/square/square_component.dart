@@ -99,10 +99,15 @@ class _SquareComponentState extends State<SquareComponent> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: kBrand,
-        onPressed: _compose,
-        child: const Icon(Icons.edit_rounded, color: Colors.white),
+      floatingActionButton: Padding(
+        // 上移，避免被 extendBody 的底部 Tab 栏遮挡
+        padding: const EdgeInsets.only(bottom: 66),
+        child: FloatingActionButton(
+          backgroundColor: kBrand,
+          elevation: 4,
+          onPressed: _compose,
+          child: const Icon(Icons.edit_rounded, color: Colors.white),
+        ),
       ),
     );
   }

@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
@@ -6,6 +10,8 @@ import 'package:photo_view/photo_view.dart';
 
 import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
+import '../../config.dart';
+import '../../utils/toast_util.dart';
 import '../../models/app_item.dart';
 import '../../routes/app_pages.dart';
 import '../../widgets/review/review_tab.dart';
@@ -78,27 +84,24 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               ),
             );
           }
-          // 统一滚动：整个页面共用一个滚动容器，避免各卡片独立滚动不同步
-          return NestedScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            headerSliverBuilder: (context, _) => [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                  child: Column(
-                    children: [
-                      _hero(isDark),
-                      const SizedBox(height: 10),
-                      _info(isDark),
-                    ],
-                  ),
-                ),
+          // 单一 ListView：主卡/数据卡/Tab栏/内容全部是列表项，整页一个滚动容器
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+            children: [
+              _hero(isDark),
+              const SizedBox(height: 10),
+              _info(isDark),
+              const SizedBox(height: 12),
+              _tabBarCard(isDark),
+              const SizedBox(height: 10),
+              // Tab 内容（随页面一起滚动，不独立滚动）
+              AnimatedBuilder(
+                animation: _tab,
+                builder: (context, _) => _tab.index == 0
+                    ? _detail(isDark)
+                    : ReviewTab(appId: item?.id ?? 0),
               ),
             ],
-            body: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
-              child: _tabsBody(isDark),
-            ),
           );
         },
       ),
@@ -294,48 +297,35 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   }
 
   // ============ Tab ============
-  /// Tab 栏（吸顶）+ 内容（跟随外层统一滚动）
-  Widget _tabsBody(bool isDark) {
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
+  /// Tab 栏卡片（详情 / 评论）
+  Widget _tabBarCard(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: TabBar(
+              controller: _tab,
+              indicatorSize: TabBarIndicatorSize.label,
+              indicatorWeight: 2.5,
+              indicatorColor: kBrand,
+              labelColor: kBrand,
+              unselectedLabelColor: Colors.grey[500],
+              labelStyle:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              unselectedLabelStyle:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              dividerColor: Colors.transparent,
+              tabs: const [Tab(text: '详情'), Tab(text: '评论')],
+            ),
           ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: TabBar(
-                  controller: _tab,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  indicatorWeight: 2.5,
-                  indicatorColor: kBrand,
-                  labelColor: kBrand,
-                  unselectedLabelColor: Colors.grey[500],
-                  labelStyle: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w800),
-                  unselectedLabelStyle:
-                      const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                  dividerColor: Colors.transparent,
-                  tabs: const [Tab(text: '详情'), Tab(text: '评论')],
-                ),
-              ),
-              Divider(
-                  height: 1, thickness: 0.5, color: Colors.grey.withAlpha(30)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        // 内容随页面统一滚动（不再各自独立滚动）
-        AnimatedBuilder(
-          animation: _tab,
-          builder: (context, _) => _tab.index == 0
-              ? _detail(isDark)
-              : ReviewTab(appId: item?.id ?? 0),
-        ),
-      ],
+          Divider(height: 1, thickness: 0.5, color: Colors.grey.withAlpha(30)),
+        ],
+      ),
     );
   }
 
@@ -388,21 +378,28 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
           SizedBox(
-            height: 250,
+            height: 240,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: shots.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, i) => GestureDetector(
-                onTap: () => _preview(shots[i]),
+                onTap: () => _previewGallery(shots, i),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: CachedNetworkImage(
                     imageUrl: shots[i],
                     width: 130,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) =>
-                        Container(width: 130, color: Colors.black12),
+                    placeholder: (_, __) => Container(
+                        width: 130,
+                        color: Colors.black12,
+                        child: const Center(
+                            child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2)))),
                     errorWidget: (_, __, ___) => Container(
                       width: 130,
                       color: Colors.black12,
@@ -413,6 +410,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          Text('共 ${shots.length} 张 · 点击可放大查看',
+              style: TextStyle(fontSize: 11, color: Colors.grey[500])),
         ],
         const SizedBox(height: 20),
         Container(
@@ -572,33 +572,56 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             }
             // 下载中
             if (task != null) {
+              final total = download.appInfo?.fileSize ?? '';
+              final done = calculateDownloadedSize(total, task.progress);
+              final isPaused = task.status == DownloadTaskStatus.paused;
+              final isFailed = task.status == DownloadTaskStatus.failed;
               return Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: task.progress / 100,
-                            minHeight: 7,
-                            backgroundColor: Colors.grey.withAlpha(45),
-                          ),
+                      Icon(
+                        isFailed
+                            ? Icons.error_outline_rounded
+                            : (isPaused
+                                ? Icons.pause_circle_outline_rounded
+                                : Icons.downloading_rounded),
+                        size: 17,
+                        color: isFailed
+                            ? const Color(0xFFDC2626)
+                            : (isPaused
+                                ? const Color(0xFFD97706)
+                                : kBrand),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isFailed
+                            ? '下载失败'
+                            : (isPaused ? '已暂停' : '正在下载中'),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isFailed
+                              ? const Color(0xFFDC2626)
+                              : (isPaused
+                                  ? const Color(0xFFD97706)
+                                  : kBrand),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      SizedBox(
-                        width: 38,
-                        child: Text('${task.progress}%',
-                            style: const TextStyle(
-                                fontSize: 12.5, fontWeight: FontWeight.w800)),
+                      const Spacer(),
+                      Text(
+                        '${task.progress}%',
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w900),
                       ),
+                      const SizedBox(width: 8),
                       _iconBtn(
-                        task.status == DownloadTaskStatus.paused
+                        isPaused
                             ? Icons.play_arrow_rounded
                             : Icons.pause_rounded,
-                        task.status == DownloadTaskStatus.paused
+                        isPaused
                             ? download.resumeDownload
                             : download.pauseDownload,
                       ),
@@ -606,14 +629,39 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       _iconBtn(Icons.close_rounded, download.cancelDownload),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    task.status == DownloadTaskStatus.paused
-                        ? '已暂停'
-                        : (task.status == DownloadTaskStatus.failed
-                            ? '下载失败'
-                            : '正在下载…'),
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: task.progress / 100,
+                      minHeight: 8,
+                      backgroundColor: Colors.grey.withAlpha(40),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isFailed
+                            ? const Color(0xFFDC2626)
+                            : (isPaused ? const Color(0xFFD97706) : kBrand),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Text(
+                        '$done / ${total.isEmpty ? '未知' : total}',
+                        style: TextStyle(
+                            fontSize: 11.5, color: Colors.grey[600]),
+                      ),
+                      const Spacer(),
+                      if (isFailed)
+                        GestureDetector(
+                          onTap: download.retryDownload,
+                          child: const Text('重试',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: kBrand,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                    ],
                   ),
                 ],
               );
@@ -742,15 +790,154 @@ class _AppDetailsPageState extends State<AppDetailsPage>
         child: const Icon(Icons.android, color: kBrand, size: 38),
       );
 
-  void _preview(String url) {
+  /// 截图画廊：左右滑动切换 + 保存到相册
+  void _previewGallery(List<String> images, int start) {
     showDialog(
       context: context,
-      builder: (_) => GestureDetector(
-        onTap: Get.back,
-        child: Container(
-          color: Colors.black.withAlpha(215),
-          child: Center(child: PhotoView(imageProvider: NetworkImage(url))),
-        ),
+      barrierColor: Colors.black87,
+      builder: (_) => _GalleryDialog(images: images, initial: start),
+    );
+  }
+
+  void _preview(String url) => _previewGallery([url], 0);
+}
+
+/// 全屏画廊（PageView 左右切换 + 保存）
+class _GalleryDialog extends StatefulWidget {
+  final List<String> images;
+  final int initial;
+  const _GalleryDialog({required this.images, required this.initial});
+
+  @override
+  State<_GalleryDialog> createState() => _GalleryDialogState();
+}
+
+class _GalleryDialogState extends State<_GalleryDialog> {
+  late final PageController _pc =
+      PageController(initialPage: widget.initial);
+  late int _cur = widget.initial;
+
+  @override
+  void dispose() {
+    _pc.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    try {
+      final url = widget.images[_cur];
+      final resp = await Dio().get<List<int>>(url,
+          options: Options(responseType: ResponseType.bytes));
+      final data = resp.data;
+      if (data == null) {
+        ToastUtil.error('保存失败');
+        return;
+      }
+      final ok = await ImageGallerySaverPlus.saveImage(
+        Uint8List.fromList(data),
+        name: 'softlib_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (ok != null) ToastUtil.success('已保存到相册');
+    } catch (e) {
+      ToastUtil.error('保存失败：请检查相册权限');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(0),
+      child: Stack(
+        children: [
+          // 图片区
+          Positioned.fill(
+            child: PageView.builder(
+              controller: _pc,
+              itemCount: widget.images.length,
+              onPageChanged: (i) => setState(() => _cur = i),
+              itemBuilder: (context, i) => InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Center(
+                  child: CachedNetworkImage(
+                    imageUrl: widget.images[i],
+                    fit: BoxFit.contain,
+                    placeholder: (_, __) => const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2)),
+                    errorWidget: (_, __, ___) => const Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white38,
+                        size: 48),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // 顶部：关闭 + 页码
+          Positioned(
+            top: 44,
+            left: 16,
+            right: 16,
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: Get.back,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                        color: Colors.black45, shape: BoxShape.circle),
+                    child: const Icon(Icons.close,
+                        color: Colors.white, size: 20),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                      color: Colors.black45,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Text('${_cur + 1} / ${widget.images.length}',
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 12.5)),
+                ),
+              ],
+            ),
+          ),
+          // 底部：保存
+          Positioned(
+            bottom: 50,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: _save,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 22, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF465CFF),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.download_rounded,
+                          color: Colors.white, size: 18),
+                      SizedBox(width: 6),
+                      Text('保存图片',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
