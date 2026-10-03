@@ -8,7 +8,7 @@ import '../../../../generated/assets.dart';
 import '../../../models/http/results/carousel_model.dart';
 import '../../../models/http/results/referral_model.dart';
 import 'home_logic.dart';
-import '../../../routes/app_routes.dart';
+import '../../../routes/app_pages.dart';
 
 class HomeComponent extends StatefulWidget {
   const HomeComponent({super.key});

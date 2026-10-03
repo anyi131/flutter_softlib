@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../routes/app_routes.dart';
+import '../../../routes/app_pages.dart';
 
 /// 我的 - 个人中心（SonPro 风格复刻）
 class MineComponent extends StatefulWidget {
