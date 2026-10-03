@@ -12,6 +12,8 @@ import '../../../api/post_service.dart';
 import '../../../api/user_service.dart';
 import '../../../models/post_item.dart';
 import '../../../routes/app_pages.dart';
+import '../../../design/adaptive.dart';
+import '../../../design/ui.dart';
 import '../../../widgets/tab_bottom_pad.dart';
 import 'emoji_panel.dart';
 
@@ -87,35 +89,51 @@ class _SquareComponentState extends State<SquareComponent> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
     return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _topBar(),
-            _catBar(isDark),
-            Expanded(child: _body(isDark)),
-          ],
-        ),
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Deco.pageBackground(context),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _topBar(),
+                _catBar(isDark),
+                Expanded(child: _body(isDark)),
+              ],
+            ),
+          ),
+        ],
       ),
       floatingActionButton: Padding(
-        // 上移，避免被 extendBody 的底部 Tab 栏遮挡
-        padding: const EdgeInsets.only(bottom: 66),
-        child: FloatingActionButton(
-          backgroundColor: AppColor.primary,
-          elevation: 4,
-          onPressed: _compose,
-          child: const Icon(Icons.edit_rounded, color: Colors.white),
+        padding: EdgeInsets.only(bottom: context.tabSpace - 10),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: Deco.brandGradient,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: C.brand.withAlpha(110),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: FloatingActionButton(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            onPressed: _compose,
+            child: const Icon(Icons.edit_rounded, color: Colors.white),
+          ),
         ),
       ),
     );
   }
 
   Widget _topBar() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 2),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(context.pagePadding, 14, context.pagePadding, 2),
       child: Row(
         children: [
           Expanded(
@@ -123,14 +141,10 @@ class _SquareComponentState extends State<SquareComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('广场',
-                    style: TextStyle(
-                        fontSize: 23,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5)),
-                SizedBox(height: 2),
+                Text('广场', style: Ty.display.copyWith(color: context.t1)),
+                const SizedBox(height: 4),
                 Text('交流分享 · 发现好软',
-                    style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                    style: Ty.small.copyWith(color: context.t3)),
               ],
             ),
           ),
@@ -215,14 +229,17 @@ class _SquareComponentState extends State<SquareComponent> {
   }
 
   Widget _postCard(PostItem p, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(14, 6, 14, 6),
-      decoration: BoxDecoration(
-        color: isDark ? AppColor.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(context.pagePadding, 6, context.pagePadding, 6),
+      child: Deco.glass(
+        context,
+        radius: R.lg,
+        alpha: 0.06,
+        child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(R.lg),
+        child: InkWell(
+        borderRadius: BorderRadius.circular(R.lg),
         onTap: () async {
           await Get.toNamed(Routes.postDetail, arguments: {'id': p.id, 'item': p});
           _load(reset: true);
@@ -341,6 +358,8 @@ class _SquareComponentState extends State<SquareComponent> {
                 ],
               ),
             ],
+          ),
+            ),
           ),
         ),
       ),

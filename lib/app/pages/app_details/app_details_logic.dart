@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:photo_view/photo_view.dart';
 
@@ -371,13 +373,80 @@ class AppDetailsLogic extends GetxController {
     update(['download']);
   }
 
+  /// 安装已下载的软件（三级兜底）
   Future<void> openDownloadFile() async {
     if (taskId == null || taskId!.isEmpty) {
       ToastUtil.error('下载任务ID无效');
       return;
     }
-    bool results = await FlutterDownloader.open(taskId: taskId!);
-    if (!results) ToastUtil.error('打开安装包失败');
+
+    // 1) 检查「安装未知来源应用」权限（Android 8+）
+    if (Platform.isAndroid) {
+      try {
+        if (!await Permission.requestInstallPackages.isGranted) {
+          final st = await Permission.requestInstallPackages.request();
+          if (!st.isGranted) {
+            ToastUtil.error('请先允许「安装未知应用」权限');
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2) 优先 FlutterDownloader 自带打开（内部走 FileProvider）
+    try {
+      final ok = await FlutterDownloader.open(taskId: taskId!);
+      if (ok) return;
+    } catch (e) {
+      logger.e('FlutterDownloader.open failed: $e');
+    }
+
+    // 3) 兜底：查数据库拿到文件路径，用系统 Intent 安装
+    try {
+      final tasks = await FlutterDownloader.loadTasksWithRawQuery(
+        query: "SELECT * FROM task WHERE task_id='$taskId'",
+      );
+      final path = tasks?.isNotEmpty == true
+          ? (tasks!.first.savedDir ?? '')
+          : '';
+      // FlutterDownloader 的任务里 filename 可能为空，用已存任务的本地路径
+      final local = await _resolveLocalPath(path, tasks?.first.filename);
+      if (local != null && File(local).existsSync()) {
+        await OpenFilex.open(local,
+            type: 'application/vnd.android.package-archive');
+        return;
+      }
+    } catch (e) {
+      logger.e('open via file failed: $e');
+    }
+
+    // 4) 最后：打开下载页让用户手动安装
+    ToastUtil.error('无法自动安装，请在「下载管理」中手动安装');
+    Get.toNamed('/appDownload');
+  }
+
+  /// 拼出安装包的本地路径
+  Future<String?> _resolveLocalPath(String dir, String? name) async {
+    if (dir.isEmpty) return null;
+    if (name != null && name.isNotEmpty) {
+      final full = '$dir/$name';
+      if (File(full).existsSync()) return full;
+    }
+    // 目录里找最近的一个 apk
+    try {
+      final d = Directory(dir);
+      if (!d.existsSync()) return null;
+      final apks = d
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.toLowerCase().endsWith('.apk'))
+          .toList();
+      if (apks.isEmpty) return null;
+      apks.sort((a, b) =>
+          b.statSync().modified.compareTo(a.statSync().modified));
+      return apks.first.path;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// 分享：会员资源不允许分享下载链接（防止绕过会员校验）

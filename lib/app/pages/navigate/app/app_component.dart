@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../api/soft_service.dart';
+import '../../../design/adaptive.dart';
 import '../../../design/ui.dart';
 import '../../../models/app_cat.dart';
 import '../../../models/app_item.dart';
@@ -130,7 +131,8 @@ class _AppComponentState extends State<AppComponent> {
 
   Widget _title() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 12, 4),
+      padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 14, 12, 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -178,7 +180,8 @@ class _AppComponentState extends State<AppComponent> {
       height: 54,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+        padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 12, context.pagePadding, 8),
         itemCount: _cats.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
@@ -279,7 +282,8 @@ class _AppComponentState extends State<AppComponent> {
   Widget _card(AppItem a) {
     final vip = a.isVipItem;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+      padding: EdgeInsets.fromLTRB(
+        context.pagePadding, 6, context.pagePadding, 6),
       child: Deco.glass(
         context,
         radius: R.lg,

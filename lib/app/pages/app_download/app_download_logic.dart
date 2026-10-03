@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_softlib/app/database/database.dart' as db;
 import 'package:flutter_softlib/app/database/tables/download_task_table.dart';
 import 'package:get/get.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../utils/toast_util.dart';
 
@@ -159,16 +162,57 @@ class AppDownloadLogic extends GetxController {
     update(['downInfos']);
   }
 
-  ///打开下载的软件
+  /// 安装已下载的软件（三级兜底）
   Future<void> openDownloadFile(DownInfo? dowInfo) async {
-    String? taskId = dowInfo?.taskId;
+    final taskId = dowInfo?.taskId;
     if (taskId == null || taskId.isEmpty) {
-      ToastUtil.error('下载任务ID无效，请稍后重试');
+      ToastUtil.error('下载任务ID无效');
       return;
     }
-    bool results = await FlutterDownloader.open(taskId: taskId);
-    if (!results) {
-      ToastUtil.error('打开下载的软件失败，请稍后重试');
+    if (Platform.isAndroid) {
+      try {
+        if (!await Permission.requestInstallPackages.isGranted) {
+          await Permission.requestInstallPackages.request();
+        }
+      } catch (_) {}
     }
+    try {
+      if (await FlutterDownloader.open(taskId: taskId)) return;
+    } catch (_) {}
+    try {
+      final tasks = await FlutterDownloader.loadTasksWithRawQuery(
+        query: "SELECT * FROM task WHERE task_id='$taskId'",
+      );
+      if (tasks != null && tasks.isNotEmpty) {
+        final dir = tasks.first.savedDir ?? '';
+        final name = tasks.first.filename;
+        String? path;
+        if (dir.isNotEmpty && name != null && name.isNotEmpty) {
+          final f = '$dir/$name';
+          if (File(f).existsSync()) path = f;
+        }
+        if (path == null && dir.isNotEmpty) {
+          final d = Directory(dir);
+          if (d.existsSync()) {
+            final apks = d
+                .listSync()
+                .whereType<File>()
+                .where((f) => f.path.toLowerCase().endsWith('.apk'))
+                .toList();
+            if (apks.isNotEmpty) {
+              apks.sort((a, b) =>
+                  b.statSync().modified.compareTo(a.statSync().modified));
+              path = apks.first.path;
+            }
+          }
+        }
+        if (path != null) {
+          await OpenFilex.open(path,
+              type: 'application/vnd.android.package-archive');
+          return;
+        }
+      }
+    } catch (_) {}
+    ToastUtil.error('无法自动安装，请到文件管理器中安装');
   }
 }

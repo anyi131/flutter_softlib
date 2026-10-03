@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/assets.dart';
+import '../../../design/adaptive.dart';
 import '../../../design/ui.dart';
 import '../../../routes/app_pages.dart';
 import '../../navigate/navigate_logic.dart';
@@ -36,7 +37,8 @@ class MineComponent extends StatelessWidget {
                   onRefresh: logic.load,
                   child: ListView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 130),
+                    padding: EdgeInsets.fromLTRB(
+                      context.pagePadding, 12, context.pagePadding, context.tabSpace + 40),
                     children: [
                       _title(context),
                       const SizedBox(height: 16),
@@ -117,9 +119,9 @@ class MineComponent extends StatelessWidget {
               child: Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: C.bg2,
+                  color: context.isDark ? C.bg2 : Colors.white,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: logic.avatarUrl.isNotEmpty
@@ -176,7 +178,7 @@ class MineComponent extends StatelessWidget {
   }
 
   Widget _defaultAvatar() => Container(
-        color: C.bg3,
+        color: const Color(0xFFEDF0F7),
         alignment: Alignment.center,
         child: const Icon(Icons.person_rounded, size: 34, color: C.brandBright),
       );
@@ -392,12 +394,12 @@ class MineComponent extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (int i = 0; i < items.length; i += 4)
+          for (int i = 0; i < items.length; i += context.serviceCols)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
-                  for (int j = i; j < i + 4; j++)
+                  for (int j = i; j < i + context.serviceCols; j++)
                     Expanded(
                       child: j < items.length
                           ? _gridCell(context, items[j])

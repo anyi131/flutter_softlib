@@ -30,26 +30,27 @@ class C {
   static const rose = Color(0xFFFB7185);
   static const accentOrange = Color(0xFFFB923C);
 
-  // 深色底（三层景深）
-  static const bg0 = Color(0xFF0A0B10); // 最深（页面底）
-  static const bg1 = Color(0xFF101219); // 中间层
-  static const bg2 = Color(0xFF161923); // 卡片层
-  static const bg3 = Color(0xFF1E2230); // 悬浮层
+  // 深色底（三层景深）—— 仅深色模式用
+  static const bg0 = Color(0xFF0E1016);
+  static const bg1 = Color(0xFF141721);
+  static const bg2 = Color(0xFF1A1E29);
+  static const bg3 = Color(0xFF232838);
 
-  // 浅色底
-  static const lbg0 = Color(0xFFF7F8FC);
-  static const lbg1 = Color(0xFFFFFFFF);
-  static const lbg2 = Color(0xFFF0F2F8);
+  // 浅色底（默认）
+  static const lbg0 = Color(0xFFF6F7FB); // 页面底（浅灰带蓝调）
+  static const lbg1 = Color(0xFFFFFFFF); // 卡片
+  static const lbg2 = Color(0xFFEFF2F9); // 次级块
+  static const lbg3 = Color(0xFFFFFFFF); // 悬浮
 
   // 文字（深色模式）
-  static const t1 = Color(0xFFF6F7FB); // 主
-  static const t2 = Color(0xFFA8AEC1); // 次
-  static const t3 = Color(0xFF6B7288); // 弱
+  static const t1 = Color(0xFFF6F7FB);
+  static const t2 = Color(0xFFA8AEC1);
+  static const t3 = Color(0xFF6B7288);
 
-  // 文字（浅色模式）
+  // 文字（浅色模式，默认）
   static const lt1 = Color(0xFF14161E);
-  static const lt2 = Color(0xFF5A6172);
-  static const lt3 = Color(0xFF9AA1B2);
+  static const lt2 = Color(0xFF5C6273);
+  static const lt3 = Color(0xFF9BA1B0);
 
   // 玻璃描边
   static const stroke = Color(0xFFFFFFFF);
@@ -74,49 +75,61 @@ class Deco {
   static bool dark(BuildContext c) =>
       Theme.of(c).brightness == Brightness.dark;
 
-  /// 主背景：深色页面底 + 顶部品牌光晕
+  /// 主背景：浅色页面底 + 柔和彩色光晕（浅色为主）
   static Widget pageBackground(BuildContext context, {Widget? child}) {
     final isDark = dark(context);
     return Stack(
       children: [
-        // 底色
         Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? C.bg0 : C.lbg0,
-            ),
-          ),
+          child: Container(color: isDark ? C.bg0 : C.lbg0),
         ),
-        // 顶部光晕（品牌色）
+        // 顶部品牌光晕
         Positioned(
-          top: -160,
-          left: -80,
-          right: -80,
+          top: -180,
+          left: -100,
+          right: -100,
           child: Container(
-            height: 380,
+            height: 420,
             decoration: BoxDecoration(
               gradient: RadialGradient(
                 colors: [
-                  C.brand.withAlpha(isDark ? 70 : 40),
+                  C.brand.withAlpha(isDark ? 62 : 34),
                   C.brand.withAlpha(0),
                 ],
-                radius: 0.75,
+                radius: 0.8,
               ),
             ),
           ),
         ),
-        // 右侧副光晕（青色）
+        // 右上青色副光晕
         Positioned(
-          top: 220,
-          right: -120,
+          top: 180,
+          right: -140,
           child: Container(
-            width: 300,
-            height: 300,
+            width: 340,
+            height: 340,
             decoration: BoxDecoration(
               gradient: RadialGradient(
                 colors: [
-                  C.cyan.withAlpha(isDark ? 38 : 22),
+                  C.cyan.withAlpha(isDark ? 34 : 20),
                   C.cyan.withAlpha(0),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // 左下紫罗兰光晕
+        Positioned(
+          bottom: 60,
+          left: -150,
+          child: Container(
+            width: 320,
+            height: 320,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  C.violet.withAlpha(isDark ? 30 : 18),
+                  C.violet.withAlpha(0),
                 ],
               ),
             ),
@@ -148,32 +161,31 @@ class Deco {
         color: gradient == null
             ? (isDark
                 ? Colors.white.withAlpha((alpha * 255).round())
-                : Colors.white.withAlpha(235))
+                : Colors.white.withAlpha(215))
             : null,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
           color: isDark
-              ? C.stroke.withAlpha(22)
-              : Colors.black.withAlpha(9),
-          width: 0.8,
+              ? C.stroke.withAlpha(20)
+              : Colors.white.withAlpha(230),
+          width: 0.9,
         ),
         boxShadow: glow != null
             ? [
                 BoxShadow(
-                  color: glow.withAlpha(isDark ? 60 : 38),
-                  blurRadius: 22,
-                  offset: const Offset(0, 8),
+                  color: glow.withAlpha(isDark ? 58 : 30),
+                  blurRadius: 24,
+                  offset: const Offset(0, 9),
                 ),
               ]
-            : (isDark
-                ? null
-                : [
-                    BoxShadow(
-                      color: const Color(0xFF1A1D26).withAlpha(14),
-                      blurRadius: 18,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]),
+            : [
+                BoxShadow(
+                  color: const Color(0xFF2C3550)
+                      .withAlpha(isDark ? 0 : 16),
+                  blurRadius: 22,
+                  offset: const Offset(0, 7),
+                ),
+              ],
       ),
       child: child,
     );

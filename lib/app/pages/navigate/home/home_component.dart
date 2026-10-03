@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:marquee/marquee.dart';
 
 import '../../../../generated/assets.dart';
+import '../../../design/adaptive.dart';
 import '../../../design/ui.dart';
 import '../../../models/http/results/carousel_model.dart';
 import '../../../models/http/results/referral_model.dart';
@@ -52,7 +53,7 @@ class _HomeComponentState extends State<HomeComponent> {
                 SliverToBoxAdapter(child: _notice()),
                 _referralTitle(),
                 _referralGrid(),
-                const SliverToBoxAdapter(child: SizedBox(height: 130)),
+                SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
               ],
             ),
           ),
@@ -64,7 +65,8 @@ class _HomeComponentState extends State<HomeComponent> {
   // ───────── ① 顶部问候 ─────────
   Widget _header() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      padding: EdgeInsets.fromLTRB(
+        context.pagePadding, 14, context.pagePadding, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -157,7 +159,8 @@ class _HomeComponentState extends State<HomeComponent> {
   // ───────── ② 搜索 ─────────
   Widget _search() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      padding: EdgeInsets.fromLTRB(
+        context.pagePadding, 18, context.pagePadding, 0),
       child: Deco.glass(
         context,
         radius: R.full,
@@ -203,7 +206,8 @@ class _HomeComponentState extends State<HomeComponent> {
           () => Get.find<NavigateLogic>().checkUpdate(showLatestTip: true)),
     ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 20, 14, 4),
+      padding: EdgeInsets.fromLTRB(
+        context.pagePadding - 6, 20, context.pagePadding - 6, 4),
       child: Row(
         children: items
             .map((it) => Expanded(
@@ -247,7 +251,8 @@ class _HomeComponentState extends State<HomeComponent> {
         if (list == null || list.isEmpty) return const SizedBox.shrink();
         final idx = _carouselIdx.clamp(0, list.length - 1);
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          padding: EdgeInsets.fromLTRB(
+        context.pagePadding, 16, context.pagePadding, 0),
           child: Column(
             children: [
               CarouselSlider.builder(
@@ -377,7 +382,8 @@ class _HomeComponentState extends State<HomeComponent> {
         final text = logic.configData?.placard ?? '';
         if (text.isEmpty) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          padding: EdgeInsets.fromLTRB(
+        context.pagePadding, 16, context.pagePadding, 0),
           child: Deco.glass(
             context,
             radius: R.md,
@@ -427,7 +433,8 @@ class _HomeComponentState extends State<HomeComponent> {
         }
         return SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 26, 20, 12),
+            padding: EdgeInsets.fromLTRB(
+        context.pagePadding, 26, context.pagePadding, 12),
             child: Row(
               children: [
                 Container(
@@ -472,14 +479,9 @@ class _HomeComponentState extends State<HomeComponent> {
           return const SliverToBoxAdapter(child: SizedBox.shrink());
         }
         return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: context.pagePadding),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.32,
-            ),
+            gridDelegate: AdaptiveGrid.referral(context),
             delegate: SliverChildBuilderDelegate(
               (context, i) => _referralCard(list[i]),
               childCount: list.length,
