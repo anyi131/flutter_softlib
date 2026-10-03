@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 
 import '../../../generated/assets.dart';
 import '../../api/soft_service.dart';
+import '../../api/user_service.dart';
 import '../../models/app_config.dart';
 import '../../routes/app_pages.dart';
 import '../../utils/jump_util.dart';
@@ -173,7 +174,11 @@ class _SplashPageState extends State<SplashPage> {
     }
 
     final cfg = _config;
-    final img = cfg?.splashImage ?? '';
+    // 优先使用用户自定义开屏图（我的→替换开屏）
+    final userSplash = UserService.instance.user?.splashImage ?? '';
+    final img = userSplash.isNotEmpty
+        ? userSplash
+        : (cfg?.splashImage ?? '');
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(

@@ -19,13 +19,14 @@ class AdminContentTab extends StatefulWidget {
 class _AdminContentTabState extends State<AdminContentTab>
     with SingleTickerProviderStateMixin {
   final _svc = AdminService.instance;
-  late final TabController _tab = TabController(length: 6, vsync: this);
+  late final TabController _tab = TabController(length: 7, vsync: this);
 
   List<Map<String, dynamic>> _posts = [];
   List<Map<String, dynamic>> _reviews = [];
   List<Map<String, dynamic>> _cats = [];
   List<Map<String, dynamic>> _carousels = [];
   List<Map<String, dynamic>> _reports = [];
+  List<Map<String, dynamic>> _cards = [];
   bool _loading = true;
 
   @override
@@ -48,12 +49,14 @@ class _AdminContentTabState extends State<AdminContentTab>
       final ct = await _svc.appCats();
       final ca = await _svc.carousels();
       final rp = await _svc.reports();
+      final cd = await _svc.cards();
       if (mounted) setState(() {
         _posts = p;
         _reviews = r;
         _cats = ct;
         _carousels = ca;
         _reports = rp;
+        _cards = cd;
         _loading = false;
       });
     } catch (e) {
@@ -81,6 +84,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             Tab(text: '分类 ${_cats.length}'),
             Tab(text: '轮播 ${_carousels.length}'),
             Tab(text: '线报 ${_reports.length}'),
+            Tab(text: '卡密 ${_cards.length}'),
             const Tab(text: '配置'),
           ],
         ),
@@ -95,6 +99,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     _catList(),
                     _carouselList(),
                     _reportList(),
+                    _cardList(),
                     _configList(),
                   ],
                 ),
@@ -645,6 +650,139 @@ class _AdminContentTabState extends State<AdminContentTab>
         'content': contentCtrl.text,
       });
       ToastUtil.success('已保存');
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // ───── 卡密管理 ─────
+  Widget _cardList() {
+    return ListView(
+      padding: const EdgeInsets.all(14),
+      children: [
+        SizedBox(
+          height: 44,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5B6CFF),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22)),
+            ),
+            onPressed: _genCards,
+            icon: const Icon(Icons.add_card, size: 18),
+            label: const Text('批量生成卡密'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (final c in _cards)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1C1C1E)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${c['code']}',
+                          style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'monospace')),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${c['type'] == 'vip' ? '会员 ${c['value']} 天' : '积分 ${c['value']}'}'
+                        ' · ${c['used'] == 1 ? '已使用' : '未使用'}',
+                        style: TextStyle(
+                            fontSize: 11.5,
+                            color: const Color(0xFF667085)),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline,
+                      size: 19, color: Color(0xFFDC2626)),
+                  onPressed: () async {
+                    await _svc.deleteCard(int.tryParse('${c['id']}') ?? 0);
+                    ToastUtil.success('已删除');
+                    _load();
+                  },
+                ),
+              ],
+            ),
+          ),
+        if (_cards.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 30),
+            child: Center(
+                child: Text('暂无卡密，点上方按钮生成',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _genCards() async {
+    final countCtrl = TextEditingController(text: '10');
+    final valueCtrl = TextEditingController(text: '30');
+    String type = 'vip';
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('批量生成卡密'),
+        content: StatefulBuilder(builder: (ctx, setD) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                  controller: countCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: '生成数量')),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: type,
+                decoration: const InputDecoration(labelText: '卡密类型'),
+                items: const [
+                  DropdownMenuItem(value: 'vip', child: Text('会员时长(天)')),
+                  DropdownMenuItem(value: 'score', child: Text('积分')),
+                ],
+                onChanged: (v) => setD(() => type = v ?? 'vip'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: valueCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                      labelText: type == 'vip' ? '会员天数' : '积分数量')),
+            ],
+          );
+        }),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Get.back(result: true),
+              child: const Text('生成')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await _svc.generateCards(
+        int.tryParse(countCtrl.text) ?? 10,
+        type,
+        int.tryParse(valueCtrl.text) ?? 30,
+      );
+      ToastUtil.success('卡密已生成');
       _load();
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));

@@ -110,6 +110,16 @@ class AdminService {
 
   Future<void> deleteReport(int id) async => _post('report_del', {'id': id});
 
+  Future<List<Map<String, dynamic>>> cards() async {
+    final d = (await _post('cards'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> generateCards(int count, String type, int value) async =>
+      _post('card_gen', {'count': count, 'type': type, 'value': value});
+
+  Future<void> deleteCard(int id) async => _post('card_del', {'id': id});
+
   Future<void> saveReport(Map<String, dynamic> data) async =>
       _post('report_save', data);
 

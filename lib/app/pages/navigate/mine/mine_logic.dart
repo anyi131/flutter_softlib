@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../api/api_host.dart';
 import '../../../design/theme_controller.dart';
 import '../../../api/soft_service.dart';
+import '../../../api/post_service.dart';
 import '../../../api/user_service.dart';
 import '../../../utils/jump_util.dart';
 import '../../../utils/toast_util.dart';
@@ -218,7 +222,13 @@ class MineLogic extends GetxController {
       ),
     );
     if (code == null || code.isEmpty) return;
-    toast('卡密兑换通道对接中，请联系管理员');
+    try {
+      final msg = await _userService.redeem(code);
+      await load();
+      ToastUtil.success(msg);
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   /// 切换浅色 / 深色主题
@@ -301,9 +311,11 @@ class MineLogic extends GetxController {
 
   /// 加入 QQ 通知群
   void joinGroup() {
-    const url = ApiHost.base;
+    final url = _userService.user?.qq.isNotEmpty == true
+        ? 'https://qun.qq.com/'
+        : ApiHost.base;
     Clipboard.setData(ClipboardData(text: url));
-    toast('官方地址已复制：$url');
+    toast('链接已复制，可在浏览器打开');
   }
 
   void about(BuildContext context) {
@@ -554,8 +566,53 @@ class MineLogic extends GetxController {
     }
   }
 
-  /// 替换开屏（本地选择图片，仅当前设备生效）
+  /// 替换开屏（上传自定义开屏图）
   Future<void> replaceSplash() async {
-    ToastUtil.info('开屏图由管理员在后台统一配置');
+    if (!isLoggedIn) return openLogin();
+    final action = await Get.dialog<String>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('替换开屏',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        content: Text(
+          _userService.user?.splashImage.isNotEmpty == true
+              ? '当前已设置自定义开屏图'
+              : '未设置（使用默认开屏）',
+          style: const TextStyle(fontSize: 13.5),
+        ),
+        actions: [
+          if (_userService.user?.splashImage.isNotEmpty == true)
+            TextButton(
+                onPressed: () => Get.back(result: 'reset'),
+                child: const Text('恢复默认')),
+          TextButton(onPressed: Get.back, child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Get.back(result: 'upload'),
+              child: const Text('选择图片')),
+        ],
+      ),
+    );
+    if (action == null) return;
+    if (action == 'reset') {
+      try {
+        await _userService.saveSplash('');
+        await load();
+        ToastUtil.success('已恢复默认开屏');
+      } catch (e) {
+        ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      }
+      return;
+    }
+    try {
+      final picked = await ImagePicker()
+          .pickImage(source: ImageSource.gallery, imageQuality: 88);
+      if (picked == null) return;
+      final up = await PostService.instance.uploadImage(File(picked.path));
+      await _userService.saveSplash(up);
+      await load();
+      ToastUtil.success('开屏图已更新，下次启动生效');
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 }

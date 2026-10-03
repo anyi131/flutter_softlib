@@ -23,6 +23,8 @@ class UserInfo {
   final bool isAdmin;
   /// 自定义称号
   final String title;
+  /// 用户自定义开屏图
+  final String splashImage;
 
   UserInfo({
     required this.id,
@@ -41,6 +43,7 @@ class UserInfo {
     required this.jointime,
     this.isAdmin = false,
     this.title = '',
+    this.splashImage = '',
   });
 
   factory UserInfo.fromJson(Map json) {
@@ -62,6 +65,7 @@ class UserInfo {
       jointime: s('jointime'),
       isAdmin: json['is_admin'] == true || s('is_admin') == 'true' || s('is_admin') == '1',
       title: s('title'),
+      splashImage: s('splash_image'),
     );
   }
 
@@ -88,6 +92,7 @@ class UserInfo {
         'jointime': jointime,
         'is_admin': isAdmin,
         'title': title,
+        'splash_image': splashImage,
       };
 }
 
@@ -263,6 +268,26 @@ class UserService {
       }
     } catch (_) {}
     return [];
+  }
+
+  /// 使用卡密
+  Future<String> redeem(String code) async {
+    if (_token.isEmpty) throw Exception('请先登录');
+    final r = _unwrap(await _dio.post('/api/softlib/user/redeem',
+        data: {'token': _token, 'code': code}));
+    if (r['code'] != 1) throw Exception(r['msg'] ?? '兑换失败');
+    final msg = (r['msg'] ?? '兑换成功').toString();
+    await refreshProfile();
+    return msg;
+  }
+
+  /// 保存自定义开屏图
+  Future<void> saveSplash(String url) async {
+    if (_token.isEmpty) throw Exception('请先登录');
+    final r = _unwrap(await _dio.post('/api/softlib/user/save_splash',
+        data: {'token': _token, 'splash_image': url}));
+    if (r['code'] != 1) throw Exception(r['msg'] ?? '保存失败');
+    await refreshProfile();
   }
 
   /// 积分兑换商品列表（后台可配）
