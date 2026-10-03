@@ -210,7 +210,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                           : (it?.title ?? '未知软件'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Ty.t2.copyWith(color: context.t1, fontSize: 19),
+                      style: Ty.h1.copyWith(color: context.t1, fontSize: 19),
                     ),
                     const SizedBox(height: 9),
                     Wrap(
