@@ -118,7 +118,8 @@ class _NavigatePageState extends State<NavigatePage> {
                   ),
                   child: IconTheme(
                     data: IconThemeData(size: 23, color: color),
-                    child: selected ? dest.selectedIcon : dest.icon,
+                    child: (selected ? dest.selectedIcon : dest.icon) ??
+                        const SizedBox.shrink(),
                   ),
                 ),
                 const SizedBox(height: 3),
