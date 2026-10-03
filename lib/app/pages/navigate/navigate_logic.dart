@@ -399,9 +399,10 @@ class NavigateLogic extends GetxController {
     }
 
     // 3) 失败 → 询问是否跳浏览器
-    if (!mounted && Get.context == null) return;
+    final ctx = Get.context;
+    if (ctx == null) return;
     final go = await showDialog<bool>(
-      context: Get.context!,
+      context: ctx,
       builder: (c) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('下载地址解析失败'),
