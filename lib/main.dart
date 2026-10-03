@@ -10,6 +10,7 @@ import 'package:flutter_softlib/app/http/http_api.dart';
 import 'package:get/get.dart';
 
 import 'app/routes/app_pages.dart';
+import 'app/api/user_service.dart';
 
 /// 应用程序主入口
 Future<void> main() async {
@@ -37,6 +38,8 @@ Future<void> _initializeServices() async {
   Get.put<AppDatabase>(AppDatabase(), permanent: true);
   // 初始化HTTP服务
   Get.lazyPut(() => HttpApi(_createDioInstance()));
+  // 恢复登录态（读取本地 token + 用户资料）
+  await UserService.instance.restore();
   // 配置EasyLoading
   _configureEasyLoading();
   // 设置设备方向

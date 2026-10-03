@@ -71,7 +71,9 @@ class MineComponent extends StatelessWidget {
             children: [
               // 头像
               GestureDetector(
-                onTap: () => logic.pickAvatar(),
+                onTap: () => logic.isLoggedIn
+                    ? logic.openProfileEdit()
+                    : logic.openLogin(),
                 child: Container(
                   width: 62,
                   height: 62,
@@ -81,8 +83,15 @@ class MineComponent extends StatelessWidget {
                     border: Border.all(color: Colors.white, width: 2),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: logic.avatarPath.isNotEmpty
-                      ? Image.asset(logic.avatarPath, fit: BoxFit.cover)
+                  child: logic.avatarUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: logic.avatarUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) =>
+                              Image.asset(Assets.imagesMascot, fit: BoxFit.cover),
+                          errorWidget: (_, __, ___) =>
+                              Image.asset(Assets.imagesMascot, fit: BoxFit.cover),
+                        )
                       : Image.asset(Assets.imagesMascot, fit: BoxFit.cover),
                 ),
               ),
@@ -91,10 +100,15 @@ class MineComponent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      logic.nickname.isEmpty ? '未登录' : logic.nickname,
-                      style: const TextStyle(
-                          fontSize: 19, fontWeight: FontWeight.w800),
+                    GestureDetector(
+                      onTap: () => logic.isLoggedIn
+                          ? logic.openProfileEdit()
+                          : logic.openLogin(),
+                      child: Text(
+                        logic.nickname.isEmpty ? '点击登录' : logic.nickname,
+                        style: const TextStyle(
+                            fontSize: 19, fontWeight: FontWeight.w800),
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
@@ -130,8 +144,10 @@ class MineComponent extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: logic.rename,
-                child: Text('改名',
+                onPressed: () => logic.isLoggedIn
+                    ? logic.openProfileEdit()
+                    : logic.openLogin(),
+                child: Text(logic.isLoggedIn ? '编辑' : '登录',
                     style: TextStyle(fontSize: 13, color: Colors.grey[600])),
               ),
             ],
@@ -383,9 +399,11 @@ class MineComponent extends StatelessWidget {
                   ),
                   side: BorderSide.none,
                 ),
-                onPressed: () => Get.find<NavigateLogic>().changePage(0),
-                child: const Text('退出登录',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
+                onPressed: () => logic.isLoggedIn
+                    ? logic.logout()
+                    : logic.openLogin(),
+                child: Text(logic.isLoggedIn ? '退出登录' : '登录 / 注册',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
             ),
           ),

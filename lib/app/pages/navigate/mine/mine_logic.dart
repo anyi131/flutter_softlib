@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../api/user_service.dart';
 import '../../../utils/toast_util.dart';
 
 /// 我的页逻辑：本地资料（昵称/账号/积分/签到/会员到期）
@@ -19,11 +20,20 @@ class MineLogic extends GetxController {
   int points = 1005;
   String vipExpire = '';
   String avatarPath = '';
+  /// 网络头像（QQ头像 / 自定义）
+  String avatarUrl = '';
+  bool isVipMember = false;
   String signedDate = '';
 
   int messageCount = 1;
   int followCount = 0;
   int fansCount = 0;
+
+  final UserService _userService = UserService.instance;
+
+  /// 已登录用户（为空则未登录）
+  UserInfo? get account => _userService.user;
+  bool get isLoggedIn => _userService.isLoggedIn;
 
   @override
   void onInit() {
@@ -31,7 +41,84 @@ class MineLogic extends GetxController {
     load();
   }
 
+  /// 打开登录页，登录成功后刷新
+  Future<void> openLogin() async {
+    await Get.toNamed('/login');
+    await load();
+  }
+
+  /// 打开个人资料编辑
+  Future<void> openProfileEdit() async {
+    if (!isLoggedIn) return openLogin();
+    final u = account;
+    final nickCtrl = TextEditingController(text: u?.nickname ?? '');
+    final qqCtrl = TextEditingController(text: u?.qq ?? '');
+    final avatarPreview = ValueNotifier<String>(u?.avatar ?? '');
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('编辑资料'),
+        content: StatefulBuilder(
+          builder: (ctx, setSt) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('修改 QQ 号会自动同步 QQ 头像',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nickCtrl,
+                  maxLength: 20,
+                  decoration: const InputDecoration(
+                      labelText: '昵称', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: qqCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                      labelText: 'QQ 号', border: OutlineInputBorder()),
+                  onChanged: (v) async {
+                    if (RegExp(r'^\d{5,12}$').hasMatch(v.trim())) {
+                      final url = await _userService.fetchQqAvatar(v.trim());
+                      if (url != null) avatarPreview.value = url;
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
+          FilledButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await _userService.updateProfile({
+        'nickname': nickCtrl.text.trim(),
+        'qq': qqCtrl.text.trim(),
+      });
+      await load();
+      ToastUtil.success('资料已更新');
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  /// 退出登录
+  Future<void> logout() async {
+    await _userService.logout();
+    await load();
+    ToastUtil.success('已退出登录');
+  }
+
   bool get isVip {
+    if (isVipMember) return true;
     if (vipExpire.isEmpty) return false;
     final d = DateTime.tryParse(vipExpire.replaceAll(' ', 'T'));
     return d != null && d.isAfter(DateTime.now());
@@ -48,6 +135,24 @@ class MineLogic extends GetxController {
   }
 
   Future<void> load() async {
+    await _userService.restore();
+    if (_userService.isLoggedIn) {
+      final info = await _userService.refreshProfile();
+      final u = info ?? _userService.user;
+      if (u != null) {
+        nickname = u.nickname;
+        uid = u.account.isEmpty ? u.id.toString() : u.account;
+        points = u.score;
+        vipExpire = u.isVip ? u.vipExpire : '';
+        avatarUrl = u.avatar;
+        isVipMember = u.isVip;
+        update();
+        return;
+      }
+    }
+    // 未登录：回落到本地资料
+    isVipMember = false;
+    avatarUrl = '';
     final sp = await SharedPreferences.getInstance();
     nickname = sp.getString(_kNichname) ?? '';
     uid = sp.getString(_kUid) ?? '';
