@@ -73,6 +73,32 @@ void _configureEasyLoading() {
     ..dismissOnTap = false;
 }
 
+
+/// 构建亮色主题（现代靛蓝紫配色）
+ThemeData buildLightTheme() {
+  final scheme = FlexScheme.indigo;  // 品牌主色：靛蓝
+  final base = FlexThemeData.light(scheme: scheme).copyWith(
+    appBarTheme: const AppBarTheme(
+      centerTitle: false,
+      elevation: 0,
+    ),
+    cardTheme: const CardThemeData(
+      clipBehavior: Clip.antiAlias,
+    ),
+  );
+  return base;
+}
+
+/// 构建暗色主题
+ThemeData buildDarkTheme() {
+  return FlexThemeData.dark(scheme: FlexScheme.indigo).copyWith(
+    appBarTheme: const AppBarTheme(
+      centerTitle: false,
+      elevation: 0,
+    ),
+  );
+}
+
 /// 软件库应用主组件
 class SoftLibApp extends StatelessWidget {
   const SoftLibApp({super.key});
@@ -85,8 +111,8 @@ class SoftLibApp extends StatelessWidget {
       initialRoute: Routes.index,
       getPages: AppPages.routes,
       builder: EasyLoading.init(),
-      theme: FlexThemeData.light(scheme: FlexScheme.blueM3),
-      darkTheme: FlexThemeData.dark(scheme: FlexScheme.blueM3),
+      theme: buildLightTheme(),
+      darkTheme: buildDarkTheme(),
       themeMode: ThemeMode.system,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

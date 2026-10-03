@@ -56,55 +56,104 @@ class _AppListWidgetState extends State<AppListWidget>
     );
   }
 
-  /// 构建列表元素
+  /// 构建列表元素（现代卡片式）
   Widget _buildListItem(LzyDirParseData appInfo) {
-    return ListTile(
-      minVerticalPadding: 10,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: CachedNetworkImage(
-          imageUrl: appInfo.icon ?? '',
-          fit: BoxFit.cover,
-          width: 50,
-          height: 50,
-          placeholder: (context, url) => appIcon(50, 50),
-          errorWidget: (context, url, error) => appIcon(50, 50),
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark ? scheme.surfaceContainerHighest : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(12),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: ListTile(
+        minVerticalPadding: 12,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: CachedNetworkImage(
+            imageUrl: appInfo.icon ?? '',
+            fit: BoxFit.cover,
+            width: 56,
+            height: 56,
+            placeholder: (context, url) => appIcon(56, 56),
+            errorWidget: (context, url, error) => appIcon(56, 56),
+          ),
         ),
-      ),
-      title: Text(
-        appInfo.nameAll ?? '未知应用',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            appInfo.size ?? '未知大小',
+        title: Text(
+          appInfo.nameAll ?? '未知应用',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  if ((appInfo.size ?? '').isNotEmpty) ...[
+                    Icon(Icons.data_usage,
+                        size: 13, color: scheme.primary.withAlpha(150)),
+                    const SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        appInfo.size!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[300] : Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if ((appInfo.time ?? '').isNotEmpty)
+                Text(
+                  appInfo.time!,
+                  style: TextStyle(
+                    color: isDark ? Colors.grey[400] : Colors.grey[500],
+                    fontSize: 12,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '查看',
             style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey[300]
-                  : Colors.grey[600],
-              fontWeight: FontWeight.w500,
+              color: scheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
             ),
           ),
-          Text(
-            appInfo.time ?? '未知时间',
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey[300]
-                  : Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-      trailing: FilledButton(
-        onPressed: () => logic.goToView(appInfo),
-        child: const Text('查看'),
+        ),
+        onTap: () => logic.goToView(appInfo),
       ),
     );
   }
