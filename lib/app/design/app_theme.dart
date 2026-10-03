@@ -100,27 +100,6 @@ class AppDeco {
       ];
 }
 
-/// 文字样式快捷方法
-extension AppText on BuildContext {
-  bool get _dark => Theme.of(this).brightness == Brightness.dark;
-  TextStyle get t1 => const TextStyle(
-      fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.6, height: 1.2);
-  TextStyle get t2 => const TextStyle(
-      fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -0.3, height: 1.25);
-  TextStyle get t3 =>
-      const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, letterSpacing: -0.2);
-  TextStyle get tbody => TextStyle(
-      fontSize: 14,
-      height: 1.6,
-      color: _dark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight);
-  TextStyle get tsub => TextStyle(
-      fontSize: 12.5,
-      color: _dark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight);
-  TextStyle get ttiny => TextStyle(
-      fontSize: 11,
-      color: _dark ? AppColor.textSecondaryDark : AppColor.textTertiaryLight);
-}
-
 /// 主题构建
 ThemeData buildAppTheme({required bool dark}) {
   final scheme = ColorScheme.fromSeed(

@@ -238,7 +238,10 @@ class MineComponent extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  if (!logic.isLoggedIn) return logic.openLogin();
+                  if (!logic.isLoggedIn) {
+                    logic.openLogin();
+                    return;
+                  }
                   if (items[i].$1 == '签到') logic.signIn();
                 },
                 child: Column(

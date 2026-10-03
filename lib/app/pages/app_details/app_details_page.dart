@@ -836,22 +836,6 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  Widget _chip(String text, Color fg, Color bg, IconData icon) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-            color: bg, borderRadius: BorderRadius.circular(20)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 11.5, color: fg),
-            const SizedBox(width: 4),
-            Text(text,
-                style: TextStyle(
-                    fontSize: 10.5, fontWeight: FontWeight.w800, color: fg)),
-          ],
-        ),
-      );
-
   Widget _phIcon() => Container(
         width: 80,
         height: 80,
