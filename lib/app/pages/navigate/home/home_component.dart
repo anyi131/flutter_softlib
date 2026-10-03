@@ -9,6 +9,7 @@ import '../../../models/http/results/carousel_model.dart';
 import '../../../models/http/results/referral_model.dart';
 import 'home_logic.dart';
 import '../../../routes/app_pages.dart';
+import '../navigate_logic.dart';
 
 class HomeComponent extends StatefulWidget {
   const HomeComponent({super.key});
@@ -174,8 +175,10 @@ class _HomeComponentState extends State<HomeComponent> {
     final items = [
       (Icons.download_rounded, '下载管理', const Color(0xFF465CFF), () => Get.toNamed(Routes.appDownload)),
       (Icons.search_rounded, '软件搜索', const Color(0xFFFE5F14), () => Get.toNamed(Routes.appSearch)),
-      (Icons.article_outlined, '线报速递', const Color(0xFF12B76A), null),
-      (Icons.history_rounded, '版本更新', const Color(0xFF9E77ED), null),
+      (Icons.article_outlined, '线报速递', const Color(0xFF12B76A),
+          () => Get.find<NavigateLogic>().changePage(3)),
+      (Icons.history_rounded, '版本更新', const Color(0xFF9E77ED),
+          () => Get.find<NavigateLogic>().checkUpdate(showLatestTip: true)),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),

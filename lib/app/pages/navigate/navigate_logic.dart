@@ -61,7 +61,7 @@ class NavigateLogic extends GetxController {
     //请求权限
     _requestPermissionsOnStartup();
     //检查更新
-    _checkUpdate();
+    checkUpdate();
   }
 
   /// 切换页面
@@ -76,17 +76,25 @@ class NavigateLogic extends GetxController {
     await PermissionUtils.requestAppPermissions(Get.context!);
   }
 
-  ///检测更新
-  Future<void> _checkUpdate() async {
+  ///检测更新（公开：首页四宫格"版本更新"入口）
+  Future<void> checkUpdate({bool showLatestTip = false}) async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     String version = packageInfo.version;
-    LatestVersionModel result = await httpApi.getLatestVersion(version);
+    try {
+      LatestVersionModel result = await httpApi.getLatestVersion(version);
 
-    if (result.code == 1) {
-      LatestVersionData? latestVersionData = result.data;
-      if (latestVersionData != null) {
-        _showUpdateDialog(latestVersionData);
+      if (result.code == 1) {
+        LatestVersionData? latestVersionData = result.data;
+        if (latestVersionData != null) {
+          _showUpdateDialog(latestVersionData);
+        } else if (showLatestTip) {
+          ToastUtil.success('已是最新版本（v$version）');
+        }
+      } else {
+        ToastUtil.error(result.msg ?? '检查更新失败');
       }
+    } catch (e) {
+      if (showLatestTip) ToastUtil.error('检查更新失败：$e');
     }
   }
 

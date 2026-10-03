@@ -130,7 +130,10 @@ class _SquareComponentState extends State<SquareComponent> {
                   ),
                   onPressed: () async {
                     final content = contentCtrl.text.trim();
-                    if (content.isEmpty) return;
+                    if (content.isEmpty) {
+                      Navigator.pop(ctx, 'empty');
+                      return;
+                    }
                     final nick = nickCtrl.text.trim().isEmpty
                         ? '匿名用户'
                         : nickCtrl.text.trim();
@@ -141,10 +144,14 @@ class _SquareComponentState extends State<SquareComponent> {
                         final sp = await SharedPreferences.getInstance();
                         await sp.setString('square_nickname', nick);
                         _nickname = nick;
-                        if (ctx.mounted) Navigator.pop(ctx, true);
+                        if (ctx.mounted) Navigator.pop(ctx, 'ok');
+                      } else {
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx, '失败：${resp.data['msg'] ?? '未知错误'}');
+                        }
                       }
-                    } catch (_) {
-                      if (ctx.mounted) Navigator.pop(ctx, false);
+                    } catch (e) {
+                      if (ctx.mounted) Navigator.pop(ctx, '网络错误，请重试');
                     }
                   },
                   child: const Text('发布',
@@ -156,11 +163,19 @@ class _SquareComponentState extends State<SquareComponent> {
         );
       },
     );
-    if (ok == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('发布成功'), duration: Duration(seconds: 1)));
+    if (ok == 'ok') {
+      _toast('发布成功 🎉');
       _fetchPosts(reset: true);
+    } else if (ok == 'empty') {
+      _toast('请输入内容再发布');
+    } else if (ok != null && ok != false) {
+      _toast('$ok');
     }
+  }
+
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 2)));
   }
 
   /// 相对时间
@@ -277,7 +292,10 @@ class _SquareComponentState extends State<SquareComponent> {
     final likes = int.tryParse('${p['like_count']}') ?? 0;
     final comments = int.tryParse('${p['comment_count']}') ?? 0;
     final nick = '${p['nickname'] ?? '匿名用户'}';
-    return Container(
+    return InkWell(
+      onTap: () => _showComments(p),
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
       margin: const EdgeInsets.fromLTRB(14, 12, 14, 0),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -361,6 +379,7 @@ class _SquareComponentState extends State<SquareComponent> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -391,6 +410,49 @@ class _SquareComponentState extends State<SquareComponent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ===== 帖子详情头部 =====
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.primary.withAlpha(20),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 15,
+                            backgroundColor:
+                                Theme.of(ctx).colorScheme.primaryContainer,
+                            child: Text(
+                              '${post['nickname'] ?? '?'}'.substring(0, 1),
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color:
+                                      Theme.of(ctx).colorScheme.onPrimaryContainer),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('${post['nickname'] ?? '匿名用户'}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 14)),
+                          const Spacer(),
+                          Text(_relTime(post['createtime']),
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey[500])),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text('${post['content'] ?? ''}',
+                          style: const TextStyle(fontSize: 15, height: 1.6)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Text('评论 ${comments.length}',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),

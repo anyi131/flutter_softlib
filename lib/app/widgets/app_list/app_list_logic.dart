@@ -49,10 +49,20 @@ class AppListLogic extends GetxController {
 
   Future<void> _fetchData(_FetchType type) async {
     try {
-      final result = await _httpApi.getLzyDirParse(url: url, pgs: _page);
+      // 数据源：后端软件列表（app/index），映射为列表模型
+      final result = await _httpApi.getApp();
 
       if (result.code == 1) {
-        final newData = result.data ?? [];
+        final newData = (result.data ?? [])
+            .map((a) => LzyDirParseData(
+                  nameAll: a.title,
+                  down: a.url,
+                  icon: '',
+                  size: '',
+                  time: '',
+                  id: '',
+                ))
+            .toList();
         if (type == _FetchType.loadMore) {
           appList.addAll(newData);
         } else {
