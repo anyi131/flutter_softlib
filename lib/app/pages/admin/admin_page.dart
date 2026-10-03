@@ -19,7 +19,6 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage>
     with SingleTickerProviderStateMixin {
-  static const Color kBrand = Color(0xFF465CFF);
   late final TabController _tab = TabController(length: 4, vsync: this);
 
   bool _checking = true;
@@ -106,8 +105,8 @@ class _AdminPageState extends State<AdminPage>
           controller: _tab,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          indicatorColor: kBrand,
-          labelColor: kBrand,
+          indicatorColor: AppColor.primary,
+          labelColor: AppColor.primary,
           unselectedLabelColor: Colors.grey[500],
           labelStyle:
               const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),

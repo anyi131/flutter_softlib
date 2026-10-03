@@ -80,13 +80,13 @@ void _configureEasyLoading() {
 
 // ============ SonPro 风格设计系统 ============
 /// 品牌主色（蓝紫）
-const Color kBrandPrimary = Color(0xFF465CFF);
+const Color kBrandPrimary = Color(0xFF4B5EF5);
 /// 强调色（橙红，用于按钮/徽标）
-const Color kBrandAccent = Color(0xFFFE5F14);
+const Color kBrandAccent = Color(0xFFFF6B35);
 /// 浅灰分块背景（亮色模式卡片底）
-const Color kBrandBgLight = Color(0xFFF5F6F7);
+const Color kBrandBgLight = Color(0xFFF4F5F9);
 /// 暗色卡片底
-const Color kBrandCardDark = Color(0xFF222222);
+const Color kBrandCardDark = Color(0xFF1A1D23);
 
 /// 亮色/暗色主题统一由设计系统构建（见 design/app_theme.dart）
 ThemeData buildLightTheme() => buildAppTheme(dark: false);

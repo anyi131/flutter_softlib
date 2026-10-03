@@ -24,7 +24,6 @@ class ReviewTab extends StatefulWidget {
 }
 
 class _ReviewTabState extends State<ReviewTab> {
-  static const Color kBrand = AppColor.primary;
   final ReviewService _svc = ReviewService.instance;
 
   ReviewSummary _summary = ReviewSummary.empty();
@@ -162,7 +161,7 @@ class _ReviewTabState extends State<ReviewTab> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
                   decoration: BoxDecoration(
-                    color: kBrand,
+                    color: AppColor.primary,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(
@@ -192,7 +191,7 @@ class _ReviewTabState extends State<ReviewTab> {
               Text('${_summary.goodRate}% 好评率',
                   style: TextStyle(
                       fontSize: 12,
-                      color: kBrand,
+                      color: AppColor.primary,
                       fontWeight: FontWeight.w700)),
             ],
           ),
@@ -250,7 +249,7 @@ class _ReviewTabState extends State<ReviewTab> {
               duration: const Duration(milliseconds: 160),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: sel ? kBrand : Colors.grey.withAlpha(28),
+                color: sel ? AppColor.primary : Colors.grey.withAlpha(28),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
@@ -295,9 +294,9 @@ class _ReviewTabState extends State<ReviewTab> {
                     : Container(
                         width: 36,
                         height: 36,
-                        color: kBrand.withAlpha(26),
+                        color: AppColor.primary.withAlpha(26),
                         child:
-                            const Icon(Icons.person, size: 19, color: kBrand)),
+                            Icon(Icons.person, size: 19, color: AppColor.primary)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -399,7 +398,7 @@ class _ReviewTabState extends State<ReviewTab> {
                                   text: rp.nickname,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w700,
-                                      color: kBrand),
+                                      color: AppColor.primary),
                                 ),
                                 if (rp.replyTo.isNotEmpty)
                                   TextSpan(
@@ -531,7 +530,7 @@ class _ReviewTabState extends State<ReviewTab> {
                 onPressed: sending ? null : () => Navigator.pop(ctx),
                 child: const Text('取消')),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: kBrand),
+              style: FilledButton.styleFrom(backgroundColor: AppColor.primary),
               onPressed: sending
                   ? null
                   : () async {
@@ -742,7 +741,7 @@ class _ReviewTabState extends State<ReviewTab> {
                 onPressed: sending ? null : () => Navigator.pop(ctx),
                 child: const Text('取消')),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: kBrand),
+              style: FilledButton.styleFrom(backgroundColor: AppColor.primary),
               onPressed: sending
                   ? null
                   : () async {

@@ -13,8 +13,6 @@ import 'mine_logic.dart';
 /// 我的 - 个人中心（按用户截图复刻：用户信息 / 积分VIP / 统计 / 会员卡 / 服务宫格）
 class MineComponent extends StatelessWidget {
   const MineComponent({super.key});
-
-  static const Color kPrimary = AppColor.primary;
   static const Color kVipGold = Color(0xFFC9A227);
 
   @override

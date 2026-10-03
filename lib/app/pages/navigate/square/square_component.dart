@@ -24,7 +24,6 @@ class SquareComponent extends StatefulWidget {
 }
 
 class _SquareComponentState extends State<SquareComponent> {
-  static const Color kBrand = AppColor.primary;
   final PostService _svc = PostService.instance;
   final EasyRefreshController _refresh =
       EasyRefreshController(controlFinishRefresh: true, controlFinishLoad: true);
@@ -105,7 +104,7 @@ class _SquareComponentState extends State<SquareComponent> {
         // 上移，避免被 extendBody 的底部 Tab 栏遮挡
         padding: const EdgeInsets.only(bottom: 66),
         child: FloatingActionButton(
-          backgroundColor: kBrand,
+          backgroundColor: AppColor.primary,
           elevation: 4,
           onPressed: _compose,
           child: const Icon(Icons.edit_rounded, color: Colors.white),
@@ -258,13 +257,13 @@ class _SquareComponentState extends State<SquareComponent> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 1),
                                 decoration: BoxDecoration(
-                                  color: kBrand.withAlpha(22),
+                                  color: AppColor.primary.withAlpha(22),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(p.catTitle,
                                     style: const TextStyle(
                                         fontSize: 10,
-                                        color: kBrand,
+                                        color: AppColor.primary,
                                         fontWeight: FontWeight.w700)),
                               ),
                               const SizedBox(width: 6),
@@ -404,8 +403,8 @@ class _SquareComponentState extends State<SquareComponent> {
   Widget _avatar() => Container(
         width: 38,
         height: 38,
-        color: kBrand.withAlpha(26),
-        child: const Icon(Icons.person, size: 20, color: kBrand),
+        color: AppColor.primary.withAlpha(26),
+        child: Icon(Icons.person, size: 20, color: AppColor.primary),
       );
 
   // ================= 发布 =================
@@ -498,7 +497,7 @@ class _SquareComponentState extends State<SquareComponent> {
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: sel ? kBrand : Colors.grey.withAlpha(28),
+                            color: sel ? AppColor.primary : Colors.grey.withAlpha(28),
                             borderRadius: BorderRadius.circular(17),
                           ),
                           child: Text(c.title,
@@ -603,7 +602,7 @@ class _SquareComponentState extends State<SquareComponent> {
                     IconButton(
                       onPressed: () => setSheet(() => showEmoji = !showEmoji),
                       icon: Icon(Icons.emoji_emotions_outlined,
-                          color: showEmoji ? kBrand : const Color(0xFF4B5563)),
+                          color: showEmoji ? AppColor.primary : const Color(0xFF4B5563)),
                       tooltip: '表情',
                     ),
                     const Spacer(),
@@ -611,7 +610,7 @@ class _SquareComponentState extends State<SquareComponent> {
                       height: 44,
                       child: FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: kBrand,
+                          backgroundColor: AppColor.primary,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(22)),
                           padding: const EdgeInsets.symmetric(horizontal: 28),

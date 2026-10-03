@@ -213,7 +213,7 @@ class _AppComponentState extends State<AppComponent> {
                 boxShadow: selected
                     ? [
                         BoxShadow(
-                          color: kBrand.withAlpha(70),
+                          color: AppColor.primary.withAlpha(70),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -320,7 +320,7 @@ class _AppComponentState extends State<AppComponent> {
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: kBrand.withAlpha(isDark ? 40 : 26),
+                        color: AppColor.primary.withAlpha(isDark ? 40 : 26),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -359,7 +359,7 @@ class _AppComponentState extends State<AppComponent> {
                         children: [
                           _tag(
                             isVipItem ? '会员' : '免费',
-                            isVipItem ? kVip : AppColor.success,
+                            isVipItem ? AppColor.gold : AppColor.success,
                             isVipItem
                                 ? const Color(0xFFFFF4D6)
                                 : const Color(0xFFE3F9F0),
@@ -423,7 +423,7 @@ class _AppComponentState extends State<AppComponent> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: kBrand.withAlpha(60),
+                        color: AppColor.primary.withAlpha(60),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -468,7 +468,7 @@ class _AppComponentState extends State<AppComponent> {
   Widget _ph() => Container(
         width: 56,
         height: 56,
-        color: kBrand.withAlpha(30),
-        child: const Icon(Icons.android, color: kBrand, size: 27),
+        color: AppColor.primary.withAlpha(30),
+        child: Icon(Icons.android, color: AppColor.primary, size: 27),
       );
 }

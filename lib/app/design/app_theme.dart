@@ -179,7 +179,7 @@ ThemeData buildAppTheme({required bool dark}) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF4B5EF5), width: 1.5),
       ),
       hintStyle: TextStyle(
         fontSize: 13.5,

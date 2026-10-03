@@ -18,7 +18,6 @@ class PostDetailPage extends StatefulWidget {
 }
 
 class _PostDetailPageState extends State<PostDetailPage> {
-  static const Color kBrand = AppColor.primary;
   final PostService _svc = PostService.instance;
 
   PostItem? _post;
@@ -129,8 +128,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     : Container(
                         width: 40,
                         height: 40,
-                        color: kBrand.withAlpha(26),
-                        child: const Icon(Icons.person, size: 21, color: kBrand),
+                        color: AppColor.primary.withAlpha(26),
+                        child: Icon(Icons.person, size: 21, color: AppColor.primary),
                       ),
               ),
               const SizedBox(width: 10),
@@ -149,13 +148,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
-                              color: kBrand.withAlpha(22),
+                              color: AppColor.primary.withAlpha(22),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(p.catTitle,
                                 style: const TextStyle(
                                     fontSize: 10,
-                                    color: kBrand,
+                                    color: AppColor.primary,
                                     fontWeight: FontWeight.w700)),
                           ),
                           const SizedBox(width: 6),
@@ -261,7 +260,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
             width: 3.5,
             height: 15,
             decoration: BoxDecoration(
-                color: kBrand, borderRadius: BorderRadius.circular(2)),
+                color: AppColor.primary, borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(width: 8),
           Text('评论 ${_comments.length}',
@@ -288,8 +287,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 : Container(
                     width: 32,
                     height: 32,
-                    color: kBrand.withAlpha(26),
-                    child: const Icon(Icons.person, size: 17, color: kBrand)),
+                    color: AppColor.primary.withAlpha(26),
+                    child: Icon(Icons.person, size: 17, color: AppColor.primary)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -355,7 +354,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   height: 42,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: kBrand,
+                      backgroundColor: AppColor.primary,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(21)),
                       padding: const EdgeInsets.symmetric(horizontal: 20),

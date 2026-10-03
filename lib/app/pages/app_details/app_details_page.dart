@@ -32,9 +32,6 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   final AppDetailsLogic logic = Get.find<AppDetailsLogic>();
   late final TabController _tab = TabController(length: 2, vsync: this);
 
-  static const Color kBrand = AppColor.primary;
-  static const Color kVip = Color(0xFFC9A227);
-
   @override
   void dispose() {
     _tab.dispose();
@@ -133,7 +130,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: kBrand.withAlpha(isDark ? 70 : 45),
+                      color: AppColor.primary.withAlpha(isDark ? 70 : 45),
                       blurRadius: 16,
                       offset: const Offset(0, 7),
                     ),
@@ -174,7 +171,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                     Row(
                       children: [
                         if (isVipItem)
-                          _chip('会员专享', kVip, const Color(0xFFFFF4D6),
+                          _chip('会员专享', AppColor.gold, const Color(0xFFFFF4D6),
                               Icons.workspace_premium_rounded)
                         else
                           _chip('免费下载', const Color(0xFF0E9F6E),
@@ -277,7 +274,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             Expanded(
               child: Column(
                 children: [
-                  Icon(cells[i].$1, size: 17, color: kBrand.withAlpha(200)),
+                  Icon(cells[i].$1, size: 17, color: AppColor.primary.withAlpha(200)),
                   const SizedBox(height: 6),
                   Text(cells[i].$2,
                       maxLines: 1,
@@ -314,8 +311,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               controller: _tab,
               indicatorSize: TabBarIndicatorSize.label,
               indicatorWeight: 2.5,
-              indicatorColor: kBrand,
-              labelColor: kBrand,
+              indicatorColor: AppColor.primary,
+              labelColor: AppColor.primary,
               unselectedLabelColor: Colors.grey[500],
               labelStyle:
                   const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
@@ -344,7 +341,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               width: 3.5,
               height: 15,
               decoration: BoxDecoration(
-                  color: kBrand, borderRadius: BorderRadius.circular(2)),
+                  color: AppColor.primary, borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(width: 8),
             const Text('软件介绍',
@@ -353,13 +350,13 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: kBrand.withAlpha(20),
+                color: AppColor.primary.withAlpha(20),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text('官方详情',
+              child: Text('官方详情',
                   style: TextStyle(
                       fontSize: 10.5,
-                      color: kBrand,
+                      color: AppColor.primary,
                       fontWeight: FontWeight.w700)),
             ),
           ],
@@ -462,7 +459,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   width: 3.5,
                   height: 15,
                   decoration: BoxDecoration(
-                      color: kBrand, borderRadius: BorderRadius.circular(2)),
+                      color: AppColor.primary, borderRadius: BorderRadius.circular(2)),
                 ),
                 const SizedBox(width: 8),
                 const Text('精品推荐',
@@ -495,9 +492,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                                 ? Container(
                                     width: 58,
                                     height: 58,
-                                    color: kBrand.withAlpha(28),
-                                    child: const Icon(Icons.android,
-                                        color: kBrand, size: 27),
+                                    color: AppColor.primary.withAlpha(28),
+                                    child: Icon(Icons.android,
+                                        color: AppColor.primary, size: 27),
                                   )
                                 : CachedNetworkImage(
                                     imageUrl: a.icon,
@@ -511,9 +508,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                                     errorWidget: (_, __, ___) => Container(
                                         width: 58,
                                         height: 58,
-                                        color: kBrand.withAlpha(28),
-                                        child: const Icon(Icons.android,
-                                            color: kBrand, size: 27)),
+                                        color: AppColor.primary.withAlpha(28),
+                                        child: Icon(Icons.android,
+                                            color: AppColor.primary, size: 27)),
                                   ),
                           ),
                           const SizedBox(height: 6),
@@ -595,7 +592,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                             ? const Color(0xFFDC2626)
                             : (isPaused
                                 ? const Color(0xFFD97706)
-                                : kBrand),
+                                : AppColor.primary),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -609,7 +606,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                               ? const Color(0xFFDC2626)
                               : (isPaused
                                   ? const Color(0xFFD97706)
-                                  : kBrand),
+                                  : AppColor.primary),
                         ),
                       ),
                       const Spacer(),
@@ -641,7 +638,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       valueColor: AlwaysStoppedAnimation<Color>(
                         isFailed
                             ? const Color(0xFFDC2626)
-                            : (isPaused ? const Color(0xFFD97706) : kBrand),
+                            : (isPaused ? AppColor.warning : AppColor.primary),
                       ),
                     ),
                   ),
@@ -657,10 +654,10 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       if (isFailed)
                         GestureDetector(
                           onTap: download.retryDownload,
-                          child: const Text('重试',
+                          child: Text('重试',
                               style: TextStyle(
                                   fontSize: 12,
-                                  color: kBrand,
+                                  color: AppColor.primary,
                                   fontWeight: FontWeight.w700)),
                         ),
                     ],
@@ -675,15 +672,15 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             if (isVipItem) {
               label = isVipUser ? '会员下载' : '开通会员下载';
               icon = Icons.workspace_premium_rounded;
-              color = kVip;
+              color = AppColor.gold;
             } else if (item?.isLocal == true) {
               label = '下载安装';
               icon = Icons.download_rounded;
-              color = kBrand;
+              color = AppColor.primary;
             } else {
               label = '解析并下载';
               icon = Icons.cloud_download_rounded;
-              color = kBrand;
+              color = AppColor.primary;
             }
             return _btn(
               label: label,
@@ -788,8 +785,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   Widget _phIcon() => Container(
         width: 80,
         height: 80,
-        color: kBrand.withAlpha(35),
-        child: const Icon(Icons.android, color: kBrand, size: 38),
+        color: AppColor.primary.withAlpha(35),
+        child: Icon(Icons.android, color: AppColor.primary, size: 38),
       );
 
   /// 截图画廊：左右滑动切换 + 保存到相册
