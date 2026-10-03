@@ -8,6 +8,7 @@ import '../../../../generated/assets.dart';
 import '../../../models/http/results/carousel_model.dart';
 import '../../../models/http/results/referral_model.dart';
 import 'home_logic.dart';
+import '../../../routes/app_routes.dart';
 
 class HomeComponent extends StatefulWidget {
   const HomeComponent({super.key});
@@ -47,10 +48,10 @@ class _HomeComponentState extends State<HomeComponent> {
       ),
       body: CustomScrollView(
         slivers: [
-          const SliverToBoxAdapter(child: SizedBox(height: 10)),
+          SliverToBoxAdapter(child: buildGreeting()),
           SliverToBoxAdapter(child: buildCarousel()),
           SliverToBoxAdapter(child: buildPlacard()),
-          const SliverToBoxAdapter(child: SizedBox(height: 6)),
+          SliverToBoxAdapter(child: buildQuickEntries()),
           buildReferralTitleSliver(),
           buildReferralGridSliver(),
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -75,6 +76,142 @@ class _HomeComponentState extends State<HomeComponent> {
           ),
         );
       },
+    );
+  }
+
+  /// SonPro 风格问候横幅（品牌色渐变 + 搜索入口）
+  Widget buildGreeting() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF465CFF), Color(0xFF6B7BFF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF465CFF).withAlpha(77),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Hi，欢迎回来 👋',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '今日份好软已为你准备好',
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(204),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 装饰圆
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.apps_rounded, color: Colors.white, size: 26),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // 搜索入口胶囊
+            InkWell(
+              onTap: () => Get.toNamed(Routes.appSearch),
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: Colors.grey[500], size: 19),
+                    const SizedBox(width: 8),
+                    Text(
+                      '搜索你想要的软件',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 快捷入口四宫格（SonPro 风格图标方块）
+  Widget buildQuickEntries() {
+    final items = [
+      (Icons.download_rounded, '下载管理', const Color(0xFF465CFF), () => Get.toNamed(Routes.appDownload)),
+      (Icons.search_rounded, '软件搜索', const Color(0xFFFE5F14), () => Get.toNamed(Routes.appSearch)),
+      (Icons.article_outlined, '线报速递', const Color(0xFF12B76A), null),
+      (Icons.history_rounded, '版本更新', const Color(0xFF9E77ED), null),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+      child: Row(
+        children: items.map((it) {
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              child: InkWell(
+                onTap: () => it.$4?.call(),
+                borderRadius: BorderRadius.circular(14),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F6F7),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(it.$1, color: it.$3, size: 26),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      it.$2,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 

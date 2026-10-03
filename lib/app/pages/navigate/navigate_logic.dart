@@ -3,6 +3,8 @@ import 'package:flutter_softlib/app/http/http_api.dart';
 import 'package:flutter_softlib/app/pages/navigate/app/app_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/home/home_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/tips/tips_component.dart';
+import 'package:flutter_softlib/app/pages/navigate/square/square_component.dart';
+import 'package:flutter_softlib/app/pages/navigate/mine/mine_component.dart';
 import 'package:flutter_softlib/app/utils/jump_util.dart';
 import 'package:flutter_softlib/app/utils/toast_util.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -26,12 +28,28 @@ class NavigateLogic extends GetxController {
       selectedIcon: Icon(IconFont.appBFill),
     ),
     NavigationDestination(
+      icon: Icon(Icons.explore_outlined),
+      label: '广场',
+      selectedIcon: Icon(Icons.explore),
+    ),
+    NavigationDestination(
       icon: Icon(Icons.tips_and_updates_outlined),
       label: '线报',
       selectedIcon: Icon(Icons.tips_and_updates),
     ),
+    NavigationDestination(
+      icon: Icon(Icons.person_outline),
+      label: '我的',
+      selectedIcon: Icon(Icons.person),
+    ),
   ];
-  List<Widget> pages = [HomeComponent(), AppComponent(), TipsComponent()];
+  List<Widget> pages = [
+    HomeComponent(),
+    AppComponent(),
+    SquareComponent(),
+    TipsComponent(),
+    MineComponent(),
+  ];
   PageController pageController = PageController();
   int currentIndex = 0;
   HttpApi httpApi = Get.find<HttpApi>();
