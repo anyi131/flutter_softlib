@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 
 import '../../api/post_service.dart';
+import '../../design/ui.dart';
 import '../../api/user_service.dart';
 import '../../models/post_item.dart';
 import '../navigate/square/emoji_panel.dart';

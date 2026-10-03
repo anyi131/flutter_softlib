@@ -15,6 +15,7 @@ import '../../api/user_service.dart';
 import 'dart:ui';
 
 import '../../config.dart';
+import '../../design/adaptive.dart';
 import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import '../../models/app_item.dart';

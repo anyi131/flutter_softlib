@@ -5,6 +5,7 @@ import 'api_host.dart';
 import 'package:dio/dio.dart';
 
 import '../models/post_item.dart';
+import 'user_service.dart';
 
 /// 广场社区服务
 class PostService {
