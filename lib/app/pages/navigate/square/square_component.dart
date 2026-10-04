@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
 
-import '../../../design/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -13,6 +12,7 @@ import '../../../api/user_service.dart';
 import '../../../models/post_item.dart';
 import '../../../routes/app_pages.dart';
 import '../../../design/adaptive.dart';
+import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../widgets/tab_bottom_pad.dart';
 import 'emoji_panel.dart';
@@ -88,7 +88,7 @@ class _SquareComponentState extends State<SquareComponent> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = context.isDark;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -172,21 +172,19 @@ class _SquareComponentState extends State<SquareComponent> {
               padding: const EdgeInsets.symmetric(horizontal: 15),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                gradient: sel
-                    ? const LinearGradient(
-                        colors: [Color(0xFF5B6EFF), AppColor.primary])
-                    : null,
+                gradient: sel ? Deco.brandGradient : null,
                 color: sel
                     ? null
-                    : (isDark ? const Color(0xFF242424) : Colors.white),
-                borderRadius: BorderRadius.circular(18),
+                    : (isDark ? C.bg3 : Colors.white),
+                borderRadius: BorderRadius.circular(R.md),
               ),
               child: Text(
                 c.title,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
-                  color: sel ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF4B5563)),
+                  color:
+                      sel ? Colors.white : (isDark ? C.t2 : const Color(0xFF4B5563)),
                 ),
               ),
             ),
@@ -198,19 +196,13 @@ class _SquareComponentState extends State<SquareComponent> {
 
   Widget _body(bool isDark) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 3));
+      return const LoadingState(text: '正在加载动态…');
     }
     if (_posts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.forum_outlined, size: 56, color: Colors.grey.withAlpha(95)),
-            const SizedBox(height: 12),
-            Text('还没有动态，快来发第一条',
-                style: TextStyle(color: Colors.grey[500], fontSize: 14)),
-          ],
-        ),
+      return const EmptyState(
+        text: '还没有动态，快来发第一条',
+        hint: '分享你的想法，让大家看到',
+        icon: Icons.forum_outlined,
       );
     }
     return EasyRefresh(
@@ -270,24 +262,21 @@ class _SquareComponentState extends State<SquareComponent> {
                                   p.nickname.isEmpty ? '匿名用户' : p.nickname,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800)),
+                                  style: Ty.h3.copyWith(color: context.t1)),
                             ),
                             if (p.isAdmin) ...[
                               const SizedBox(width: 5),
-                              _badge('管理', const Color(0xFFDC2626),
-                                  const Color(0xFFFEF2F2)),
+                              const Pill('管理',
+                                  color: C.danger, small: true),
                             ],
                             if (p.isVip) ...[
                               const SizedBox(width: 4),
-                              _badge('VIP', const Color(0xFFB45309),
-                                  const Color(0xFFFEF3C7)),
+                              const Pill('VIP',
+                                  color: C.amber, small: true, solid: true),
                             ],
                             if (p.title.isNotEmpty) ...[
                               const SizedBox(width: 4),
-                              _badge(p.title, const Color(0xFF5B6CFF),
-                                  const Color(0xFFEEF1FF)),
+                              Pill(p.title, color: C.brand, small: true),
                             ],
                           ],
                         ),
@@ -299,20 +288,19 @@ class _SquareComponentState extends State<SquareComponent> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 1),
                                 decoration: BoxDecoration(
-                                  color: AppColor.primary.withAlpha(22),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: C.brand.withAlpha(22),
+                                  borderRadius: BorderRadius.circular(R.xs / 2),
                                 ),
                                 child: Text(p.catTitle,
                                     style: const TextStyle(
                                         fontSize: 10,
-                                        color: AppColor.primary,
+                                        color: C.brand,
                                         fontWeight: FontWeight.w700)),
                               ),
                               const SizedBox(width: 6),
                             ],
                             Text(p.relTime,
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.grey[500])),
+                                style: Ty.tiny.copyWith(color: context.t3)),
                           ],
                         ),
                       ],
@@ -328,7 +316,7 @@ class _SquareComponentState extends State<SquareComponent> {
                     style: TextStyle(
                         fontSize: 14.5,
                         height: 1.55,
-                        color: isDark ? Colors.grey[200] : const Color(0xFF2C2C2C))),
+                        color: context.t1)),
               ],
               // 图片九宫格
               if (p.images.isNotEmpty) ...[
@@ -336,7 +324,11 @@ class _SquareComponentState extends State<SquareComponent> {
                 _imageGrid(p.images),
               ],
               const SizedBox(height: 10),
-              Divider(height: 1, color: Colors.grey.withAlpha(25)),
+              Divider(
+                  height: 1,
+                  color: isDark
+                      ? Colors.white.withAlpha(14)
+                      : Colors.black.withAlpha(8)),
               const SizedBox(height: 8),
               // 底部：点赞 + 评论 + 浏览
               Row(
@@ -376,10 +368,10 @@ class _SquareComponentState extends State<SquareComponent> {
                   ),
                   const Spacer(),
                   Icon(Icons.visibility_outlined,
-                      size: 13, color: Colors.grey[400]),
+                      size: 13, color: context.t3),
                   const SizedBox(width: 3),
                   Text('${p.views}',
-                      style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+                      style: Ty.tiny.copyWith(color: context.t3)),
                 ],
               ),
             ],
@@ -395,7 +387,7 @@ class _SquareComponentState extends State<SquareComponent> {
     final n = images.length;
     if (n == 1) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(R.sm),
         child: CachedNetworkImage(
             imageUrl: images[0], height: 180, fit: BoxFit.cover),
       );
@@ -410,7 +402,7 @@ class _SquareComponentState extends State<SquareComponent> {
       ),
       itemCount: n > 9 ? 9 : n,
       itemBuilder: (context, i) => ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(R.xs),
         child: CachedNetworkImage(
           imageUrl: images[i],
           fit: BoxFit.cover,
@@ -429,37 +421,25 @@ class _SquareComponentState extends State<SquareComponent> {
       required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(R.xs),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
         child: Row(
           children: [
-            Icon(icon, size: 17, color: const Color(0xFF8A8F98)),
+            Icon(icon, size: 17, color: context.t3),
             const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(fontSize: 12.5, color: Colors.grey[600])),
+            Text(label, style: Ty.small.copyWith(color: context.t2)),
           ],
         ),
       ),
     );
   }
 
-  Widget _badge(String text, Color fg, Color bg) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 9.5, fontWeight: FontWeight.w800, color: fg)),
-      );
-
   Widget _avatar() => Container(
         width: 38,
         height: 38,
-        color: AppColor.primary.withAlpha(26),
-        child: Icon(Icons.person, size: 20, color: AppColor.primary),
+        color: C.brand.withAlpha(26),
+        child: const Icon(Icons.person, size: 20, color: C.brand),
       );
 
   // ================= 发布 =================
@@ -508,10 +488,8 @@ class _SquareComponentState extends State<SquareComponent> {
 
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(ctx).brightness == Brightness.dark
-                ? AppColor.cardDark
-                : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            color: ctx.isDark ? C.bg2 : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(R.lg)),
           ),
           padding: EdgeInsets.only(
             left: 16,
@@ -526,12 +504,10 @@ class _SquareComponentState extends State<SquareComponent> {
               children: [
                 Row(
                   children: [
-                    const Text('发布动态',
-                        style: TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.w800)),
+                    Text('发布动态', style: Ty.h3.copyWith(color: ctx.t1)),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20),
+                      icon: Icon(Icons.close, size: 20, color: ctx.t2),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
@@ -552,15 +528,17 @@ class _SquareComponentState extends State<SquareComponent> {
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: sel ? AppColor.primary : Colors.grey.withAlpha(28),
-                            borderRadius: BorderRadius.circular(17),
+                            color: sel
+                                ? C.brand
+                                : (ctx.isDark ? C.bg3 : C.lbg2),
+                            borderRadius: BorderRadius.circular(R.md),
                           ),
                           child: Text(c.title,
                               style: TextStyle(
                                   fontSize: 12.5,
                                   fontWeight:
                                       sel ? FontWeight.w800 : FontWeight.w500,
-                                  color: sel ? Colors.white : Colors.grey[700])),
+                                  color: sel ? Colors.white : ctx.t2)),
                         ),
                       );
                     },
@@ -575,7 +553,7 @@ class _SquareComponentState extends State<SquareComponent> {
                   decoration: InputDecoration(
                     hintText: '分享你的想法…',
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(R.sm)),
                   ),
                 ),
                 // 已选图片
@@ -637,12 +615,14 @@ class _SquareComponentState extends State<SquareComponent> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF2F2),
-                      borderRadius: BorderRadius.circular(9),
+                      color: C.danger.withAlpha(22),
+                      borderRadius: BorderRadius.circular(R.sm),
                     ),
                     child: Text(err,
                         style: const TextStyle(
-                            fontSize: 12.5, color: Color(0xFFDC2626))),
+                            fontSize: 12.5,
+                            color: C.danger,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -650,79 +630,63 @@ class _SquareComponentState extends State<SquareComponent> {
                   children: [
                     IconButton(
                       onPressed: pickImage,
-                      icon: const Icon(Icons.image_outlined,
-                          color: Color(0xFF4B5563)),
+                      icon: Icon(Icons.image_outlined, color: ctx.t2),
                       tooltip: '添加图片',
                     ),
                     IconButton(
                       onPressed: () => setSheet(() => showEmoji = !showEmoji),
                       icon: Icon(Icons.emoji_emotions_outlined,
-                          color: showEmoji ? AppColor.primary : const Color(0xFF4B5563)),
+                          color: showEmoji ? C.brand : ctx.t2),
                       tooltip: '表情',
                     ),
                     const Spacer(),
                     SizedBox(
-                      height: 44,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColor.primary,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(22)),
-                          padding: const EdgeInsets.symmetric(horizontal: 28),
-                        ),
-                        onPressed: sending
-                            ? null
-                            : () async {
-                                final text = contentCtrl.text.trim();
-                                if (text.isEmpty && images.isEmpty) {
-                                  setSheet(() => err = '请输入内容或添加图片');
-                                  return;
-                                }
-                                setSheet(() {
-                                  sending = true;
-                                  err = '';
-                                });
-                                try {
-                                  // 先上传本地图片
-                                  final urls = <String>[];
-                                  for (int i = 0; i < images.length; i++) {
-                                    if (images[i].startsWith('http')) {
-                                      urls.add(images[i]);
-                                    } else {
-                                      urls.add(await PostService.instance
-                                          .uploadImage(localImages.removeAt(0)));
-                                    }
-                                  }
-                                  await _svc.create(
-                                    nickname: user?.nickname ?? '匿名用户',
-                                    content: text,
-                                    images: urls,
-                                    catId: catId,
-                                    avatar: user?.avatar ?? '',
-                                  );
-                                  if (ctx.mounted) Navigator.pop(ctx);
-                                  if (mounted) {
-                                    _toast('发布成功 🎉');
-                                    _load(reset: true);
-                                  }
-                                } catch (e) {
-                                  setSheet(() {
-                                    sending = false;
-                                    err = e.toString().replaceFirst('Exception: ', '');
-                                  });
-                                }
-                              },
-                        child: sending
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white))
-                            : const Text('发布',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700)),
+                      width: 116,
+                      child: PrimaryButton(
+                        label: '发布',
+                        icon: Icons.send_rounded,
+                        loading: sending,
+                        height: 44,
+                        onPressed: () async {
+                          final text = contentCtrl.text.trim();
+                          if (text.isEmpty && images.isEmpty) {
+                            setSheet(() => err = '请输入内容或添加图片');
+                            return;
+                          }
+                          setSheet(() {
+                            sending = true;
+                            err = '';
+                          });
+                          try {
+                            // 先上传本地图片
+                            final urls = <String>[];
+                            for (int i = 0; i < images.length; i++) {
+                              if (images[i].startsWith('http')) {
+                                urls.add(images[i]);
+                              } else {
+                                urls.add(await PostService.instance
+                                    .uploadImage(localImages.removeAt(0)));
+                              }
+                            }
+                            await _svc.create(
+                              nickname: user?.nickname ?? '匿名用户',
+                              content: text,
+                              images: urls,
+                              catId: catId,
+                              avatar: user?.avatar ?? '',
+                            );
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (mounted) {
+                              _toast('发布成功 🎉');
+                              _load(reset: true);
+                            }
+                          } catch (e) {
+                            setSheet(() {
+                              sending = false;
+                              err = e.toString().replaceFirst('Exception: ', '');
+                            });
+                          }
+                        },
                       ),
                     ),
                   ],

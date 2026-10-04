@@ -6,6 +6,7 @@ import 'package:marquee/marquee.dart';
 
 import '../../../../generated/assets.dart';
 import '../../../design/adaptive.dart';
+import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../models/http/results/carousel_model.dart';
 import '../../../models/http/results/referral_model.dart';
@@ -179,17 +180,11 @@ class _HomeComponentState extends State<HomeComponent> {
               child: Text('搜索你想要的软件',
                   style: Ty.body.copyWith(color: context.t3, fontSize: 13.5)),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                gradient: Deco.brandGradient,
-                borderRadius: BorderRadius.circular(R.full),
-              ),
-              child: const Text('搜索',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800)),
+            Pill(
+              '搜索',
+              color: C.brand,
+              solid: true,
+              small: true,
             ),
           ],
         ),
@@ -399,7 +394,7 @@ class _HomeComponentState extends State<HomeComponent> {
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     gradient: Deco.brandGradient,
-                    borderRadius: BorderRadius.circular(7),
+                    borderRadius: BorderRadius.circular(R.xs - 1),
                   ),
                   child: const Icon(Icons.campaign_rounded,
                       size: 13, color: Colors.white),
@@ -439,34 +434,10 @@ class _HomeComponentState extends State<HomeComponent> {
           child: Padding(
             padding: EdgeInsets.fromLTRB(
         context.pagePadding, 26, context.pagePadding, 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    gradient: Deco.aurora(),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text('官方推荐',
-                    style: Ty.h2.copyWith(color: context.t1)),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: C.brand.withAlpha(context.isDark ? 30 : 20),
-                    borderRadius: BorderRadius.circular(R.full),
-                  ),
-                  child: Text('${list.length} 款',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: C.brandBright,
-                          fontWeight: FontWeight.w800)),
-                ),
-              ],
+            child: SectionHeader(
+              title: '官方推荐',
+              accent: C.brandBright,
+              action: Pill('${list.length} 款', color: C.brandBright, small: true),
             ),
           ),
         );
@@ -497,59 +468,51 @@ class _HomeComponentState extends State<HomeComponent> {
   }
 
   Widget _referralCard(ReferralData d) {
-    return GestureDetector(
+    return KitCard(
+      padding: EdgeInsets.zero,
+      radius: R.lg,
       onTap: () => logic.onReferralTap(d),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(R.lg),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(context.isDark ? 70 : 24),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(R.lg),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CachedNetworkImage(
+              imageUrl: d.image ?? '',
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Container(
+                color: context.isDark ? C.bg2 : C.lbg2,
+              ),
+              errorWidget: (_, __, ___) =>
+                  Image.asset(Assets.imagesSucceed, fit: BoxFit.cover),
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Color(0xE6000000), Color(0x00000000)],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(11),
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Text(
+                  d.title ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
+                  ),
+                ),
+              ),
             ),
           ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(R.lg),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CachedNetworkImage(
-                imageUrl: d.image ?? '',
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(color: context.cardBg),
-                errorWidget: (_, __, ___) =>
-                    Image.asset(Assets.imagesSucceed, fit: BoxFit.cover),
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Color(0xE6000000), Color(0x00000000)],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(11),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Text(
-                    d.title ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      height: 1.3,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
