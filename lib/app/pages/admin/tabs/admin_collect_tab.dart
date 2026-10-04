@@ -49,6 +49,8 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   String _status = '';
   String _err = '';
   int _taskAt = 0;
+  int _lastLogCount = 0;
+  final ScrollController _logScroll = ScrollController();
   List<String> _pendingNames = [];
   List<Map<String, dynamic>> _results = [];
   List<String> _logs = [];
@@ -68,6 +70,7 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   void dispose() {
     _poll?.cancel();
     _sub.dispose();
+    _logScroll.dispose();
     _kwCtrl.dispose();
     super.dispose();
   }
@@ -657,6 +660,17 @@ class _AdminCollectTabState extends State<AdminCollectTab>
               .map((e) => e.toString())
               .toList();
         });
+        // 有新日志就自动滚到底部，保证最新一条始终可见
+        if (_logs.length != _lastLogCount) {
+          _lastLogCount = _logs.length;
+          _scrollLogToEnd();
+        }
+        // 一旦站点给了结果，立刻刷新成功数（不要等任务结束）
+        if (_results.isNotEmpty && _ok != _results.where((x) => x['ok'] == true).length) {
+          setState(() {
+            _ok = _results.where((x) => x['ok'] == true).length;
+          });
+        }
 
         // 进度满了就说明该完成的都完成了（站点可能稍后才给 done）
         if (_status == 'done' || (_results.isNotEmpty && _cur >= _total && _total > 0)) {
@@ -675,40 +689,69 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     final names = _pendingNames.isNotEmpty
         ? _pendingNames
         : _results.map((r) => '${r['name']}').toList();
+    // ★ 先保住已经拿到的真实结果：站点 done 时会直接带 results，
+    //   这些数据比「事后去日志反查」可靠得多，绝不能被覆盖成失败
+    final known = _results.where((r) => r['ok'] == true).toList();
     try {
       final r = await _svc.collectResults(names, at: _taskAt);
       if (!mounted) return;
-      final list = ((r['results'] as List?) ?? [])
+      final fetched = ((r['results'] as List?) ?? [])
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
+
+      // 合并：已有成功结果优先，再用反查结果补齐还没拿到的
+      final merged = <Map<String, dynamic>>[];
+      final used = <String>{};
+      for (final k in known) {
+        merged.add(k);
+        used.add('${k['name']}');
+      }
+      for (final f in fetched) {
+        final n = '${f['name']}';
+        if (used.contains(n)) continue;
+        merged.add(f);
+        used.add(n);
+      }
+      // 一个都没拿到 → 保留原有 results，不要凭空造失败
+      if (merged.isEmpty && _results.isNotEmpty) {
+        setState(() {
+          _running = false;
+          _status = 'done';
+        });
+        return;
+      }
+      final list = merged.isEmpty ? fetched : merged;
       setState(() {
         _running = false;
         _status = 'done';
         if (list.isNotEmpty) {
           _results = list;
           _ok = list.where((x) => x['ok'] == true).length;
-          _fail = list.length - _ok;
-          _cur = list.length;
-          _total = list.length;
-        } else {
-          _cur = _total;
-          _ok = 0;
-          _fail = _total;
+          _fail = list.where((x) => x['ok'] != true).length;
+          // 进度只增不减，避免把已经跑满的进度条退回去
+          _cur = list.length > _cur ? list.length : _cur;
+          _total = _cur > _total ? _cur : _total;
         }
       });
       if (_ok > 0) {
         ToastUtil.success('采集完成：成功 $_ok，失败 $_fail');
       } else {
-        ToastUtil.info('任务已结束，但未在站点日志中找到链接');
+        ToastUtil.info('任务已结束，可到「日志」子页查看结果链接');
       }
     } catch (e) {
       if (!mounted) return;
+      // 反查失败也不能抹掉已有的成功结果
       setState(() {
         _running = false;
         _status = 'done';
-        _cur = _total;
+        _ok = known.length;
+        _fail = known.isEmpty && _total > 0 ? _total - _ok : _fail;
       });
-      ToastUtil.info('任务已提交完成，请到「日志」页查看结果链接');
+      if (known.isNotEmpty) {
+        ToastUtil.success('采集完成：成功 ${known.length}');
+      } else {
+        ToastUtil.info('任务已提交，请到「日志」子页查看结果链接');
+      }
     }
   }
 
@@ -779,30 +822,17 @@ class _AdminCollectTabState extends State<AdminCollectTab>
               ),
               const SizedBox(height: 5),
               Container(
-                height: 116,
+                height: 132,
                 width: double.infinity,
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: context.isDark ? Colors.black38 : const Color(0xFF10131C),
+                  color: context.isDark
+                      ? Colors.black38
+                      : const Color(0xFF10131C),
                   borderRadius: BorderRadius.circular(R.sm),
                 ),
-                child: ListView(
-                  reverse: true,
-                  children: _logs
-                      .map((l) => Padding(
-                            padding: const EdgeInsets.only(bottom: 3),
-                            child: Text(
-                              l,
-                              style: const TextStyle(
-                                fontSize: 10.5,
-                                height: 1.5,
-                                fontFamily: 'monospace',
-                                color: Color(0xFF9FE8B5),
-                              ),
-                            ),
-                          ))
-                      .toList(),
-                ),
+                // ★ 用 ScrollController 自动滚到底部，新日志自动可见
+                child: _logView(),
               ),
             ],
             if (doneLinks.isNotEmpty) ...[
@@ -846,6 +876,35 @@ class _AdminCollectTabState extends State<AdminCollectTab>
         ),
       ),
     );
+  }
+
+  /// 实时日志窗口：新日志自动滚到底部
+  Widget _logView() {
+    return ListView.builder(
+      controller: _logScroll,
+      padding: EdgeInsets.zero,
+      itemCount: _logs.length,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Text(
+          _logs[i],
+          style: const TextStyle(
+            fontSize: 10.5,
+            height: 1.5,
+            fontFamily: 'monospace',
+            color: Color(0xFF9FE8B5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 收到新日志后滚到底部（延迟一帧等布局完成）
+  void _scrollLogToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_logScroll.hasClients) return;
+      _logScroll.jumpTo(_logScroll.position.maxScrollExtent);
+    });
   }
 
   Widget _miniStat(String label, int v, Color color) => Row(

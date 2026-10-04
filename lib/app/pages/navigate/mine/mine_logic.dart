@@ -12,6 +12,7 @@ import '../../../api/soft_service.dart';
 import '../../../api/post_service.dart';
 import '../../../api/user_service.dart';
 import '../../../utils/jump_util.dart';
+import '../../../routes/app_pages.dart';
 import '../../../utils/toast_util.dart';
 
 /// 我的页逻辑：登录态 + 本地资料
@@ -23,6 +24,7 @@ class MineLogic extends GetxController {
   String nickname = '';
   String uid = '';
   int points = 0;
+  String money = '0.00';
   String vipExpire = '';
   String avatarUrl = '';
   bool isVipMember = false;
@@ -65,6 +67,7 @@ class MineLogic extends GetxController {
         nickname = u.nickname;
         uid = u.account.isEmpty ? u.id.toString() : u.account;
         points = u.score;
+        money = u.money;
         vipExpire = u.isVip ? u.vipExpire : '';
         avatarUrl = u.avatar;
         isVipMember = u.isVip;
@@ -83,6 +86,7 @@ class MineLogic extends GetxController {
     nickname = '';
     uid = '';
     points = 0;
+    money = '0.00';
     vipExpire = '';
     avatarUrl = '';
     isVipMember = false;
@@ -95,6 +99,12 @@ class MineLogic extends GetxController {
   /// 轻提示（用 SnackBar，避免 iOS 底部弹窗遮挡按钮）
   void toast(String msg) {
     ToastUtil.info(msg);
+  }
+
+  /// 充值余额 —— 打开会员中心（复用现有支付通道）
+  Future<void> recharge() async {
+    if (!isLoggedIn) return openLogin();
+    Get.toNamed(Routes.vip);
   }
 
   Future<void> openLogin() async {

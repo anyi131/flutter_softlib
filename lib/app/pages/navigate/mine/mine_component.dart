@@ -182,6 +182,9 @@ class MineComponent extends StatelessWidget {
                     if (logged) ...[
                       _badge(context, '积分 ${logic.points}', C.violet),
                       const SizedBox(width: 7),
+                      _badge(context, '余额 ¥${logic.money}', C.mint,
+                          icon: Icons.account_balance_wallet_rounded),
+                      const SizedBox(width: 7),
                     ],
                     _badge(
                       context,
@@ -348,6 +351,8 @@ class MineComponent extends StatelessWidget {
 
   Widget _serviceGrid(BuildContext context, MineLogic logic) {
     final items = <_S>[
+      _S('充值余额', Icons.account_balance_wallet_rounded, C.mint,
+          () => logic.recharge()),
       _S('赞助排行', Icons.emoji_events_rounded, C.amber,
           () => logic.sponsorRank()),
       _S('使用卡密', Icons.confirmation_number_rounded, C.rose,

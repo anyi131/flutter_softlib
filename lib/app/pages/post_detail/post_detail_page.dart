@@ -30,17 +30,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
   PostItem? _post;
   List<Map<String, dynamic>> _comments = [];
   bool _loading = true;
-  final _ctrl = TextEditingController();
-  bool _sending = false;
-  String _err = '';
-  final List<String> _images = [];
-  final List<File> _imageFiles = [];
-  bool _showEmoji = false;
-
   /// 正在回复哪条评论（0 = 普通评论）
   int _replyTo = 0;
   String _replyNick = '';
-  final FocusNode _focus = FocusNode();
 
   @override
   void initState() {
@@ -50,8 +42,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   @override
   void dispose() {
-    _ctrl.dispose();
-    _focus.dispose();
     super.dispose();
   }
 
@@ -78,11 +68,18 @@ class _PostDetailPageState extends State<PostDetailPage> {
       // ★ 与其他页面一致的页面底色 + 光晕（透明 Scaffold 会让页面露出
       //   MaterialApp 的白底，从别的页面切进来会「整屏闪白」）
       backgroundColor: Colors.transparent,
+      // ★ 键盘弹出时不要顶起整页（默认 true 会把顶部内容也推上去、非常难看），
+      //   只让底部输入栏跟着上移即可
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           Deco.pageBackground(context),
           Padding(
-            padding: EdgeInsets.only(top: topInset + 48),
+            padding: EdgeInsets.only(
+              top: topInset + 48,
+              // 键盘高度：手动给底部输入栏让位，同时避免整页上移
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
             child: _loading
                 ? const LoadingState(text: '正在加载动态…')
                 : (_post == null
@@ -512,20 +509,161 @@ class _PostDetailPageState extends State<PostDetailPage> {
     }
   }
 
-  /// 点击「回复」→ 记录目标，输入框切到回复模式
+  /// 点击「回复」→ 打开独立的回复面板（比内嵌输入栏体验好得多）
   void _startReply(Map<String, dynamic> c) {
-    setState(() {
-      _replyTo = (c['id'] as num?)?.toInt() ?? 0;
-      _replyNick = (c['nickname'] ?? '').toString();
-    });
-    _focus.requestFocus();
+    final id = (c['id'] as num?)?.toInt() ?? 0;
+    final nick = (c['nickname'] ?? '匿名用户').toString();
+    if (id <= 0) {
+      ToastUtil.info('请稍候，该评论正在同步');
+      return;
+    }
+    _openComposer(replyTo: id, replyNick: nick);
   }
 
-  void _cancelReply() {
-    setState(() {
-      _replyTo = 0;
-      _replyNick = '';
-    });
+  /// 回复/评论面板：底部弹层，自动聚焦、自动避让键盘、发送后即关
+  Future<void> _openComposer({int replyTo = 0, String replyNick = ''}) async {
+    final user = UserService.instance.user;
+    if (user == null) {
+      final go = await Get.dialog<bool>(AlertDialog(
+        title: const Text('需要登录'),
+        content: const Text('评论需要先登录账号'),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Get.back(result: true),
+              child: const Text('去登录')),
+        ],
+      ));
+      if (go == true) await Get.toNamed(Routes.login);
+      return;
+    }
+
+    final ctrl = TextEditingController();
+    final focus = FocusNode();
+    bool sending = false;
+    String err = '';
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
+        Future<void> send() async {
+          final text = ctrl.text.trim();
+          if (text.isEmpty) {
+            setSheet(() => err = '请输入内容');
+            return;
+          }
+          setSheet(() {
+            sending = true;
+            err = '';
+          });
+          final ok = await _svc.comment(
+            postId: _post!.id,
+            nickname: user.nickname.isEmpty ? '匿名用户' : user.nickname,
+            content: text,
+            avatar: user.avatar,
+            replyTo: replyTo,
+          );
+          if (!ctx.mounted) return;
+          if (ok) {
+            Navigator.pop(ctx);
+            if (!mounted) return;
+            ToastUtil.success(replyTo > 0 ? '回复成功' : '评论成功');
+            _refreshComments();
+          } else {
+            setSheet(() {
+              sending = false;
+              err = '发送失败，请重试';
+            });
+          }
+        }
+
+        return Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: ctx.isDark ? C.bg2 : Colors.white,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(R.lg)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(replyTo > 0 ? '回复 @$replyNick' : '发表评论',
+                        style: Ty.h3.copyWith(color: ctx.t1, fontSize: 15)),
+                    const Spacer(),
+                    IconButton(
+                      icon: Icon(Icons.close, size: 20, color: ctx.t2),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ctrl,
+                  focusNode: focus,
+                  autofocus: true,
+                  maxLines: 5,
+                  minLines: 3,
+                  maxLength: 500,
+                  style: const TextStyle(fontSize: 14.5, height: 1.5),
+                  decoration: InputDecoration(
+                    hintText:
+                        replyTo > 0 ? '回复 @$replyNick…' : '说点什么…',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(R.md)),
+                  ),
+                ),
+                if (err.isNotEmpty) ...[
+                  Text(err,
+                      style: const TextStyle(
+                          fontSize: 12.5,
+                          color: C.danger,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                ],
+                Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        size: 13, color: ctx.t3),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        replyTo > 0
+                            ? '对方会收到一条回复通知提示'
+                            : '文明发言，共建良好氛围',
+                        style: Ty.tiny.copyWith(color: ctx.t3),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 104,
+                      child: PrimaryButton(
+                        label: '发送',
+                        icon: Icons.send_rounded,
+                        height: 42,
+                        loading: sending,
+                        expand: false,
+                        onPressed: sending ? null : send,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+    focus.dispose();
+    ctrl.dispose();
   }
 
   String _relTime(int ts) {
@@ -540,9 +678,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 
+  /// 底部评论栏：点击即打开评论面板（不再内嵌输入框，避免键盘挤压整页）
   Widget _inputBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
       decoration: BoxDecoration(
         color: context.cardBg,
         boxShadow: [
@@ -555,141 +694,56 @@ class _PostDetailPageState extends State<PostDetailPage> {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            // ★ 回复模式提示条
-            if (_replyTo > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    Icon(Icons.reply_rounded, size: 14, color: C.brand),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text('正在回复 @$_replyNick',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Ty.tiny.copyWith(
-                              fontSize: 12,
-                              color: C.brand,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                    GestureDetector(
-                      onTap: _cancelReply,
-                      child: Icon(Icons.close_rounded,
-                          size: 16, color: context.t3),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _openComposer(),
+                child: Container(
+                  height: 42,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: context.isDark
+                        ? Colors.white.withAlpha(12)
+                        : C.lbg2,
+                    borderRadius: BorderRadius.circular(R.full),
+                    border: Border.all(color: C.stroke),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 16, color: context.t3),
+                      const SizedBox(width: 8),
+                      Text('写评论…',
+                          style: Ty.small.copyWith(color: context.t3)),
+                      const Spacer(),
+                      Text('${_comments.length}',
+                          style: Ty.tiny.copyWith(color: context.t3)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _openComposer(),
+              child: Container(
+                width: 46,
+                height: 42,
+                decoration: BoxDecoration(
+                  gradient: Deco.brandGradient,
+                  borderRadius: BorderRadius.circular(R.full),
+                  boxShadow: [
+                    BoxShadow(
+                      color: C.brand.withAlpha(90),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
+                child: const Icon(Icons.send_rounded,
+                    size: 18, color: Colors.white),
               ),
-            if (_err.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(_err,
-                    style: Ty.tiny.copyWith(fontSize: 12, color: C.danger)),
-              ),
-            // 已选图片预览
-            if (_images.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: SizedBox(
-                  height: 62,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _images.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 6),
-                    itemBuilder: (_, i) => Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(R.xs),
-                          child: Image.file(File(_images[i]),
-                              width: 62, height: 62, fit: BoxFit.cover),
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: GestureDetector(
-                            onTap: () => setState(() {
-                              _images.removeAt(i);
-                              _imageFiles.removeAt(i);
-                            }),
-                            child: Container(
-                              padding: const EdgeInsets.all(1.5),
-                              decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle),
-                              child: const Icon(Icons.close,
-                                  size: 12, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            // 表情面板
-            if (_showEmoji)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: EmojiPanel(
-                  onPick: (e) {
-                    _ctrl.text += e;
-                    _ctrl.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _ctrl.text.length));
-                    setState(() {});
-                  },
-                ),
-              ),
-            Row(
-              children: [
-                // 图片按钮
-                GestureDetector(
-                  onTap: _pickImages,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(Icons.image_outlined,
-                        size: 22, color: context.t3),
-                  ),
-                ),
-                // 表情按钮
-                GestureDetector(
-                  onTap: () => setState(() => _showEmoji = !_showEmoji),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(Icons.emoji_emotions_outlined,
-                        size: 22,
-                        color: _showEmoji ? C.brand : context.t3),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: TextField(
-                    controller: _ctrl,
-                    focusNode: _focus,
-                    decoration: InputDecoration(
-                      hintText: _replyTo > 0 ? '回复 @$_replyNick…' : '写评论…',
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 11),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(R.full)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // ★ expand:false —— 放在 Row 里必须限制宽度，
-                //   否则 width:infinity 会把输入框挤没、整行错乱
-                PrimaryButton(
-                  label: '发送',
-                  height: 42,
-                  expand: false,
-                  loading: _sending,
-                  enabled: !_sending,
-                  onPressed: _send,
-                ),
-              ],
             ),
           ],
         ),
@@ -725,92 +779,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
       Get.back();
     } else {
       ToastUtil.error('删除失败');
-    }
-  }
-
-  Future<void> _pickImages() async {
-    try {
-      final picked =
-          await ImagePicker().pickMultiImage(imageQuality: 82);
-      if (picked.isEmpty) return;
-      for (final f in picked) {
-        if (_images.length >= 6) break;
-        _images.add(f.path);
-        _imageFiles.add(File(f.path));
-      }
-      setState(() {});
-    } catch (_) {
-      setState(() => _err = '选择图片失败，请允许相册权限');
-    }
-  }
-
-  Future<void> _send() async {
-    final text = _ctrl.text.trim();
-    if (text.isEmpty) {
-      setState(() => _err = '请输入评论内容');
-      return;
-    }
-    final user = UserService.instance.user;
-    setState(() {
-      _sending = true;
-      _err = '';
-    });
-    // 上传图片
-    final urls = <String>[];
-    try {
-      for (final f in List<File>.from(_imageFiles)) {
-        urls.add(await PostService.instance.uploadImage(f));
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _sending = false;
-          _err = '图片上传失败'; 
-        });
-      }
-      return;
-    }
-    final ok = await _svc.comment(
-      postId: _post!.id,
-      nickname: user?.nickname ?? '匿名用户',
-      content: text,
-      avatar: user?.avatar ?? '',
-      images: urls,
-      replyTo: _replyTo,
-    );
-    if (!mounted) return;
-    if (ok) {
-      _ctrl.clear();
-      setState(() {
-        _sending = false;
-        _showEmoji = false;
-        // 本地先插入，带上自己的身份标识，立刻可见
-        _comments.add({
-          'id': -DateTime.now().millisecondsSinceEpoch,
-          'user_id': user?.id ?? 0,
-          'nickname': user?.nickname ?? '匿名用户',
-          'avatar': user?.avatar ?? '',
-          'content': text,
-          'images': urls,
-          'createtime': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          'reply_to': _replyTo,
-          'reply_nickname': _replyNick,
-          'is_admin': user?.isAdmin == true ? 1 : 0,
-          'is_vip': user?.isVip == true ? 1 : 0,
-          'title': user?.title ?? '',
-        });
-        _images.clear();
-        _imageFiles.clear();
-        _replyTo = 0;
-        _replyNick = '';
-      });
-      // 后台再拉一次，拿真实的 id/身份
-      _refreshComments();
-    } else {
-      setState(() {
-        _sending = false;
-        _err = '评论失败，请重试';
-      });
     }
   }
 
