@@ -891,7 +891,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   ///   · 普通用户 + 有价格       → 可用「余额」购买（不足则引导充值）
   ///   · 未设价格               → 免费下载
   Future<void> _onDownload(bool isVipItem, bool loggedIn, bool isVipUser) async {
-    final appId = logic.appInfo?.id ?? 0;
+    // appInfo 是解析后的文件信息，没有 id；id 在 item 上
+    final appId = logic.item?.id ?? 0;
     final fileName = logic.appInfo?.fileName ?? '未知文件名';
 
     if (!isVipItem) {
