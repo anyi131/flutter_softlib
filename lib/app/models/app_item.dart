@@ -36,6 +36,8 @@ class AppItem {
   final String vipPrice;
   /// 是否新上传（7天内）
   final bool isNew;
+  /// 是否来自蓝奏云文件夹（无数据库记录）
+  final bool fromFolder;
 
   AppItem({
     required this.id,
@@ -58,6 +60,7 @@ class AppItem {
     this.isVipOnly = false,
     this.vipPrice = '',
     this.isNew = false,
+    this.fromFolder = false,
   });
 
   bool get isLocal => provider == 'local';
@@ -96,6 +99,7 @@ class AppItem {
       isVipOnly: json['is_vip'] == 1 || json['is_vip'] == true,
       vipPrice: s('vip_price'),
       isNew: json['is_new'] == 1 || json['is_new'] == true,
+      fromFolder: json['from_folder'] == 1 || json['from_folder'] == true,
     );
   }
 

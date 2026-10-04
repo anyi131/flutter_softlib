@@ -105,6 +105,25 @@ class AppDetailsLogic extends GetxController {
     isLoadingInfo = true;
     update(['appInfo', 'share', 'download']);
     try {
+      // ★ 蓝奏云文件夹的软件：直接用传入的数据构造，不走后台查询
+      if (item != null && item!.fromFolder) {
+        appInfo = LzyFileInfoData(
+          fileIcon: item!.icon,
+          fileName: item!.title,
+          fileSize: item!.size,
+          fileTime: item!.uploadDate.isNotEmpty ? item!.uploadDate : '最近更新',
+          fileType: '蓝奏云',
+          fileDesc: item!.description.isNotEmpty
+              ? item!.description
+              : '本软件来自蓝奏云文件夹，请放心下载。',
+          fileImage: item!.screenshots.isNotEmpty
+              ? item!.screenshots.first
+              : '',
+        );
+        isLoadingInfo = false;
+        update(['appInfo', 'share', 'download']);
+        return;
+      }
       // 服务器直传：优先展示数据库信息
       if (item != null &&
           (item!.description.isNotEmpty ||
