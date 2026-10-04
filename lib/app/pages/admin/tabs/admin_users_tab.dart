@@ -745,8 +745,7 @@ class _AdminUsersTabState extends State<AdminUsersTab>
     bool hide = true;
 
     final ok = await Get.dialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
+      StatefulBuilder(builder: (ctx, setD) {
         return AlertDialog(
           title: Text('重置密码：${u['nickname']}',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
