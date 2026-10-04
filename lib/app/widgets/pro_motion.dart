@@ -1,34 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
-/// 全局高刷（ProMotion / 高刷新率屏幕）
+/// 全局高刷支持
 ///
-/// Flutter 默认在部分设备上锁 60Hz。这里用一个常驻的 [Ticker] 持续向引擎
-/// 请求渲染帧，使滚动与动画能跑满设备支持的刷新率（90/120Hz）。
-class HighRefreshScope extends StatefulWidget {
+/// 历史实现：用一个【常驻 Ticker】持续请求渲染帧，试图让 Flutter 跑满
+/// 设备最高刷新率。实测这个做法弊大于利：
+///   · 引擎会被迫「一直出帧」，静止页面也在空转耗电
+///   · 干扰部分设备的动态刷新率自适应，表现为轻微抖动/忽快忽慢
+///   · 帧率的真正瓶颈在渲染成本（大面积 BackdropFilter、重绘），
+///     而不是「有没有请求高刷」
+///
+/// 现在改为**纯透传**：Flutter 会自动跟随设备刷新率，只要渲染不掉帧
+/// 就能跑满高刷。高刷支持已在 AndroidManifest 中用
+/// `android:preferredDisplayModeId` / 高刷声明开启。
+///
+/// 保留此类是为了不破坏既有调用点（main.dart 的 builder）。
+class HighRefreshScope extends StatelessWidget {
   final Widget child;
   const HighRefreshScope({super.key, required this.child});
 
   @override
-  State<HighRefreshScope> createState() => _HighRefreshScopeState();
-}
-
-class _HighRefreshScopeState extends State<HighRefreshScope>
-    with SingleTickerProviderStateMixin {
-  late final Ticker _ticker;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = createTicker((_) {})..start();
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) => child;
 }

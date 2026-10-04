@@ -472,7 +472,7 @@ class _AppComponentState extends State<AppComponent> {
         itemCount: _apps.length + (_loadingMore ? 1 : 0),
         itemBuilder: (context, i) {
           if (i >= _apps.length) return _loadMoreFooter();
-          return _card(_apps[i]);
+          return RepaintBoundary(child: _card(_apps[i]));
         },
       ),
     );

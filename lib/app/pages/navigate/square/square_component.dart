@@ -215,7 +215,11 @@ class _SquareComponentState extends State<SquareComponent> {
       child: ListView.builder(
         padding: EdgeInsets.only(top: 4, bottom: tabBottomPadding(context) + 60),
         itemCount: _posts.length,
-        itemBuilder: (context, i) => _postCard(_posts[i], isDark),
+        // ★ RepaintBoundary：每张卡片独立图层，滚动时不会整列重绘
+        //   （信息流掉帧最常见的成因）
+        itemBuilder: (context, i) => RepaintBoundary(
+          child: _postCard(_posts[i], isDark),
+        ),
       ),
     );
   }
@@ -257,6 +261,8 @@ class _SquareComponentState extends State<SquareComponent> {
                       children: [
                         Row(
                           children: [
+                            // ★ 昵称弹性收缩，徽章固定宽度不参与挤压，
+                            //   避免长昵称 + 多个头衔导致 Row 溢出
                             Flexible(
                               child: Text(
                                   p.nickname.isEmpty ? '匿名用户' : p.nickname,
@@ -276,7 +282,9 @@ class _SquareComponentState extends State<SquareComponent> {
                             ],
                             if (p.title.isNotEmpty) ...[
                               const SizedBox(width: 4),
-                              Pill(p.title, color: C.brand, small: true),
+                              Flexible(
+                                child: Pill(p.title, color: C.brand, small: true),
+                              ),
                             ],
                           ],
                         ),

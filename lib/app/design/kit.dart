@@ -388,12 +388,17 @@ class Pill extends StatelessWidget {
             Icon(icon, size: small ? 10 : 11.5, color: solid ? Colors.white : color),
             const SizedBox(width: 3),
           ],
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: small ? 10 : 11.5,
-              fontWeight: FontWeight.w800,
-              color: solid ? Colors.white : color,
+          // ★ 弹性 + 省略号：防止长文本（如用户自定义头衔）撑破父级 Row
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: small ? 10 : 11.5,
+                fontWeight: FontWeight.w800,
+                color: solid ? Colors.white : color,
+              ),
             ),
           ),
         ],
@@ -790,7 +795,15 @@ class AppImage extends StatelessWidget {
               width: width,
               height: height,
               fit: fit,
-              fadeInDuration: const Duration(milliseconds: 220),
+              fadeInDuration: const Duration(milliseconds: 200),
+              // ★ 按实际显示尺寸解码：避免把 2000px 原图整张解到内存
+              //   （列表大量图片时这是内存与掉帧的主要来源）
+              memCacheWidth: width != null
+                  ? (width! * MediaQuery.of(context).devicePixelRatio)
+                      .round()
+                      .clamp(64, 1024)
+                  : null,
+              maxWidthDiskCache: 1024,
               placeholder: (_, __) => fallback(placeholderIcon),
               errorWidget: (_, __, ___) => fallback(errorIcon),
             ),

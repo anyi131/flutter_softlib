@@ -81,71 +81,73 @@ class R {
 class Deco {
   Deco._();
 
-  static bool dark(BuildContext c) =>
-      Theme.of(c).brightness == Brightness.dark;
+  static bool dark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
 
   /// 主背景：浅色页面底 + 柔和彩色光晕（浅色为主）
   /// ★ fit: expand 保证无论父级约束如何都铺满，避免转场/首帧露出底色
+  /// ★ RepaintBoundary：光晕是静态的，隔离后滚动/动画时不会跟着重绘
   static Widget pageBackground(BuildContext context, {Widget? child}) {
     final isDark = dark(context);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Container(color: isDark ? C.bg0 : C.lbg0),
-        // 顶部品牌光晕
-        Positioned(
-          top: -180,
-          left: -100,
-          right: -100,
-          child: Container(
-            height: 420,
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: [
-                  C.brand.withAlpha(isDark ? 62 : 34),
-                  C.brand.withAlpha(0),
-                ],
-                radius: 0.8,
+    return RepaintBoundary(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(color: isDark ? C.bg0 : C.lbg0),
+          // 顶部品牌光晕
+          Positioned(
+            top: -180,
+            left: -100,
+            right: -100,
+            child: Container(
+              height: 420,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    C.brand.withAlpha(isDark ? 62 : 34),
+                    C.brand.withAlpha(0),
+                  ],
+                  radius: 0.8,
+                ),
               ),
             ),
           ),
-        ),
-        // 右上青色副光晕
-        Positioned(
-          top: 180,
-          right: -140,
-          child: Container(
-            width: 340,
-            height: 340,
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: [
-                  C.cyan.withAlpha(isDark ? 34 : 20),
-                  C.cyan.withAlpha(0),
-                ],
+          // 右上青色副光晕
+          Positioned(
+            top: 180,
+            right: -140,
+            child: Container(
+              width: 340,
+              height: 340,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    C.cyan.withAlpha(isDark ? 34 : 20),
+                    C.cyan.withAlpha(0),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        // 左下紫罗兰光晕
-        Positioned(
-          bottom: 60,
-          left: -150,
-          child: Container(
-            width: 320,
-            height: 320,
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: [
-                  C.violet.withAlpha(isDark ? 30 : 18),
-                  C.violet.withAlpha(0),
-                ],
+          // 左下紫罗兰光晕
+          Positioned(
+            bottom: 60,
+            left: -150,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    C.violet.withAlpha(isDark ? 30 : 18),
+                    C.violet.withAlpha(0),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        if (child != null) Positioned.fill(child: child),
-      ],
+          if (child != null) Positioned.fill(child: child),
+        ],
+      ),
     );
   }
 
@@ -169,14 +171,12 @@ class Deco {
         gradient: gradient,
         color: gradient == null
             ? (isDark
-                ? Colors.white.withAlpha((alpha * 255).round())
-                : Colors.white.withAlpha(215))
+                  ? Colors.white.withAlpha((alpha * 255).round())
+                  : Colors.white.withAlpha(215))
             : null,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
-          color: isDark
-              ? C.stroke.withAlpha(20)
-              : Colors.white.withAlpha(230),
+          color: isDark ? C.stroke.withAlpha(20) : Colors.white.withAlpha(230),
           width: 0.9,
         ),
         boxShadow: glow != null
@@ -189,8 +189,7 @@ class Deco {
               ]
             : [
                 BoxShadow(
-                  color: const Color(0xFF2C3550)
-                      .withAlpha(isDark ? 0 : 16),
+                  color: const Color(0xFF2C3550).withAlpha(isDark ? 0 : 16),
                   blurRadius: 22,
                   offset: const Offset(0, 7),
                 ),
@@ -199,12 +198,13 @@ class Deco {
       child: child,
     );
 
+    // ★ 性能：不再对每张卡片做 BackdropFilter（GPU 最贵的操作之一，
+    //   信息流滚动时会让帧率腰斩）。卡片本身已是 84% 不透明的白色，
+    //   模糊效果肉眼几乎不可见，改用纯色 + 阴影，视觉几乎一致但帧率大幅提升。
+    //   注意：GlassCard 用于固定元素（Tab 栏/顶栏）时仍走真实模糊，见 Deco.blur。
     Widget wrapped = ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: content,
-      ),
+      child: content,
     );
     if (margin != null) {
       wrapped = Padding(padding: margin, child: wrapped);
@@ -213,6 +213,23 @@ class Deco {
       wrapped = GestureDetector(onTap: onTap, child: wrapped);
     }
     return wrapped;
+  }
+
+  /// 真实背景模糊（仅用于固定的悬浮元素：底部 Tab 栏、顶部导航栏）
+  /// 这些元素数量少且不随滚动重建，代价可接受
+  static Widget blur(
+    BuildContext context, {
+    required Widget child,
+    double radius = R.full,
+    double sigma = 24,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+        child: child,
+      ),
+    );
   }
 
   /// 品牌渐变
@@ -224,14 +241,14 @@ class Deco {
 
   /// 极光渐变（多色）
   static LinearGradient aurora({double a = 1}) => LinearGradient(
-        colors: [
-          C.brand.withAlpha((255 * a).round()),
-          C.violet.withAlpha((255 * a).round()),
-          C.cyan.withAlpha((255 * a).round()),
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
+    colors: [
+      C.brand.withAlpha((255 * a).round()),
+      C.violet.withAlpha((255 * a).round()),
+      C.cyan.withAlpha((255 * a).round()),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   /// 金色（会员）
   static const goldGradient = LinearGradient(
@@ -283,13 +300,28 @@ class Deco {
 class Ty {
   Ty._();
   static const display = TextStyle(
-      fontSize: 30, fontWeight: FontWeight.w900, height: 1.15, letterSpacing: -1);
+    fontSize: 30,
+    fontWeight: FontWeight.w900,
+    height: 1.15,
+    letterSpacing: -1,
+  );
   static const h1 = TextStyle(
-      fontSize: 23, fontWeight: FontWeight.w900, height: 1.2, letterSpacing: -0.6);
+    fontSize: 23,
+    fontWeight: FontWeight.w900,
+    height: 1.2,
+    letterSpacing: -0.6,
+  );
   static const h2 = TextStyle(
-      fontSize: 18, fontWeight: FontWeight.w800, height: 1.25, letterSpacing: -0.3);
+    fontSize: 18,
+    fontWeight: FontWeight.w800,
+    height: 1.25,
+    letterSpacing: -0.3,
+  );
   static const h3 = TextStyle(
-      fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -0.2);
+    fontSize: 15,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.2,
+  );
   static const body = TextStyle(fontSize: 14, height: 1.62);
   static const small = TextStyle(fontSize: 12.5, height: 1.5);
   static const tiny = TextStyle(fontSize: 11, height: 1.4);
@@ -309,7 +341,9 @@ ThemeData buildNewTheme({required bool dark}) {
     scaffoldBackgroundColor: dark ? C.bg0 : C.lbg0,
     canvasColor: dark ? C.bg1 : C.lbg1,
     cardColor: dark ? C.bg2 : Colors.white,
-    dividerColor: dark ? Colors.white.withAlpha(16) : Colors.black.withAlpha(10),
+    dividerColor: dark
+        ? Colors.white.withAlpha(16)
+        : Colors.black.withAlpha(10),
     appBarTheme: AppBarTheme(
       centerTitle: false,
       elevation: 0,
@@ -330,7 +364,8 @@ ThemeData buildNewTheme({required bool dark}) {
         foregroundColor: Colors.white,
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(R.full)),
+          borderRadius: BorderRadius.circular(R.full),
+        ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -344,14 +379,14 @@ ThemeData buildNewTheme({required bool dark}) {
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(R.md),
         borderSide: BorderSide(
-            color: dark ? Colors.white.withAlpha(18) : Colors.black.withAlpha(8)),
+          color: dark ? Colors.white.withAlpha(18) : Colors.black.withAlpha(8),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(R.md),
         borderSide: const BorderSide(color: C.brand, width: 1.5),
       ),
-      hintStyle:
-          TextStyle(fontSize: 13.5, color: dark ? C.t3 : C.lt3),
+      hintStyle: TextStyle(fontSize: 13.5, color: dark ? C.t3 : C.lt3),
     ),
     tabBarTheme: TabBarThemeData(
       indicatorSize: TabBarIndicatorSize.label,
@@ -360,8 +395,10 @@ ThemeData buildNewTheme({required bool dark}) {
       unselectedLabelColor: dark ? C.t2 : C.lt2,
       dividerColor: Colors.transparent,
       labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
-      unselectedLabelStyle:
-          const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+      ),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: dark ? C.bg2 : Colors.white,
