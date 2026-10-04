@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../design/ui.dart';
+
 /// 星级显示（只读）
 class StarRating extends StatelessWidget {
   final double score;
@@ -28,7 +30,7 @@ class StarRating extends StatelessWidget {
                       ? Icons.star_half_rounded
                       : Icons.star_border_rounded),
               size: size,
-              color: const Color(0xFFFFB300),
+              color: C.amber,
             ),
           ),
         if (showScore) ...[
@@ -37,7 +39,7 @@ class StarRating extends StatelessWidget {
               style: TextStyle(
                   fontSize: size - 1,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFFFF8F00))),
+                  color: C.amber)),
         ],
       ],
     );
@@ -70,7 +72,7 @@ class StarInput extends StatelessWidget {
               child: Icon(
                 i <= value ? Icons.star_rounded : Icons.star_border_rounded,
                 size: size,
-                color: const Color(0xFFFFB300),
+                color: C.amber,
               ),
             ),
           ),
