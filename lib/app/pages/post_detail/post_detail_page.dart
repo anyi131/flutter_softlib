@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -66,58 +67,113 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
+      // ★ 与其他页面一致的页面底色 + 光晕（透明 Scaffold 会让页面露出
+      //   MaterialApp 的白底，从别的页面切进来会「整屏闪白」）
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        title: const Text('动态详情', style: Ty.h3),
-        actions: [
-          if (_canDelete())
-            IconButton(
-              icon: const Icon(Icons.delete_outline, size: 21),
-              onPressed: _deletePost,
-            ),
+      body: Stack(
+        children: [
+          Deco.pageBackground(context),
+          Padding(
+            padding: EdgeInsets.only(top: topInset + 48),
+            child: _loading
+                ? const LoadingState(text: '正在加载动态…')
+                : (_post == null
+                    ? const EmptyState(
+                        text: '动态不存在或已删除',
+                        hint: '内容可能已被作者删除',
+                        icon: Icons.article_outlined,
+                      )
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: ListView(
+                              padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
+                              children: [
+                                _postCard(),
+                                const SizedBox(height: 12),
+                                _commentHeader(),
+                                const SizedBox(height: 8),
+                                if (_comments.isEmpty)
+                                  const SizedBox(
+                                    height: 240,
+                                    child: EmptyState(
+                                      text: '还没有评论，快来抢沙发~',
+                                      hint: '说说你的看法吧',
+                                      icon: Icons.chat_bubble_outline_rounded,
+                                    ),
+                                  )
+                                else
+                                  ..._comments
+                                      .map((c) => _commentTile(c)),
+                              ],
+                            ),
+                          ),
+                          _inputBar(),
+                        ],
+                      )),
+          ),
+          // 悬浮玻璃顶栏（与详情页一致，替代 Material AppBar）
+          _topBar(topInset),
         ],
       ),
-      body: _loading
-          ? const LoadingState(text: '正在加载动态…')
-          : (_post == null
-              ? const EmptyState(
-                  text: '动态不存在或已删除',
-                  hint: '内容可能已被作者删除',
-                  icon: Icons.article_outlined,
-                )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
-                        children: [
-                          _postCard(),
-                          const SizedBox(height: 12),
-                          _commentHeader(),
-                          const SizedBox(height: 8),
-                          if (_comments.isEmpty)
-                            const SizedBox(
-                              height: 240,
-                              child: EmptyState(
-                                text: '还没有评论，快来抢沙发~',
-                                hint: '说说你的看法吧',
-                                icon: Icons.chat_bubble_outline_rounded,
-                              ),
-                            )
-                          else
-                            ..._comments.map((c) => _commentTile(c)),
-                        ],
-                      ),
-                    ),
-                    _inputBar(),
-                  ],
-                )),
     );
   }
+
+  /// 悬浮玻璃顶栏
+  Widget _topBar(double topInset) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: EdgeInsets.only(
+              top: topInset + 6,
+              bottom: 8,
+              left: 12,
+              right: 12,
+            ),
+            color: (context.isDark ? C.bg0 : C.lbg0).withAlpha(150),
+            child: Row(
+              children: [
+                _topBtn(Icons.arrow_back_ios_new_rounded, () => Get.back()),
+                const Spacer(),
+                Text('动态详情',
+                    style: Ty.h3.copyWith(color: context.t1, fontSize: 15)),
+                const Spacer(),
+                if (_canDelete())
+                  _topBtn(Icons.delete_outline_rounded, _deletePost)
+                else
+                  const SizedBox(width: 36),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _topBtn(IconData i, VoidCallback f) => GestureDetector(
+        onTap: f,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: context.isDark ? Colors.white.withAlpha(14) : Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: context.isDark
+                  ? Colors.white.withAlpha(20)
+                  : Colors.black.withAlpha(8),
+            ),
+          ),
+          child: Icon(i, size: 16, color: context.t1),
+        ),
+      );
 
   Widget _postCard() {
     final p = _post!;
