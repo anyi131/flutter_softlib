@@ -11,6 +11,7 @@ import 'package:photo_view/photo_view.dart';
 
 import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
+import '../../api/unlock_service.dart';
 import 'dart:ui';
 
 import '../../config.dart';
@@ -766,7 +767,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   color: color,
                   icon: icon,
                   gold: isVipItem,
-                  onPressed: () => _onDownload(isVipItem, loggedIn, isVipUser),
+                  onPressed: () async => await _onDownload(isVipItem, loggedIn, isVipUser),
                 ),
               ],
             );
@@ -883,16 +884,126 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  void _onDownload(bool isVipItem, bool loggedIn, bool isVipUser) {
-    if (isVipItem && !loggedIn) {
-      _dialog('需要登录', '该资源为会员专享，请先登录账号', '去登录', Routes.login);
+  /// 下载前置校验
+  ///
+  /// 规则（与后台「会员专享 + 会员价」配置一致）：
+  ///   · 会员 / 管理员 / 已购买过 → 直接下载
+  ///   · 普通用户 + 有价格       → 可用「余额」购买（不足则引导充值）
+  ///   · 未设价格               → 免费下载
+  Future<void> _onDownload(bool isVipItem, bool loggedIn, bool isVipUser) async {
+    final appId = logic.appInfo?.id ?? 0;
+    final fileName = logic.appInfo?.fileName ?? '未知文件名';
+
+    if (!isVipItem) {
+      logic.addDownload(fileName);
       return;
     }
-    if (isVipItem && !isVipUser) {
-      _dialog('会员专享资源', '该资源仅会员可下载，是否前往开通会员？', '去开通', Routes.vip);
+    if (!loggedIn) {
+      _dialog('需要登录', '该资源为付费资源，请先登录账号', '去登录', Routes.login);
       return;
     }
-    logic.addDownload(logic.appInfo?.fileName ?? '未知文件名');
+
+    // 向服务器确认状态（会员/已购/价格/余额）
+    UnlockStatus st;
+    try {
+      st = await UnlockService.instance.status(appId);
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      return;
+    }
+    if (!mounted) return;
+
+    if (st.canDownload) {
+      logic.addDownload(fileName);
+      return;
+    }
+
+    // 需要购买
+    final price = st.price;
+    final balance = st.balance;
+    final enough = (double.tryParse(balance) ?? 0) >= (double.tryParse(price) ?? 0);
+    final title = isVipUser ? '会员专享资源' : '付费资源';
+    await Get.dialog(AlertDialog(
+      title: Text(title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('该软件需支付 ¥$price 后下载。',
+              style: const TextStyle(fontSize: 13, height: 1.5)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              color: C.mint.withAlpha(22),
+              borderRadius: BorderRadius.circular(R.sm),
+            ),
+            child: Text('当前余额 ¥$balance',
+                style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: C.mint)),
+          ),
+          if (!enough) ...[
+            const SizedBox(height: 8),
+            const Text('余额不足，请先充值后再购买。',
+                style: TextStyle(fontSize: 12, color: C.warning)),
+          ],
+          const SizedBox(height: 8),
+          const Text('会员用户可直接免费下载。',
+              style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+        TextButton(
+          onPressed: () {
+            Get.back();
+            Get.toNamed(Routes.vip);
+          },
+          child: const Text('开通会员'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Get.back();
+            if (enough) {
+              _buyWithBalance(appId, fileName, price);
+            } else {
+              Get.toNamed(Routes.recharge);
+            }
+          },
+          child: Text(enough ? '余额支付 ¥$price' : '去充值'),
+        ),
+      ],
+    ));
+  }
+
+  /// 用余额购买并解锁
+  Future<void> _buyWithBalance(int appId, String fileName, String price) async {
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: const Text('确认支付'),
+      content: Text('将使用账户余额支付 ¥$price 购买该软件。\n'
+          '购买后可永久下载，不再重复扣费。'),
+      actions: [
+        TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消')),
+        FilledButton(
+            onPressed: () => Get.back(result: true),
+            child: Text('支付 ¥$price')),
+      ],
+    ));
+    if (ok != true) return;
+    try {
+      await UnlockService.instance.buy(appId);
+      await UserService.instance.refreshProfile();
+      if (!mounted) return;
+      ToastUtil.success('购买成功，开始下载');
+      logic.addDownload(fileName);
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   void _dialog(String title, String msg, String okText, String route) {

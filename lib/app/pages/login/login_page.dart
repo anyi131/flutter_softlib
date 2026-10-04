@@ -1,7 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../api/api_host.dart';
 import '../../api/user_service.dart';
+import '../../utils/toast_util.dart';
+import 'qq_login_page.dart';
 import '../navigate/mine/mine_logic.dart';
 import 'register_page.dart';
 import 'reset_page.dart';
@@ -20,6 +25,36 @@ class _LoginPageState extends State<LoginPage> {
   final _pwd = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
+  bool _qqOn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkQq();
+  }
+
+  /// 后台开关打开时才显示 QQ 登录入口
+  Future<void> _checkQq() async {
+    try {
+      final r = await UserService.instance.fetchConfig();
+      if (!mounted) return;
+      setState(() => _qqOn = r['qq_login_on'] == true || r['qq_login_on'] == 1);
+    } catch (_) {}
+  }
+
+  Future<void> _qqLogin() async {
+    final res = await Get.to(() => const QQLoginPage());
+    if (res is Map && (res['token'] ?? '').toString().isNotEmpty) {
+      await UserService.instance.loginByToken(
+        res['token'].toString(),
+        nickname: (res['nickname'] ?? '').toString(),
+        avatar: (res['avatar'] ?? '').toString(),
+      );
+      if (!mounted) return;
+      ToastUtil.success('QQ 登录成功');
+      Get.back(result: true);
+    }
+  }
 
   @override
   void dispose() {
@@ -159,6 +194,44 @@ class _LoginPageState extends State<LoginPage> {
                             fontSize: 16, fontWeight: FontWeight.w700)),
               ),
             ),
+            if (_qqOn) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey.withAlpha(60))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text('其他方式登录',
+                        style:
+                            TextStyle(fontSize: 11.5, color: Colors.grey[400])),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey.withAlpha(60))),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: GestureDetector(
+                  onTap: _qqLogin,
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF12B7F5).withAlpha(24),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: const Color(0xFF12B7F5).withAlpha(80)),
+                    ),
+                    child: const Icon(Icons.pets_rounded,
+                        color: Color(0xFF12B7F5), size: 26),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Center(
+                child: Text('QQ 快捷登录',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              ),
+            ],
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

@@ -622,9 +622,13 @@ class _AppComponentState extends State<AppComponent> {
                         const SizedBox(width: 8),
                       ],
                       if (a.size.isNotEmpty)
-                        Text(a.size,
-                            style: TextStyle(
-                                fontSize: 11, color: context.t3)),
+                        Flexible(
+                          child: Text(a.size,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 11, color: context.t3)),
+                        ),
                     ],
                   ),
                   if (a.description.isNotEmpty) ...[

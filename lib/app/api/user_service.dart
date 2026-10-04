@@ -118,6 +118,36 @@ class UserService {
   UserInfo? get user => _user;
   bool get isLoggedIn => _token.isNotEmpty && _user != null;
 
+  /// 拉取后台配置（登录页要判断 QQ 登录开关等）
+  Future<Map<String, dynamic>> fetchConfig() async {
+    try {
+      final r = await _dio.get('/api/softlib/config/index');
+      if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
+        return Map<String, dynamic>.from(r.data['data']);
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  /// 用已有 token 直接登录（QQ 快捷登录回调后调用）
+  Future<bool> loginByToken(
+    String token, {
+    String nickname = '',
+    String avatar = '',
+  }) async {
+    _token = token;
+    final sp = await SharedPreferences.getInstance();
+    await sp.setString('token', token);
+    // 拉一次资料，确认 token 有效并拿到完整用户信息
+    final u = await refreshProfile();
+    if (u == null) {
+      _token = '';
+      await sp.remove('token');
+      return false;
+    }
+    return true;
+  }
+
   /// 启动时恢复登录态
   Future<void> restore() async {
     final sp = await SharedPreferences.getInstance();

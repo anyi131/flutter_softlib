@@ -689,7 +689,7 @@ class _SquareComponentState extends State<SquareComponent> {
                   TextField(
                     controller: videoLinkCtrl,
                     decoration: InputDecoration(
-                      hintText: '粘贴视频链接（B站 / YouTube / mp4 直链）',
+                      hintText: '粘贴链接或抖音口令（如 XO3FyvHVKf4）',
                       isDense: true,
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(R.sm)),
@@ -720,9 +720,14 @@ class _SquareComponentState extends State<SquareComponent> {
                               videoPreviewType = (r['type'] ?? '').toString();
                             });
                           } catch (e) {
+                            final msg =
+                                e.toString().replaceFirst('Exception: ', '');
                             setSheet(() {
                               videoPreviewUrl = '';
-                              err = e.toString().replaceFirst('Exception: ', '');
+                              err = msg.contains('没有识别到')
+                                  ? '没有识别到链接：请粘贴「v.douyin.com/xxx」这类链接，'
+                                      '或直接粘贴抖音口令码（10~14 位字母数字）'
+                                  : msg;
                             });
                           }
                         },

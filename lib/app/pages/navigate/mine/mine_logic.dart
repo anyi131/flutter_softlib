@@ -10,6 +10,7 @@ import '../../../api/api_host.dart';
 import '../../../design/theme_controller.dart';
 import '../../../api/soft_service.dart';
 import '../../../api/post_service.dart';
+import '../../../api/message_service.dart';
 import '../../../api/user_service.dart';
 import '../../../utils/jump_util.dart';
 import '../../../routes/app_pages.dart';
@@ -73,6 +74,8 @@ class MineLogic extends GetxController {
         isVipMember = u.isVip;
         final sp = await SharedPreferences.getInstance();
         signedDate = sp.getString(_kSignDate) ?? '';
+        // 未读消息数（「消息」格子红点）
+        messageCount = await MessageService.instance.unread();
         update();
         return;
       }
@@ -99,6 +102,15 @@ class MineLogic extends GetxController {
   /// 轻提示（用 SnackBar，避免 iOS 底部弹窗遮挡按钮）
   void toast(String msg) {
     ToastUtil.info(msg);
+  }
+
+  /// 打开消息中心
+  Future<void> openMessages() async {
+    if (!isLoggedIn) return openLogin();
+    await Get.toNamed(Routes.message);
+    // 回来后刷新未读数
+    messageCount = await MessageService.instance.unread();
+    update();
   }
 
   /// 充值余额 —— 打开会员中心（复用现有支付通道）

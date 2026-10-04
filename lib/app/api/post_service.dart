@@ -193,7 +193,12 @@ class PostService {
     final r = await _dio.get('/api/softlib/videoparse/index',
         queryParameters: {'url': url});
     if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
-      return Map<String, dynamic>.from(r.data['data']);
+      final m = Map<String, dynamic>.from(r.data['data']);
+      if ((m['url'] ?? '').toString().isEmpty) {
+        // 后端已给出具体原因时直接用
+        throw Exception((m['error'] ?? '没有识别到链接').toString());
+      }
+      return m;
     }
     throw Exception(r.data is Map ? (r.data['msg'] ?? '解析失败') : '解析失败');
   }

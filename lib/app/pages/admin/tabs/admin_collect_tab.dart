@@ -919,12 +919,18 @@ class _AdminCollectTabState extends State<AdminCollectTab>
       );
 
   Future<void> _import(List<Map<String, dynamic>> results) async {
+    // ★ 把站点给的完整信息都带上：之前只传 name/url/desc/category，
+    //   导致导入后 图标/大小/版本 全为空、描述带脏字符
     final items = results
         .map((r) => {
               'name': r['name'],
               'url': r['url'],
               'desc': r['desc'],
               'category': r['category'],
+              'logo': r['logo'] ?? '',
+              'size': r['size'] ?? '',
+              'version': r['version'] ?? '',
+              'preview': r['preview'] ?? '',
             })
         .toList();
     if (items.isEmpty) return;

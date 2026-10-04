@@ -62,8 +62,12 @@ class AppCard extends StatelessWidget {
                       const SizedBox(width: 10),
                     ],
                     if (item.version.isNotEmpty)
-                      Text(item.version,
-                          style: Ty.tiny.copyWith(color: context.t3)),
+                      Flexible(
+                        child: Text(item.version,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Ty.tiny.copyWith(color: context.t3)),
+                      ),
                   ],
                 ),
               ],

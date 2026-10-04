@@ -16,6 +16,7 @@ import '../../utils/toast_util.dart';
 import '../../api/user_service.dart';
 import '../../models/post_item.dart';
 import '../navigate/square/emoji_panel.dart';
+import '../../widgets/post_video_player.dart';
 
 /// 动态详情页（正文 + 图片 + 评论区）
 class PostDetailPage extends StatefulWidget {
@@ -272,6 +273,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 style: Ty.body.copyWith(
                     fontSize: 15, height: 1.65, color: context.t1)),
           ],
+          // 视频（与列表页一致）
+          if (p.videoUrl.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            PostVideoPlayer(url: p.videoUrl, type: p.videoType),
+          ],
           if (p.images.isNotEmpty) ...[
             const SizedBox(height: 12),
             for (final img in p.images)
@@ -428,17 +434,29 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       spacing: 6,
                       runSpacing: 6,
                       children: (c['images'] as List)
-                          .map((u) => ClipRRect(
-                                borderRadius: BorderRadius.circular(R.xs),
-                                child: CachedNetworkImage(
-                                  imageUrl: '$u',
-                                  width: 70,
-                                  height: 70,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => Container(
+                          .map((u) => GestureDetector(
+                                onTap: () => _preview('$u'),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(R.xs),
+                                  child: CachedNetworkImage(
+                                    imageUrl: '$u',
+                                    width: 70,
+                                    height: 70,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                        width: 70,
+                                        height: 70,
+                                        color: Colors.black12),
+                                    errorWidget: (_, __, ___) => Container(
                                       width: 70,
                                       height: 70,
-                                      color: Colors.black12),
+                                      color: Colors.black12,
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                          Icons.broken_image_outlined,
+                                          size: 18),
+                                    ),
+                                  ),
                                 ),
                               ))
                           .toList(),

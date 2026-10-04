@@ -34,13 +34,23 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
 
   // ── 支付配置 ──
   bool payEnable = false;
+  bool qqOn = false;
+  bool qqKeySet = false;
+  bool rechargeOn = true;
+  bool registerOn = true;
   bool payAlipay = true;
   bool payWxpay = true;
   bool payQqpay = true;
   bool payKeySet = false; // 密钥是否已设置（不回显）
   final payApiCtrl = TextEditingController();
   final payPidCtrl = TextEditingController();
-  final payKeyCtrl = TextEditingController(); // 留空 = 不修改
+  final payKeyCtrl = TextEditingController();
+  final qqAppIdCtrl = TextEditingController();
+  final qqAppKeyCtrl = TextEditingController();
+  final qqRedirectCtrl = TextEditingController();
+  final recharge1Ctrl = TextEditingController();
+  final recharge2Ctrl = TextEditingController();
+  final recharge3Ctrl = TextEditingController(); // 留空 = 不修改
   final payPlan1NameCtrl = TextEditingController(text: '一周会员');
   final payPlan1MoneyCtrl = TextEditingController(text: '8');
   final payPlan1DaysCtrl = TextEditingController(text: '7');
@@ -106,6 +116,16 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         maintainCtrl.text = '${d['maintain_text'] ?? ''}';
         // 支付
         payEnable = '${cfg['pay_enabled']}' == '1';
+        qqOn = '${cfg['qq_login_on']}' == '1';
+        qqKeySet = '${cfg['qq_app_key_set']}' == 'true' ||
+            '${cfg['qq_app_key_set']}' == '1';
+        qqAppIdCtrl.text = '${cfg['qq_app_id'] ?? ''}';
+        qqRedirectCtrl.text = '${cfg['qq_redirect'] ?? ''}';
+        rechargeOn = '${cfg['recharge_on']}' != '0';
+        recharge1Ctrl.text = '${cfg['recharge_money1'] ?? '10'}';
+        recharge2Ctrl.text = '${cfg['recharge_money2'] ?? '30'}';
+        recharge3Ctrl.text = '${cfg['recharge_money3'] ?? '100'}';
+        registerOn = '${cfg['register_on']}' != '0';
         payAlipay = '${cfg['pay_alipay']}' == '1';
         payWxpay = '${cfg['pay_wxpay']}' == '1';
         payQqpay = '${cfg['pay_qqpay']}' == '1';
@@ -164,11 +184,30 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'pay_plan3_name': payPlan3NameCtrl.text.trim(),
         'pay_plan3_money': payPlan3MoneyCtrl.text.trim(),
         'pay_plan3_days': int.tryParse(payPlan3DaysCtrl.text) ?? 0,
+        // QQ 快捷登录（AppKey 留空表示不修改）
+        'qq_login_on': qqOn ? 1 : 0,
+        'qq_app_id': qqAppIdCtrl.text.trim(),
+        if (qqAppKeyCtrl.text.trim().isNotEmpty)
+          'qq_app_key': qqAppKeyCtrl.text.trim(),
+        'qq_redirect': qqRedirectCtrl.text.trim(),
+        // 余额充值档位
+        'recharge_on': rechargeOn ? 1 : 0,
+        'recharge_money1': recharge1Ctrl.text.trim(),
+        'recharge_money2': recharge2Ctrl.text.trim(),
+        'recharge_money3': recharge3Ctrl.text.trim(),
+        // 功能开关
+        'register_on': registerOn ? 1 : 0,
       });
-      if (mounted && payKeyCtrl.text.trim().isNotEmpty) {
+      if (mounted) {
         setState(() {
-          payKeySet = true;
-          payKeyCtrl.clear();
+          if (payKeyCtrl.text.trim().isNotEmpty) {
+            payKeySet = true;
+            payKeyCtrl.clear();
+          }
+          if (qqAppKeyCtrl.text.trim().isNotEmpty) {
+            qqKeySet = true;
+            qqAppKeyCtrl.clear();
+          }
         });
       }
       ToastUtil.success('保存成功，App 下次启动生效');
@@ -308,6 +347,55 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                 Expanded(child: _field('天数（0=永久）', payPlan3DaysCtrl)),
               ],
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: 'QQ 快捷登录',
+          children: [
+            _switch('登录页显示 QQ 登录', qqOn, (v) => setState(() => qqOn = v)),
+            _field('QQ 互联 AppID', qqAppIdCtrl),
+            _field('QQ 互联 AppKey（留空表示不修改）', qqAppKeyCtrl),
+            _field('授权回调地址（留空用默认）', qqRedirectCtrl),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                '在 QQ 互联（connect.qq.com）创建网站应用后，把 AppID/AppKey 填这里。\n'
+                '回调地址需在 QQ 互联后台登记为：\n'
+                'https://你的域名/api/softlib/user/qq_callback',
+                style: Ty.tiny.copyWith(color: context.t3, height: 1.6),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: '余额充值档位',
+          children: [
+            _switch('允许余额充值', rechargeOn,
+                (v) => setState(() => rechargeOn = v)),
+            Row(
+              children: [
+                Expanded(child: _field('档位一（元）', recharge1Ctrl)),
+                const SizedBox(width: 10),
+                Expanded(child: _field('档位二（元）', recharge2Ctrl)),
+                const SizedBox(width: 10),
+                Expanded(child: _field('档位三（元）', recharge3Ctrl)),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text('用户在「我的 → 充值余额」看到这三档（也可自己输入金额）',
+                  style: Ty.tiny.copyWith(color: context.t3)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: '功能开关',
+          children: [
+            _switch('开放注册', registerOn,
+                (v) => setState(() => registerOn = v)),
           ],
         ),
         const SizedBox(height: 16),

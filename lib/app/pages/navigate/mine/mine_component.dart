@@ -177,14 +177,16 @@ class MineComponent extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Row(
+                // ★ 必须用 Wrap：三个徽标在窄屏 Row 里会溢出，
+                //   右侧「未开通 VIP」被裁掉（截图里可见）
+                Wrap(
+                  spacing: 7,
+                  runSpacing: 6,
                   children: [
                     if (logged) ...[
                       _badge(context, '积分 ${logic.points}', C.violet),
-                      const SizedBox(width: 7),
                       _badge(context, '余额 ¥${logic.money}', C.mint,
                           icon: Icons.account_balance_wallet_rounded),
-                      const SizedBox(width: 7),
                     ],
                     _badge(
                       context,
@@ -218,7 +220,9 @@ class MineComponent extends StatelessWidget {
   // ───────── ② 数据条 ─────────
   Widget _statsRow(BuildContext context, MineLogic logic) {
     final items = [
-      ('消息', logic.isLoggedIn ? '${logic.messageCount}' : '-',
+      ('消息', !logic.isLoggedIn
+          ? '-'
+          : (logic.messageCount > 0 ? '${logic.messageCount}' : '0'),
           Icons.chat_bubble_rounded, C.brandBright),
       ('关注', logic.isLoggedIn ? '${logic.followCount}' : '-',
           Icons.person_add_rounded, C.cyan),
@@ -252,7 +256,11 @@ class MineComponent extends StatelessWidget {
                     logic.openLogin();
                     return;
                   }
-                  if (items[i].$1 == '签到') logic.signIn();
+                  if (items[i].$1 == '签到') {
+                    logic.signIn();
+                  } else if (items[i].$1 == '消息') {
+                    logic.openMessages();
+                  }
                 },
                 child: Column(
                   children: [
