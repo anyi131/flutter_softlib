@@ -24,17 +24,44 @@ class SoftService {
   );
 
   /// 拉取全局配置（开屏/公告/远程控制）
-  Future<AppConfig?> fetchConfig() async {
+  /// ★ 带内存缓存 + 并发去重：同一次会话内多个页面同时调用只发一次网络请求
+  AppConfig? _configCache;
+  DateTime? _configAt;
+  Future<AppConfig?>? _configInflight;
+  static const _configTtl = Duration(minutes: 10);
+
+  Future<AppConfig?> fetchConfig({bool force = false}) async {
+    if (!force &&
+        _configCache != null &&
+        _configAt != null &&
+        DateTime.now().difference(_configAt!) < _configTtl) {
+      return _configCache;
+    }
+    // 并发去重：已有请求在飞就复用
+    if (_configInflight != null) return _configInflight;
+    final fut = _fetchConfigInner();
+    _configInflight = fut;
+    try {
+      return await fut;
+    } finally {
+      _configInflight = null;
+    }
+  }
+
+  Future<AppConfig?> _fetchConfigInner() async {
     try {
       final resp = await _dio.get('/api/softlib/config/index');
       final data = resp.data;
       if (data is Map && data['code'] == 1 && data['data'] is Map) {
-        return AppConfig.fromJson(Map<String, dynamic>.from(data['data']));
+        final cfg = AppConfig.fromJson(Map<String, dynamic>.from(data['data']));
+        _configCache = cfg;
+        _configAt = DateTime.now();
+        return cfg;
       }
     } catch (e) {
       debugPrint('[Softlib] $e');
     }
-    return null;
+    return _configCache; // 失败时退回旧缓存（若有）
   }
 
   /// 本地缓存（避免重复请求，加快页面切换）

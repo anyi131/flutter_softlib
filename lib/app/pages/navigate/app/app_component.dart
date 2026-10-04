@@ -9,6 +9,7 @@ import '../../../api/soft_service.dart';
 import '../../../design/adaptive.dart';
 import '../../../design/ui.dart';
 import '../../../models/app_cat.dart';
+import '../../../models/app_config.dart';
 import '../../../models/app_item.dart';
 import '../../../routes/app_pages.dart';
 import '../../../widgets/tab_bottom_pad.dart';
@@ -52,10 +53,29 @@ class _AppComponentState extends State<AppComponent> {
   }
 
   Future<void> _initSource() async {
-    final cfg = await _svc.fetchConfig();
+    // ★ 并发：配置与列表同时请求，不再串行等待（首屏快一倍）
+    final results = await Future.wait([
+      _svc.fetchConfig(),
+      _svc.fetchApps(
+        catId: _cat,
+        keyword: _kw,
+        provider: '', // 先用全部，配置回来后再决定是否重取
+        force: false,
+      ),
+    ]);
     if (!mounted) return;
-    setState(() => _source = cfg?.appSource ?? 'all');
-    await _load(reset: true);
+    final cfg = results[0] as AppConfig?;
+    final list = results[1] as List<AppItem>;
+    final src = cfg?.appSource ?? 'all';
+    setState(() {
+      _source = src;
+      _apps = list;
+      _loading = false;
+    });
+    // 若配置指定了数据源筛选，且与「全部」结果不同，再静默重取一次
+    if (src != 'all') {
+      await _load(reset: true);
+    }
   }
 
   @override
