@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -17,20 +21,37 @@ import 'app/api/user_service.dart';
 
 /// 应用程序主入口
 Future<void> main() async {
-  try {
-    // 确保Flutter框架初始化
-    WidgetsFlutterBinding.ensureInitialized();
-    // 初始化各种服务
-    await _initializeServices();
-    // 运行应用
-    runApp(const SoftLibApp());
-  } catch (error, stackTrace) {
-    // 捕获启动异常
-    debugPrint('应用启动失败: $error');
-    debugPrint('堆栈跟踪: $stackTrace');
-    // 运行错误页面
-    runApp(_buildErrorApp(error.toString()));
-  }
+  // ★ 全局错误捕获：任何未捕获异常都不应导致白屏/闪退
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      // Flutter 框架层异常（构建/布局/绘制）
+      FlutterError.onError = (FlutterErrorDetails details) {
+        FlutterError.presentError(details);
+        _logError('FlutterError', details.exception, details.stack);
+      };
+      // 未捕获的异步错误
+      PlatformDispatcher.instance.onError = (error, stack) {
+        _logError('PlatformDispatcher', error, stack);
+        return true; // 已处理，避免崩溃
+      };
+
+      try {
+        await _initializeServices();
+        runApp(const SoftLibApp());
+      } catch (error, stackTrace) {
+        _logError('startup', error, stackTrace);
+        runApp(_buildErrorApp(error.toString()));
+      }
+    },
+    (error, stackTrace) => _logError('zone', error, stackTrace),
+  );
+}
+
+/// 统一错误日志（不弹窗、不中断用户操作）
+void _logError(String tag, Object error, StackTrace? stack) {
+  debugPrint('[Softlib][$tag] $error');
+  if (stack != null) debugPrint(stack.toString());
 }
 
 /// 初始化应用服务

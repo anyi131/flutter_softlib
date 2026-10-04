@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'ui.dart';
@@ -699,3 +700,60 @@ class StatItem extends StatelessWidget {
     );
   }
 }
+
+/// ─────────── 统一网络图片 ───────────
+/// 统一「占位 → 淡入 → 失败兜底」三段式，避免各页面各写一套
+/// 导致加载闪烁 / 失败白块。
+class AppImage extends StatelessWidget {
+  const AppImage({
+    super.key,
+    required this.url,
+    this.width,
+    this.height,
+    this.radius = R.md,
+    this.fit = BoxFit.cover,
+    this.placeholderIcon = Icons.image_outlined,
+    this.errorIcon = Icons.broken_image_outlined,
+    this.bg,
+  });
+
+  final String url;
+  final double? width;
+  final double? height;
+  final double radius;
+  final BoxFit fit;
+  final IconData placeholderIcon;
+  final IconData errorIcon;
+  final Color? bg;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallbackBg =
+        bg ?? (context.isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(8));
+    Widget fallback(IconData icon) => Container(
+          width: width,
+          height: height,
+          color: fallbackBg,
+          alignment: Alignment.center,
+          child: Icon(icon,
+              size: (width != null && width! < 40) ? 14 : 22,
+              color: context.t3.withAlpha(150)),
+        );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: url.trim().isEmpty
+          ? fallback(errorIcon)
+          : CachedNetworkImage(
+              imageUrl: url,
+              width: width,
+              height: height,
+              fit: fit,
+              fadeInDuration: const Duration(milliseconds: 220),
+              placeholder: (_, __) => fallback(placeholderIcon),
+              errorWidget: (_, __, ___) => fallback(errorIcon),
+            ),
+    );
+  }
+}
+
