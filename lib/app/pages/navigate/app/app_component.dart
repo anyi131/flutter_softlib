@@ -74,12 +74,16 @@ class _AppComponentState extends State<AppComponent> {
       setState(() => _loading = true);
     }
     try {
-      final all = await _svc.fetchApps(
-        catId: _cat,
-        keyword: _kw,
-        provider: _source == 'all' ? '' : _source,
-        force: reset,
-      );
+      final cat = _currentCat;
+      // ★ 蓝奏云文件夹分类：直接解析文件夹内容
+      final all = (cat != null && cat.isFolder)
+          ? await _svc.fetchFolder(cat.url, pwd: cat.pwd)
+          : await _svc.fetchApps(
+              catId: _cat,
+              keyword: _kw,
+              provider: _source == 'all' ? '' : _source,
+              force: reset,
+            );
       final start = (_page - 1) * _size;
       final slice = start >= all.length
           ? <AppItem>[]
@@ -103,6 +107,12 @@ class _AppComponentState extends State<AppComponent> {
       });
     }
   }
+
+  /// 当前分类（用于判断是否蓝奏云文件夹）
+  AppCat? get _currentCat =>
+      _cats.where((c) => c.id == _cat).isEmpty
+          ? null
+          : _cats.firstWhere((c) => c.id == _cat);
 
   void _switch(int id) {
     if (_cat == id) return;
@@ -293,13 +303,27 @@ class _AppComponentState extends State<AppComponent> {
                             ),
                           ]),
               ),
-              child: Text(
-                c.title,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: sel ? FontWeight.w900 : FontWeight.w600,
-                  color: sel ? Colors.white : context.t2,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (c.isFolder)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.cloud_outlined,
+                        size: 13,
+                        color: sel ? Colors.white : C.cyan,
+                      ),
+                    ),
+                  Text(
+                    c.title,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: sel ? FontWeight.w900 : FontWeight.w600,
+                      color: sel ? Colors.white : context.t2,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -311,7 +335,20 @@ class _AppComponentState extends State<AppComponent> {
   // ───── 列表 ─────
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 3));
+      final cat = _currentCat;
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(strokeWidth: 3),
+            if (cat != null && cat.isFolder) ...[
+              const SizedBox(height: 14),
+              Text('正在解析蓝奏云文件夹…',
+                  style: Ty.small.copyWith(color: context.t3)),
+            ],
+          ],
+        ),
+      );
     }
     if (_apps.isEmpty) {
       return Center(

@@ -131,6 +131,19 @@ class PostService {
     return r.data is Map && r.data['code'] == 1;
   }
 
+  /// 测试蓝奏云文件夹解析（返回软件数量）
+  Future<int> fetchFolderForTest(String url) async {
+    final r = await _dio.get('/api/softlib/app/folder',
+        queryParameters: {'url': url},
+        options: Options(receiveTimeout: const Duration(seconds: 50)));
+    if (r.data is Map) {
+      final m = r.data as Map;
+      if (m['code'] == 1 && m['data'] is List) return (m['data'] as List).length;
+      throw Exception((m['msg'] ?? '解析失败').toString());
+    }
+    throw Exception('解析失败');
+  }
+
   /// 上传图片
   Future<String> uploadImage(File file) async {
     final form = FormData.fromMap({

@@ -156,6 +156,17 @@ class AdminService {
   Future<void> saveReport(Map<String, dynamic> data) async =>
       _post('report_save', data);
 
+  /// 数据源（蓝奏云文件夹）
+  Future<List<Map<String, dynamic>>> sources() async {
+    final d = (await _post('sources'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> saveSource(Map<String, dynamic> data) async =>
+      _post('source_save', data);
+
+  Future<void> deleteSource(int id) async => _post('source_del', {'id': id});
+
   Future<List<Map<String, dynamic>>> appCats() async {
     final d = (await _post('app_cats'))['data'];
     return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];

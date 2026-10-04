@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../api/admin_service.dart';
+import '../../../api/post_service.dart';
 import '../../../utils/toast_util.dart';
 
 /// 内容管理：动态 / 评价 / 协议配置
@@ -19,7 +20,7 @@ class AdminContentTab extends StatefulWidget {
 class _AdminContentTabState extends State<AdminContentTab>
     with SingleTickerProviderStateMixin {
   final _svc = AdminService.instance;
-  late final TabController _tab = TabController(length: 9, vsync: this);
+  late final TabController _tab = TabController(length: 10, vsync: this);
 
   List<Map<String, dynamic>> _posts = [];
   List<Map<String, dynamic>> _reviews = [];
@@ -29,6 +30,7 @@ class _AdminContentTabState extends State<AdminContentTab>
   List<Map<String, dynamic>> _cards = [];
   List<Map<String, dynamic>> _referrals = [];
   List<Map<String, dynamic>> _versions = [];
+  List<Map<String, dynamic>> _sources = [];
   bool _loading = true;
 
   @override
@@ -54,6 +56,7 @@ class _AdminContentTabState extends State<AdminContentTab>
       final cd = await _svc.cards();
       final rf = await _svc.referrals();
       final vs = await _svc.versions();
+      final sc = await _svc.sources();
       if (mounted) setState(() {
         _posts = p;
         _reviews = r;
@@ -63,6 +66,7 @@ class _AdminContentTabState extends State<AdminContentTab>
         _cards = cd;
         _referrals = rf;
         _versions = vs;
+        _sources = sc;
         _loading = false;
       });
     } catch (e) {
@@ -90,6 +94,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             Tab(text: '分类 ${_cats.length}'),
             Tab(text: '轮播 ${_carousels.length}'),
             Tab(text: '线报 ${_reports.length}'),
+            Tab(text: '数据源 ${_sources.length}'),
             Tab(text: '推荐 ${_referrals.length}'),
             Tab(text: '版本 ${_versions.length}'),
             Tab(text: '卡密 ${_cards.length}'),
@@ -107,6 +112,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     _catList(),
                     _carouselList(),
                     _reportList(),
+                    _sourceList(context),
                     _referralList(),
                     _versionList(),
                     _cardList(),
@@ -736,6 +742,212 @@ class _AdminContentTabState extends State<AdminContentTab>
         'image': imgCtrl.text.trim(),
       });
       ToastUtil.success('已保存');
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // ───── 数据源管理（蓝奏云文件夹）─────
+  Widget _sourceList(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(14),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(11),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF5FF),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Text(
+            '添加蓝奏云文件夹链接后，App 软件库会多出一个分类，点击实时解析文件夹里的软件。',
+            style: TextStyle(fontSize: 12, color: Color(0xFF2563EB), height: 1.5),
+          ),
+        ),
+        SizedBox(
+          height: 44,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5B6CFF),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22)),
+            ),
+            onPressed: () => _editSource(null),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('添加蓝奏云文件夹'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (final s in _sources)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1C1C1E)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22D3EE).withAlpha(28),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: const Icon(Icons.cloud_outlined,
+                      size: 18, color: Color(0xFF22D3EE)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${s['name']}',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text('${s['url']}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11, color: Colors.grey[500])),
+                    ],
+                  ),
+                ),
+                IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 19),
+                    onPressed: () => _editSource(s)),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline,
+                      size: 19, color: Color(0xFFDC2626)),
+                  onPressed: () async {
+                    await _svc.deleteSource(int.tryParse('${s['id']}') ?? 0);
+                    ToastUtil.success('已删除');
+                    _load();
+                  },
+                ),
+              ],
+            ),
+          ),
+        if (_sources.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 30),
+            child: Center(
+                child: Text('暂无数据源',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _editSource(Map? s) async {
+    final nameCtrl = TextEditingController(text: '${s?['name'] ?? ''}');
+    final urlCtrl = TextEditingController(text: '${s?['url'] ?? ''}');
+    final pwdCtrl = TextEditingController(text: '${s?['pwd'] ?? ''}');
+    final weighCtrl = TextEditingController(text: '${s?['weigh'] ?? 0}');
+    bool testing = false;
+    String testMsg = '';
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(s == null ? '添加数据源' : '编辑数据源'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                        labelText: '分类名称', hintText: '如：开车软件')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: urlCtrl,
+                    decoration: const InputDecoration(
+                        labelText: '蓝奏云文件夹链接',
+                        hintText: 'https://xxx.lanzouw.com/bXXXX')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: pwdCtrl,
+                    decoration: const InputDecoration(
+                        labelText: '访问密码(选填)')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: weighCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: '排序权重')),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: testing
+                        ? null
+                        : () async {
+                            setD(() {
+                              testing = true;
+                              testMsg = '';
+                            });
+                            try {
+                              final list = await PostService.instance
+                                  .fetchFolderForTest(urlCtrl.text.trim());
+                              setD(() {
+                                testing = false;
+                                testMsg = '✅ 解析成功，共 $list 个软件';
+                              });
+                            } catch (e) {
+                              setD(() {
+                                testing = false;
+                                testMsg = '❌ ' +
+                                    e.toString().replaceFirst('Exception: ', '');
+                              });
+                            }
+                          },
+                    icon: testing
+                        ? const SizedBox(
+                            width: 15,
+                            height: 15,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.wifi_find, size: 17),
+                    label: const Text('测试解析'),
+                  ),
+                ),
+                if (testMsg.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(testMsg,
+                        style: const TextStyle(fontSize: 12, height: 1.4)),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Get.back(result: false),
+                child: const Text('取消')),
+            FilledButton(
+                onPressed: () => Get.back(result: true),
+                child: const Text('保存')),
+          ],
+        );
+      }),
+    );
+    if (ok != true) return;
+    try {
+      await _svc.saveSource({
+        'id': s?['id'] ?? 0,
+        'name': nameCtrl.text.trim(),
+        'url': urlCtrl.text.trim(),
+        'pwd': pwdCtrl.text.trim(),
+        'weigh': int.tryParse(weighCtrl.text) ?? 0,
+        'is_dir': 1,
+        'enable_switch': 1,
+      });
+      ToastUtil.success('保存成功');
       _load();
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
