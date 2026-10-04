@@ -16,8 +16,10 @@ class SoftService {
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 6),
+      receiveTimeout: const Duration(seconds: 12),
+      // 连接复用（加快连续请求）
+      persistentConnection: true,
     ),
   );
 
