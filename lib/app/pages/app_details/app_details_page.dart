@@ -2,11 +2,10 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:flutter/material.dart';
 
-import '../../design/app_theme.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
 
@@ -16,6 +15,7 @@ import 'dart:ui';
 
 import '../../config.dart';
 import '../../design/adaptive.dart';
+import '../../design/kit.dart';
 import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import '../../models/app_item.dart';
@@ -55,25 +55,13 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             id: 'appInfo',
             builder: (logic) {
               if (logic.isLoadingInfo) {
-                return const Center(
-                    child: CircularProgressIndicator(strokeWidth: 3));
+                return const LoadingState(text: '正在加载软件信息…');
               }
               if (logic.appInfo == null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.cloud_off_rounded,
-                          size: 54, color: context.t3.withAlpha(110)),
-                      const SizedBox(height: 14),
-                      Text(logic.msgError ?? '获取软件信息失败',
-                          style: Ty.small.copyWith(color: context.t2)),
-                      const SizedBox(height: 18),
-                      FilledButton.tonal(
-                          onPressed: logic.getAppInfo,
-                          child: const Text('重新加载')),
-                    ],
-                  ),
+                return ErrorState(
+                  text: logic.msgError ?? '获取软件信息失败',
+                  hint: '请检查网络连接后重试',
+                  onRetry: logic.getAppInfo,
                 );
               }
               // 顶部留白避开悬浮玻璃顶栏，避免主卡被遮挡
@@ -431,8 +419,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               controller: _tab,
               indicatorSize: TabBarIndicatorSize.label,
               indicatorWeight: 2.5,
-              indicatorColor: AppColor.primary,
-              labelColor: AppColor.primary,
+              indicatorColor: C.brand,
+              labelColor: C.brand,
               unselectedLabelColor: Colors.grey[500],
               labelStyle:
                   const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
@@ -461,7 +449,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               width: 3.5,
               height: 15,
               decoration: BoxDecoration(
-                  color: AppColor.primary, borderRadius: BorderRadius.circular(2)),
+                  color: C.brand, borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(width: 8),
             const Text('软件介绍',
@@ -470,13 +458,13 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColor.primary.withAlpha(20),
+                color: C.brand.withAlpha(20),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text('官方详情',
                   style: TextStyle(
                       fontSize: 10.5,
-                      color: AppColor.primary,
+                      color: C.brand,
                       fontWeight: FontWeight.w700)),
             ),
           ],
@@ -579,7 +567,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   width: 3.5,
                   height: 15,
                   decoration: BoxDecoration(
-                      color: AppColor.primary, borderRadius: BorderRadius.circular(2)),
+                      color: C.brand, borderRadius: BorderRadius.circular(2)),
                 ),
                 const SizedBox(width: 8),
                 const Text('精品推荐',
@@ -612,9 +600,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                                 ? Container(
                                     width: 58,
                                     height: 58,
-                                    color: AppColor.primary.withAlpha(28),
+                                    color: C.brand.withAlpha(28),
                                     child: Icon(Icons.android,
-                                        color: AppColor.primary, size: 27),
+                                        color: C.brand, size: 27),
                                   )
                                 : CachedNetworkImage(
                                     imageUrl: a.icon,
@@ -628,9 +616,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                                     errorWidget: (_, __, ___) => Container(
                                         width: 58,
                                         height: 58,
-                                        color: AppColor.primary.withAlpha(28),
+                                        color: C.brand.withAlpha(28),
                                         child: Icon(Icons.android,
-                                            color: AppColor.primary, size: 27)),
+                                            color: C.brand, size: 27)),
                                   ),
                           ),
                           const SizedBox(height: 6),
@@ -665,7 +653,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       decoration: BoxDecoration(
-        color: isDark ? AppColor.cardDark : Colors.white,
+        color: isDark ? C.bg2 : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
@@ -686,10 +674,15 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _bottomHint(Icons.check_circle_outline_rounded, '下载完成 · 点击即可安装',
-                      AppColor.success),
+                  _bottomHint(Icons.check_circle_outline_rounded,
+                      '下载完成 · 点击即可安装', C.success),
                   const SizedBox(height: 9),
-                  _installButton(download.openDownloadFile),
+                  PrimaryButton(
+                    label: '安装',
+                    icon: Icons.install_mobile_rounded,
+                    color: C.success,
+                    onPressed: download.openDownloadFile,
+                  ),
                 ],
               );
             }
@@ -705,17 +698,17 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             if (isVipItem) {
               label = isVipUser ? '会员下载' : '开通会员下载';
               icon = Icons.workspace_premium_rounded;
-              color = AppColor.gold;
+              color = C.gold;
               sub = isVipUser ? '会员专享 · 高速下载' : '该资源仅会员可下载';
             } else if (item?.isLocal == true) {
               label = '下载安装';
               icon = Icons.download_rounded;
-              color = AppColor.primary;
+              color = C.brand;
               sub = '服务器直连 · 极速下载';
             } else {
               label = '解析并下载';
               icon = Icons.cloud_download_rounded;
-              color = AppColor.primary;
+              color = C.brand;
               sub = '来自蓝奏云 · 解析后自动开始下载';
             }
             return Column(
@@ -723,12 +716,12 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               children: [
                 _bottomHint(icon, sub, color),
                 const SizedBox(height: 9),
-                _btn(
+                PrimaryButton(
                   label: label,
                   color: color,
                   icon: icon,
                   gold: isVipItem,
-                  onTap: () => _onDownload(isVipItem, loggedIn, isVipUser),
+                  onPressed: () => _onDownload(isVipItem, loggedIn, isVipUser),
                 ),
               ],
             );
@@ -760,7 +753,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  /// 下载中：进度面板（与整体设计语言一致）
+  /// 下载中：进度面板（统一设计语言）
   Widget _progressPanel(AppDetailsLogic download, DownloadTask task) {
     final total = download.appInfo?.fileSize ?? '';
     final done = calculateDownloadedSize(total, task.progress);
@@ -768,8 +761,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     final isFailed = task.status == DownloadTaskStatus.failed;
 
     final Color accent = isFailed
-        ? const Color(0xFFDC2626)
-        : (isPaused ? const Color(0xFFD97706) : AppColor.primary);
+        ? C.danger
+        : (isPaused ? C.warning : C.brand);
     final String title =
         isFailed ? '下载失败' : (isPaused ? '已暂停' : '正在下载中');
 
@@ -808,16 +801,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           ],
         ),
         const SizedBox(height: 9),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(R.full),
-          child: LinearProgressIndicator(
-            value: task.progress / 100,
-            minHeight: 8,
-            backgroundColor:
-                context.isDark ? Colors.white.withAlpha(24) : Colors.black12,
-            valueColor: AlwaysStoppedAnimation<Color>(accent),
-          ),
-        ),
+        KitProgress(value: task.progress / 100, color: accent),
         const SizedBox(height: 9),
         Row(
           children: [
@@ -825,157 +809,32 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                 style: TextStyle(fontSize: 11.5, color: context.t2)),
             const Spacer(),
             if (isFailed)
-              _miniAction('重试', Icons.refresh_rounded,
-                  download.retryDownload, accent)
+              MiniAction(
+                  label: '重试',
+                  icon: Icons.refresh_rounded,
+                  onTap: download.retryDownload,
+                  color: accent)
             else if (isPaused)
-              _miniAction('继续', Icons.play_arrow_rounded,
-                  download.resumeDownload, accent)
+              MiniAction(
+                  label: '继续',
+                  icon: Icons.play_arrow_rounded,
+                  onTap: download.resumeDownload,
+                  color: accent)
             else
-              _miniAction('暂停', Icons.pause_rounded, download.pauseDownload,
-                  accent),
+              MiniAction(
+                  label: '暂停',
+                  icon: Icons.pause_rounded,
+                  onTap: download.pauseDownload,
+                  color: accent),
             const SizedBox(width: 8),
-            _miniAction('取消', Icons.close_rounded, download.cancelDownload,
-                const Color(0xFF6B7280)),
+            MiniAction(
+                label: '取消',
+                icon: Icons.close_rounded,
+                onTap: download.cancelDownload,
+                color: const Color(0xFF6B7280)),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _miniAction(
-      String label, IconData icon, VoidCallback onTap, Color color) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(R.full),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withAlpha(context.isDark ? 40 : 24),
-          borderRadius: BorderRadius.circular(R.full),
-          border: Border.all(color: color.withAlpha(70)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                    color: color)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 安装按钮（与 _btn 完全同构，仅配色为成功绿，保证状态切换不跳戏）
-  Widget _installButton(VoidCallback onTap) {
-    return _btn(
-      label: '安装',
-      color: AppColor.success,
-      icon: Icons.install_mobile_rounded,
-      onTap: onTap,
-    );
-  }
-
-  /// 底部主按钮（渐变胶囊 + 光晕 + 内高光）
-  Widget _btn({
-    required String label,
-    required Color color,
-    required IconData icon,
-    required VoidCallback onTap,
-    bool gold = false,
-  }) {
-    // 三种预设配色
-    final gradient = gold
-        ? Deco.goldGradient
-        : LinearGradient(
-            colors: [
-              Color.lerp(color, Colors.white, 0.22)!,
-              color,
-              Color.lerp(color, Colors.black, 0.14)!,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          );
-    final fg = gold ? const Color(0xFF3A2E10) : Colors.white;
-
-    return Container(
-      width: double.infinity,
-      height: 54,
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(R.full),
-        boxShadow: [
-          // 主光晕
-          BoxShadow(
-            color: color.withAlpha(context.isDark ? 90 : 72),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(R.full),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(R.full),
-          splashColor: fg.withAlpha(30),
-          child: Stack(
-            children: [
-              // 顶部内高光（提升质感）
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 27,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(R.full)),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withAlpha(gold ? 60 : 45),
-                        Colors.white.withAlpha(0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: fg.withAlpha(38),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, size: 16, color: fg),
-                    ),
-                    const SizedBox(width: 9),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                        color: fg,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -1007,26 +866,12 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     ));
   }
 
-  Widget _iconBtn(IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(9),
-      child: Container(
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-          color: Colors.grey.withAlpha(28),
-          borderRadius: BorderRadius.circular(9),
-        ),
-        child: Icon(icon, size: 18),
-      ),
-    );
-  }
 
   Widget _phIcon() => Container(
         width: 80,
         height: 80,
-        color: AppColor.primary.withAlpha(35),
-        child: Icon(Icons.android, color: AppColor.primary, size: 38),
+        color: C.brand.withAlpha(35),
+        child: Icon(Icons.android, color: C.brand, size: 38),
       );
 
   /// 截图画廊：左右滑动切换 + 保存到相册
@@ -1156,7 +1001,7 @@ class _GalleryDialogState extends State<_GalleryDialog> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 22, vertical: 11),
                   decoration: BoxDecoration(
-                    color: AppColor.primary,
+                    color: C.brand,
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Row(
