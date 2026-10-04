@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../api/admin_service.dart';
@@ -8,7 +9,7 @@ import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../utils/toast_util.dart';
 
-/// 用户管理
+/// 用户管理（统计概览 + 筛选 + 分页 + 批量操作 + CSV 导出）
 class AdminUsersTab extends StatefulWidget {
   const AdminUsersTab({super.key});
 
@@ -16,11 +17,31 @@ class AdminUsersTab extends StatefulWidget {
   State<AdminUsersTab> createState() => _AdminUsersTabState();
 }
 
-class _AdminUsersTabState extends State<AdminUsersTab> {
+class _AdminUsersTabState extends State<AdminUsersTab>
+    with AutomaticKeepAliveClientMixin {
   final _svc = AdminService.instance;
+  final _kwCtrl = TextEditingController();
+
   List<Map<String, dynamic>> _list = [];
+  Map<String, dynamic> _stat = {};
   bool _loading = true;
-  String _kw = '';
+  int _page = 1;
+  int _size = 30;
+  int _total = 0;
+  String _filter = 'all';
+
+  /// 批量选择模式
+  bool _selectMode = false;
+  final Set<int> _selected = {};
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _kwCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -31,9 +52,21 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final l = await _svc.users(keyword: _kw);
-      if (mounted) setState(() {
+      final l = await _svc.users(
+        keyword: _kwCtrl.text.trim(),
+        filter: _filter,
+        page: _page,
+        size: _size,
+      );
+      final st = await _svc.userStat(
+        keyword: _kwCtrl.text.trim(),
+        filter: _filter,
+      );
+      if (!mounted) return;
+      setState(() {
         _list = l;
+        _stat = st;
+        _total = (st['total'] as num?)?.toInt() ?? l.length;
         _loading = false;
       });
     } catch (e) {
@@ -42,202 +75,750 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
     }
   }
 
+  void _switchFilter(String f) {
+    if (_filter == f) return;
+    setState(() {
+      _filter = f;
+      _page = 1;
+      _selected.clear();
+    });
+    _load();
+  }
+
+  int get _maxPage => _total > 0 ? ((_total + _size - 1) ~/ _size) : 1;
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    if (_loading && _list.isEmpty) {
+      return const LoadingState(text: '加载用户列表…');
+    }
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-          child: SizedBox(
-            height: 40,
-            child: TextField(
-              onSubmitted: (v) {
-                _kw = v;
-                _load();
-              },
-              style: const TextStyle(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: '搜索邮箱 / 昵称 / QQ',
-                isDense: true,
-                prefixIcon: const Icon(Icons.search, size: 18),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(R.md)),
-              ),
-            ),
-          ),
-        ),
+        _searchBar(),
+        _statBar(),
+        _filterBar(),
+        if (_selectMode) _batchBar(),
         Expanded(
-          child: _loading
-              ? const LoadingState(text: '加载用户列表…')
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.builder(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            child: _list.isEmpty
+                ? ListView(children: [
+                    const SizedBox(height: 80),
+                    EmptyState(
+                      text: '没有匹配的用户',
+                      hint: '换个关键词或筛选条件试试',
+                      icon: Icons.person_search_outlined,
+                    ),
+                  ])
+                : ListView.builder(
                     padding: EdgeInsets.fromLTRB(
                         context.pagePadding, 4, context.pagePadding, 20),
                     itemCount: _list.length,
-                    itemBuilder: (context, i) {
-                      final u = _list[i];
-                      final isAdmin = u['is_admin'] == true;
-                      final isVip = u['is_vip'] == true;
-                      return KitCard(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                ClipOval(
-                                  child: (u['avatar'] ?? '').toString().isEmpty
-                                      ? Container(
-                                          width: 40,
-                                          height: 40,
-                                          color: C.brand
-                                              .withAlpha(context.isDark ? 40 : 26),
-                                          child: const Icon(Icons.person,
-                                              size: 21, color: C.brand))
-                                      : CachedNetworkImage(
-                                          imageUrl: '${u['avatar']}',
-                                          width: 40,
-                                          height: 40,
-                                          fit: BoxFit.cover),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Flexible(
-                                            child: Text('${u['nickname']}',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: Ty.h3.copyWith(
-                                                    fontSize: 14.5,
-                                                    color: context.t1)),
-                                          ),
-                                          if (isAdmin) ...[
-                                            const SizedBox(width: 5),
-                                            const Pill('管理员',
-                                                color: C.brand, small: true),
-                                          ],
-                                          if (isVip) ...[
-                                            const SizedBox(width: 5),
-                                            const Pill('VIP',
-                                                color: C.gold, small: true),
-                                          ],
-                                        ],
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Text('${u['email']}',
-                                          style: Ty.tiny
-                                              .copyWith(color: context.t3)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 9),
-                            Wrap(
-                              spacing: 7,
-                              runSpacing: 6,
-                              children: [
-                                MiniAction(
-                                    label: '编辑',
-                                    icon: Icons.edit_outlined,
-                                    onTap: () => _editUser(u)),
-                                MiniAction(
-                                  label: '+30天VIP',
-                                  icon: Icons.workspace_premium_outlined,
-                                  color: C.gold,
-                                  onTap: () async {
-                                    await _svc.grantVip(
-                                        int.tryParse('${u['id']}') ?? 0, 30);
-                                    ToastUtil.success('已赠送 30 天会员');
-                                    _load();
-                                  },
-                                ),
-                                MiniAction(
-                                  label: isAdmin ? '取消管理' : '设为管理',
-                                  icon: isAdmin
-                                      ? Icons.person_remove_alt_1_outlined
-                                      : Icons.admin_panel_settings_outlined,
-                                  onTap: () async {
-                                    await _svc.setAdmin(
-                                        int.tryParse('${u['id']}') ?? 0,
-                                        !isAdmin);
-                                    ToastUtil.success(
-                                        isAdmin ? '已取消' : '已设为管理员');
-                                    _load();
-                                  },
-                                ),
-                                MiniAction(
-                                  label: u['status'] == 'hidden' ? '解禁' : '禁用',
-                                  icon: u['status'] == 'hidden'
-                                      ? Icons.lock_open_rounded
-                                      : Icons.block_rounded,
-                                  color: C.warning,
-                                  onTap: () async {
-                                    await _svc.toggleUserStatus(
-                                        int.tryParse('${u['id']}') ?? 0);
-                                    _load();
-                                  },
-                                ),
-                                MiniAction(
-                                  label: '删除',
-                                  icon: Icons.delete_outline_rounded,
-                                  color: C.danger,
-                                  onTap: () async {
-                                  final ok = await Get.dialog<bool>(
-                                      AlertDialog(
-                                    title: const Text('删除用户'),
-                                    content:
-                                        Text('确定删除「${u['nickname']}」？'),
-                                    actions: [
-                                      TextButton(
-                                          onPressed: () =>
-                                              Get.back(result: false),
-                                          child: const Text('取消')),
-                                      FilledButton(
-                                          onPressed: () =>
-                                              Get.back(result: true),
-                                          child: const Text('删除')),
-                                    ],
-                                  ));
-                                  if (ok != true) return;
-                                    await _svc.deleteUser(
-                                        int.tryParse('${u['id']}') ?? 0);
-                                    ToastUtil.success('已删除');
-                                    _load();
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    itemBuilder: (context, i) => _userCard(_list[i]),
                   ),
-                ),
+          ),
         ),
+        if (_total > _size) _pager(),
       ],
     );
   }
 
-  /// 编辑用户
+  // ───────── 顶部搜索 ─────────
+  Widget _searchBar() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 10, context.pagePadding, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 42,
+              child: TextField(
+                controller: _kwCtrl,
+                onSubmitted: (_) {
+                  _page = 1;
+                  _load();
+                },
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: '搜索昵称 / 邮箱 / QQ / 账号',
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(R.full)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _iconBtn(
+            _selectMode ? Icons.close_rounded : Icons.checklist_rounded,
+            () => setState(() {
+              _selectMode = !_selectMode;
+              _selected.clear();
+            }),
+            active: _selectMode,
+            tip: '批量操作',
+          ),
+          const SizedBox(width: 6),
+          _iconBtn(Icons.ios_share_rounded, _exportCsv, tip: '导出 CSV'),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconBtn(IconData i, VoidCallback f,
+      {bool active = false, String? tip}) {
+    return GestureDetector(
+      onTap: f,
+      child: Tooltip(
+        message: tip ?? '',
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: active
+                ? C.brand.withAlpha(context.isDark ? 60 : 30)
+                : (context.isDark ? Colors.white.withAlpha(10) : Colors.white),
+            borderRadius: BorderRadius.circular(R.md),
+            border: Border.all(color: C.stroke),
+          ),
+          child: Icon(i, size: 19, color: active ? C.brand : context.t2),
+        ),
+      ),
+    );
+  }
+
+  // ───────── 统计条 ─────────
+  Widget _statBar() {
+    if (_stat.isEmpty) return const SizedBox.shrink();
+    int v(String k) => (_stat[k] as num?)?.toInt() ?? 0;
+    final money = (_stat['money'] ?? '0').toString();
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 2, context.pagePadding, 6),
+      child: KitCard(
+        radius: R.md,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        child: Row(
+          children: [
+            _statItem('用户', '${v('total')}', C.brand),
+            _divider(),
+            _statItem('会员', '${v('vip')}', C.gold),
+            _divider(),
+            _statItem('今日', '${v('today')}', C.mint),
+            _divider(),
+            _statItem('封禁', '${v('banned')}', C.danger),
+            _divider(),
+            _statItem('累计', '¥$money', C.success),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _divider() => Container(
+        width: 1,
+        height: 26,
+        color: context.isDark
+            ? Colors.white.withAlpha(18)
+            : Colors.black.withAlpha(10),
+      );
+
+  Widget _statItem(String label, String value, Color color) => Expanded(
+        child: Column(
+          children: [
+            Text(value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Ty.h3.copyWith(fontSize: 14, color: color)),
+            const SizedBox(height: 2),
+            Text(label, style: Ty.tiny.copyWith(fontSize: 10.5, color: context.t3)),
+          ],
+        ),
+      );
+
+  // ───────── 筛选胶囊 ─────────
+  Widget _filterBar() {
+    const items = [
+      ('all', '全部'),
+      ('vip', '会员'),
+      ('admin', '管理员'),
+      ('today', '今日新增'),
+      ('banned', '已封禁'),
+    ];
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.fromLTRB(
+            context.pagePadding, 4, context.pagePadding, 4),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 7),
+        itemBuilder: (_, i) {
+          final sel = _filter == items[i].$1;
+          return GestureDetector(
+            onTap: () => _switchFilter(items[i].$1),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: sel ? Deco.brandGradient : null,
+                color: sel
+                    ? null
+                    : (context.isDark ? Colors.white.withAlpha(10) : Colors.white),
+                borderRadius: BorderRadius.circular(R.full),
+                border: sel ? null : Border.all(color: C.stroke),
+              ),
+              child: Text(
+                items[i].$2,
+                style: Ty.tiny.copyWith(
+                  fontSize: 12.5,
+                  color: sel ? Colors.white : context.t2,
+                  fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ───────── 批量操作条 ─────────
+  Widget _batchBar() {
+    final n = _selected.length;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 4, context.pagePadding, 6),
+      child: KitCard(
+        radius: R.md,
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Text('已选 $n 位',
+                    style: Ty.tiny.copyWith(
+                        color: C.brand, fontWeight: FontWeight.w800)),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    if (_selected.length == _list.length) {
+                      _selected.clear();
+                    } else {
+                      _selected.addAll(
+                          _list.map((u) => int.tryParse('${u['id']}') ?? 0));
+                      _selected.remove(0);
+                    }
+                  }),
+                  child: Text(
+                    _selected.length == _list.length ? '取消全选' : '全选本页',
+                    style: Ty.tiny.copyWith(
+                        color: context.t2, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const Spacer(),
+                if (n > 0)
+                  GestureDetector(
+                    onTap: () => setState(_selected.clear),
+                    child: Text('清空',
+                        style: Ty.tiny.copyWith(color: C.danger)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  MiniAction(
+                    label: '送30天VIP',
+                    icon: Icons.workspace_premium_outlined,
+                    color: C.gold,
+                    onTap: n == 0 ? null : () => _batch('vip', 30),
+                  ),
+                  const SizedBox(width: 7),
+                  MiniAction(
+                    label: '解禁',
+                    icon: Icons.lock_open_rounded,
+                    color: C.mint,
+                    onTap: n == 0 ? null : () => _batch('unban'),
+                  ),
+                  const SizedBox(width: 7),
+                  MiniAction(
+                    label: '封禁',
+                    icon: Icons.block_rounded,
+                    color: C.warning,
+                    onTap: n == 0 ? null : () => _batch('ban'),
+                  ),
+                  const SizedBox(width: 7),
+                  MiniAction(
+                    label: '删除',
+                    icon: Icons.delete_outline_rounded,
+                    color: C.danger,
+                    onTap: n == 0 ? null : () => _batch('delete'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _batch(String op, [int days = 30]) async {
+    final ids = _selected.toList();
+    if (ids.isEmpty) return;
+    if (op != 'unban') {
+      final label = const {
+            'vip': '赠送 30 天会员',
+            'ban': '禁用',
+            'delete': '删除',
+          }[op] ??
+          op;
+      final ok = await Get.dialog<bool>(AlertDialog(
+        title: Text('批量$label'),
+        content: Text('将对选中的 ${ids.length} 位用户执行「$label」，是否继续？'),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('取消')),
+          FilledButton(
+            style: op == 'delete'
+                ? FilledButton.styleFrom(backgroundColor: C.danger)
+                : null,
+            onPressed: () => Get.back(result: true),
+            child: const Text('确定'),
+          ),
+        ],
+      ));
+      if (ok != true) return;
+    }
+    try {
+      await _svc.userBatch(ids, op, days: days);
+      ToastUtil.success('批量操作完成');
+      setState(_selected.clear);
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _exportCsv() async {
+    try {
+      final csv = await _svc.userExportCsv(filter: _filter);
+      if (csv.isEmpty) {
+        ToastUtil.info('没有可导出的数据');
+        return;
+      }
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.xl)),
+          title: const Text('用户数据 CSV',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: SelectableText(
+                csv,
+                style: const TextStyle(fontSize: 11, height: 1.5),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: csv));
+                if (ctx.mounted) Navigator.pop(ctx);
+                ToastUtil.success('已复制到剪贴板');
+              },
+              child: const Text('复制'),
+            ),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('关闭')),
+          ],
+        ),
+      );
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // ───────── 用户卡片 ─────────
+  Widget _userCard(Map u) {
+    final id = int.tryParse('${u['id']}') ?? 0;
+    final isAdmin = u['is_admin'] == true;
+    final isVip = u['is_vip'] == true;
+    final banned = u['status'] == 'hidden';
+    final sel = _selected.contains(id);
+
+    return KitCard(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      border: sel ? Border.all(color: C.brand, width: 1.5) : null,
+      onTap: _selectMode ? () => setState(() {
+        if (sel) {
+          _selected.remove(id);
+        } else {
+          _selected.add(id);
+        }
+      }) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (_selectMode) ...[
+                Icon(
+                  sel
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  size: 20,
+                  color: sel ? C.brand : context.t3,
+                ),
+                const SizedBox(width: 9),
+              ],
+              ClipOval(
+                child: (u['avatar'] ?? '').toString().isEmpty
+                    ? Container(
+                        width: 40,
+                        height: 40,
+                        color: C.brand.withAlpha(context.isDark ? 40 : 26),
+                        child:
+                            const Icon(Icons.person, size: 21, color: C.brand))
+                    : CachedNetworkImage(
+                        imageUrl: '${u['avatar']}',
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 5,
+                      runSpacing: 3,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('${u['nickname'] ?? '未设置昵称'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Ty.h3.copyWith(
+                                fontSize: 14.5, color: context.t1)),
+                        if (isAdmin)
+                          const Pill('管理员', color: C.brand, small: true),
+                        if (isVip)
+                          const Pill('VIP', color: C.gold, small: true),
+                        if (banned)
+                          const Pill('已禁用', color: C.danger, small: true),
+                        if ((u['title'] ?? '').toString().isNotEmpty)
+                          Pill('${u['title']}',
+                              color: C.violet, small: true),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      [
+                        if ((u['email'] ?? '').toString().isNotEmpty)
+                          '${u['email']}',
+                        if ((u['qq'] ?? '').toString().isNotEmpty)
+                          'QQ ${u['qq']}',
+                        'ID $id',
+                      ].join(' · '),
+                      style: Ty.tiny.copyWith(color: context.t3),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 数据行：积分 / 余额 / 注册时间 / 会员到期 / 最后登录
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: [
+              _meta(Icons.stars_outlined, '积分 ${u['score'] ?? 0}'),
+              _meta(Icons.account_balance_wallet_outlined,
+                  '余额 ¥${u['money'] ?? '0.00'}'),
+              _meta(Icons.event_outlined,
+                  '注册 ${u['createtime_text'] ?? '-'}'),
+              if (isVip)
+                _meta(Icons.workspace_premium_outlined,
+                    '会员至 ${u['vip_expire_text']}', color: C.gold),
+              _meta(Icons.login_rounded, '${u['login_time_text'] ?? '-'}'),
+            ],
+          ),
+          if (_selectMode) const SizedBox.shrink() else ...[
+            const SizedBox(height: 9),
+            Wrap(
+              spacing: 7,
+              runSpacing: 6,
+              children: [
+                MiniAction(
+                    label: '详情',
+                    icon: Icons.info_outline_rounded,
+                    onTap: () => _showDetail(u)),
+                MiniAction(
+                    label: '编辑',
+                    icon: Icons.edit_outlined,
+                    onTap: () => _editUser(u)),
+                MiniAction(
+                  label: '+30天VIP',
+                  icon: Icons.workspace_premium_outlined,
+                  color: C.gold,
+                  onTap: () => _grantVip(id, 30),
+                ),
+                MiniAction(
+                  label: isAdmin ? '取消管理' : '设为管理',
+                  icon: isAdmin
+                      ? Icons.person_remove_alt_1_outlined
+                      : Icons.admin_panel_settings_outlined,
+                  onTap: () async {
+                    await _svc.setAdmin(id, !isAdmin);
+                    ToastUtil.success(isAdmin ? '已取消' : '已设为管理员');
+                    _load();
+                  },
+                ),
+                MiniAction(
+                  label: banned ? '解禁' : '禁用',
+                  icon: banned
+                      ? Icons.lock_open_rounded
+                      : Icons.block_rounded,
+                  color: C.warning,
+                  onTap: () async {
+                    await _svc.toggleUserStatus(id);
+                    ToastUtil.success(banned ? '已解禁' : '已禁用');
+                    _load();
+                  },
+                ),
+                MiniAction(
+                  label: '删除',
+                  icon: Icons.delete_outline_rounded,
+                  color: C.danger,
+                  onTap: () async {
+                    final ok = await Get.dialog<bool>(AlertDialog(
+                      title: const Text('删除用户'),
+                      content: Text(
+                          '确定删除「${u['nickname']}」？\n该操作不可恢复，其登录态会一并清除。'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Get.back(result: false),
+                            child: const Text('取消')),
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                              backgroundColor: C.danger),
+                          onPressed: () => Get.back(result: true),
+                          child: const Text('删除'),
+                        ),
+                      ],
+                    ));
+                    if (ok != true) return;
+                    await _svc.deleteUser(id);
+                    ToastUtil.success('已删除');
+                    _load();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _meta(IconData i, String text, {Color? color}) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(i, size: 12, color: color ?? context.t3),
+          const SizedBox(width: 3),
+          Text(text,
+              style: Ty.tiny.copyWith(fontSize: 11, color: color ?? context.t3)),
+        ],
+      );
+
+  Future<void> _grantVip(int id, int days) async {
+    int d = days;
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: const Text('赠送会员'),
+      content: StatefulBuilder(builder: (ctx, setD) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('选择赠送天数（会在现有到期日上叠加）',
+                style: TextStyle(fontSize: 12.5)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [7, 30, 90, 365, 3650].map((n) {
+                final sel = d == n;
+                return GestureDetector(
+                  onTap: () => setD(() => d = n),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: sel ? Deco.brandGradient : null,
+                      color: sel ? null : Theme.of(ctx).cardColor,
+                      borderRadius: BorderRadius.circular(R.full),
+                      border: sel ? null : Border.all(color: C.stroke),
+                    ),
+                    child: Text(n >= 3650 ? '永久' : '$n 天',
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: sel ? Colors.white : ctx.t2)),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      }),
+      actions: [
+        TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消')),
+        FilledButton(
+            onPressed: () => Get.back(result: true), child: const Text('确定')),
+      ],
+    ));
+    if (ok != true) return;
+    try {
+      await _svc.grantVip(id, d);
+      ToastUtil.success('已赠送 $d 天会员');
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  /// 用户详情（只读，展示全部字段）
+  Future<void> _showDetail(Map u) async {
+    final isVip = u['is_vip'] == true;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.xl)),
+        title: Text('${u['nickname'] ?? '用户详情'}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _detailRow('ID', '${u['id']}'),
+                _detailRow('账号', '${u['username'] ?? '-'}'),
+                _detailRow('昵称', '${u['nickname'] ?? '-'}'),
+                _detailRow('邮箱', '${u['email'] ?? '-'}'),
+                _detailRow('QQ', '${u['qq'] ?? '-'}'),
+                _detailRow('称号', '${u['title'] ?? '-'}'),
+                _detailRow('积分', '${u['score'] ?? 0}'),
+                _detailRow('余额', '¥${u['money'] ?? '0.00'}'),
+                _detailRow('身份', u['is_admin'] == true ? '管理员' : '普通用户'),
+                _detailRow('状态',
+                    u['status'] == 'hidden' ? '已禁用' : '正常'),
+                _detailRow('会员',
+                    isVip ? 'VIP 至 ${u['vip_expire_text']}' : '非会员'),
+                _detailRow('注册时间', '${u['createtime_text'] ?? '-'}'),
+                _detailRow('最后登录', '${u['login_time_text'] ?? '-'}'),
+                _detailRow('登录 IP', '${u['login_ip'] ?? '-'}'),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('关闭')),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String k, String v) => Padding(
+        padding: const EdgeInsets.only(bottom: 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 66,
+              child: Text(k,
+                  style: Ty.tiny.copyWith(color: context.t3, fontSize: 12)),
+            ),
+            Expanded(
+              child: SelectableText(v,
+                  style: Ty.small.copyWith(fontSize: 12.5, color: context.t1)),
+            ),
+          ],
+        ),
+      );
+
+  // ───────── 分页 ─────────
+  Widget _pager() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 2, context.pagePadding, 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SoftButton(
+            label: '上一页',
+            height: 36,
+            color: _page > 1 ? C.brand : context.t3,
+            onPressed: _page > 1
+                ? () {
+                    _page--;
+                    _load();
+                  }
+                : () {},
+          ),
+          const SizedBox(width: 14),
+          Text('$_page / $_maxPage  ·  共 $_total 人',
+              style: Ty.tiny.copyWith(color: context.t2)),
+          const SizedBox(width: 14),
+          SoftButton(
+            label: '下一页',
+            height: 36,
+            color: _page < _maxPage ? C.brand : context.t3,
+            onPressed: _page < _maxPage
+                ? () {
+                    _page++;
+                    _load();
+                  }
+                : () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───────── 编辑用户 ─────────
   Future<void> _editUser(Map u) async {
     final nickCtrl = TextEditingController(text: '${u['nickname'] ?? ''}');
     final emailCtrl = TextEditingController(text: '${u['email'] ?? ''}');
     final qqCtrl = TextEditingController(text: '${u['qq'] ?? ''}');
     final scoreCtrl = TextEditingController(text: '${u['score'] ?? 0}');
+    final moneyCtrl = TextEditingController(text: '${u['money'] ?? '0'}');
     final titleCtrl = TextEditingController(text: '${u['title'] ?? ''}');
     final pwdCtrl = TextEditingController();
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.xl)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.xl)),
         title: Text('编辑用户：${u['nickname']}',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
         content: SizedBox(
@@ -259,10 +840,26 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'QQ号')),
                 const SizedBox(height: 10),
-                TextField(
-                    controller: scoreCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: '积分')),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                          controller: scoreCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: '积分')),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                          controller: moneyCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration:
+                              const InputDecoration(labelText: '余额')),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 10),
                 TextField(
                     controller: titleCtrl,
@@ -280,7 +877,8 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Get.back(result: false), child: const Text('取消')),
+              onPressed: () => Get.back(result: false),
+              child: const Text('取消')),
           FilledButton(
               onPressed: () => Get.back(result: true), child: const Text('保存')),
         ],
@@ -294,6 +892,7 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
         'email': emailCtrl.text.trim(),
         'qq': qqCtrl.text.trim(),
         'score': int.tryParse(scoreCtrl.text) ?? 0,
+        'money': moneyCtrl.text.trim(),
         'title': titleCtrl.text.trim(),
         if (pwdCtrl.text.trim().isNotEmpty) 'password': pwdCtrl.text.trim(),
       });
@@ -303,5 +902,4 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
     }
   }
-
 }

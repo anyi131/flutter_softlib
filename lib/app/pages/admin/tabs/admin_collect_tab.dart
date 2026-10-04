@@ -8,6 +8,10 @@ import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../utils/toast_util.dart';
+import 'collect_account_card.dart';
+import 'collect_dirs_view.dart';
+import 'collect_logs_view.dart';
+import 'collect_lzy_account_view.dart';
 
 /// 后台 · 采集（版权梦）
 ///
@@ -22,12 +26,17 @@ class AdminCollectTab extends StatefulWidget {
 }
 
 class _AdminCollectTabState extends State<AdminCollectTab>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   final _svc = AdminService.instance;
   final _kwCtrl = TextEditingController();
+  late final TabController _sub = TabController(length: 4, vsync: this);
+
+  /// 子页：0=采集 1=目录 2=日志 3=蓝奏云账号
+  int get _subIndex => _sub.index;
 
   bool _loading = true;
   bool _loggedIn = false;
+  String _user = '';
   int _page = 1;
   int _totalPages = 1;
   List<Map<String, dynamic>> _items = [];
@@ -38,6 +47,9 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   bool _running = false;
   int _cur = 0, _total = 0, _ok = 0, _fail = 0;
   String _status = '';
+  String _err = '';
+  int _taskAt = 0;
+  List<String> _pendingNames = [];
   List<Map<String, dynamic>> _results = [];
   List<String> _logs = [];
   Timer? _poll;
@@ -48,35 +60,55 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   @override
   void initState() {
     super.initState();
+    _sub.addListener(() => setState(() {}));
     _init();
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _sub.dispose();
     _kwCtrl.dispose();
     super.dispose();
   }
 
+  /// 把原始异常翻成人话（500 这类要给出可操作的建议）
+  String _friendly(Object e) {
+    final s = e.toString().replaceFirst('Exception: ', '');
+    if (s.contains('500')) {
+      return '服务器处理出错。可尝试：①点击「重新检测」②退出后重新登录采集账号';
+    }
+    if (s.contains('登录') || s.contains('Cookie')) return s;
+    if (s.contains('timeout') || s.contains('超时')) return '网络超时，请重试';
+    return s;
+  }
+
   Future<void> _init() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _err = '';
+    });
     try {
       final cfg = await _svc.collectConfig();
       if (!mounted) return;
       setState(() {
         _loggedIn = cfg['logged_in'] == true || cfg['logged_in'] == 1;
         _totalPages = (cfg['total_pages'] as num?)?.toInt() ?? 1;
+        _user = (cfg['collect_user'] ?? '').toString();
         _loading = false;
       });
       if (_loggedIn) await _load();
     } catch (e) {
       if (mounted) setState(() => _loading = false);
-      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      ToastUtil.error(_friendly(e));
     }
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _err = '';
+    });
     try {
       final r = await _svc.collectList(
           page: _page, keyword: _kwCtrl.text.trim());
@@ -90,18 +122,85 @@ class _AdminCollectTabState extends State<AdminCollectTab>
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _loading = false);
-      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      setState(() {
+        _loading = false;
+        // 列表拉取失败不再吞掉、也不再误报「Cookie 过期」
+        _err = _friendly(e);
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    if (_loading && _items.isEmpty) {
+    if (_loading && _items.isEmpty && !_loggedIn) {
       return const LoadingState(text: '加载采集数据…');
     }
     if (!_loggedIn) return _needCookie();
+    return Column(
+      children: [
+        _subBar(),
+        Expanded(
+          child: IndexedStack(
+            index: _subIndex,
+            children: [
+              _collectPane(),
+              const CollectDirsView(),
+              const CollectLogsView(),
+              const CollectLzyAccountView(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 子页切换（分段控件）
+  Widget _subBar() {
+    const items = ['采集', '目录', '日志', '蓝奏云'];
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 10, context.pagePadding, 6),
+      child: Container(
+        height: 38,
+        decoration: BoxDecoration(
+          color: context.isDark ? Colors.white.withAlpha(10) : Colors.white,
+          borderRadius: BorderRadius.circular(R.full),
+          border: Border.all(color: C.stroke),
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          children: List.generate(items.length, (i) {
+            final sel = _subIndex == i;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _sub.animateTo(i)),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: sel ? Deco.brandGradient : null,
+                    borderRadius: BorderRadius.circular(R.full),
+                  ),
+                  child: Text(
+                    items[i],
+                    style: Ty.tiny.copyWith(
+                      fontSize: 12.5,
+                      color: sel ? Colors.white : context.t2,
+                      fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  /// 采集子页
+  Widget _collectPane() {
     return Column(
       children: [
         _toolbar(),
@@ -111,72 +210,37 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     );
   }
 
-  /// 未登录：引导粘贴 Cookie
+  /// 未登录：引导配置采集账号（账号密码自动登录优先，Cookie 兜底）
   Widget _needCookie() {
-    final ctrl = TextEditingController();
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: KitCard(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.link_rounded, color: C.warning, size: 20),
-                  const SizedBox(width: 8),
-                  Text('需要配置采集平台登录态',
-                      style: Ty.h3.copyWith(color: context.t1)),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                '采集平台（版权梦）登录需要图形验证码，请：\n'
-                '1. 在浏览器登录 app.125ks.cn\n'
-                '2. 按 F12 → Network → 任意请求 → 复制 Cookie\n'
-                '3. 粘贴到下面（需含 PHPSESSID）',
-                style: Ty.small.copyWith(color: context.t2, height: 1.6),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: ctrl,
-                maxLines: 3,
-                style: const TextStyle(fontSize: 12.5),
-                decoration: InputDecoration(
-                  hintText: 'PHPSESSID=xxx; ol_token=xxx; ...',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(R.md)),
-                ),
-              ),
-              const SizedBox(height: 14),
-              PrimaryButton(
-                label: '保存并验证',
-                icon: Icons.check_circle_rounded,
-                height: 46,
-                onPressed: () async {
-                  final v = ctrl.text.trim();
-                  if (v.isEmpty) {
-                    ToastUtil.info('请粘贴 Cookie');
-                    return;
-                  }
-                  try {
-                    final ok = await _svc.saveCollectCookie(v);
-                    if (ok) {
-                      ToastUtil.success('登录成功，可以采集了');
-                      _init();
-                    } else {
-                      ToastUtil.error('Cookie 无效或已过期');
-                    }
-                  } catch (e) {
-                    ToastUtil.error(
-                        e.toString().replaceFirst('Exception: ', ''));
-                  }
-                },
-              ),
-            ],
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(context.pagePadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CollectAccountCard(
+            loggedIn: false,
+            totalPages: _totalPages,
+            onChanged: _init,
           ),
-        ),
+          const SizedBox(height: 12),
+          KitCard(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline_rounded, size: 18, color: C.brand),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '登录后即可浏览采集平台的软件列表，勾选后一键上传到'
+                    '「你自己的蓝奏云」，再把生成的链接导入软件库。',
+                    style: Ty.tiny.copyWith(color: context.t3, height: 1.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -264,10 +328,17 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   }
 
   Widget _list() {
+    if (_err.isNotEmpty) {
+      return ErrorState(
+        text: '采集数据加载失败',
+        hint: _err,
+        onRetry: _load,
+      );
+    }
     if (_items.isEmpty) {
       return EmptyState(
         text: '没有采集到数据',
-        hint: '可能是 Cookie 已过期，请重新获取',
+        hint: '可能是 Cookie 已过期，请重新登录采集账号',
         icon: Icons.cloud_download_outlined,
         action: SoftButton(label: '重新检测', onPressed: _init),
       );
@@ -278,14 +349,98 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           child: ListView.separated(
             padding: EdgeInsets.fromLTRB(
                 context.pagePadding, 4, context.pagePadding, 12),
-            itemCount: _items.length,
+            itemCount: _items.length + 1,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _itemCard(_items[i]),
+            itemBuilder: (_, i) {
+              // 列表头：采集账号入口（点开可改账号/重新登录）
+              if (i == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: _accountEntry(),
+                );
+              }
+              return _itemCard(_items[i - 1]);
+            },
           ),
         ),
         _pager(),
         _bottomBar(),
       ],
+    );
+  }
+
+  /// 已登录时的账号入口条（收起状态，点开抽屉里的完整设置）
+  Widget _accountEntry() {
+    return KitCard(
+      radius: R.md,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      onTap: _showAccountSheet,
+      child: Row(
+        children: [
+          Icon(Icons.verified_user_rounded, size: 17, color: C.success),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _user.isEmpty ? '采集账号已登录' : '采集账号：$_user',
+              style: Ty.tiny.copyWith(color: context.t2),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text('账号设置',
+              style: Ty.tiny.copyWith(
+                  color: C.brand, fontWeight: FontWeight.w800)),
+          Icon(Icons.chevron_right_rounded, size: 16, color: C.brand),
+        ],
+      ),
+    );
+  }
+
+  void _showAccountSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: ctx.isDark ? C.bg2 : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(R.lg)),
+        ),
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text('采集账号设置', style: Ty.h3.copyWith(color: ctx.t1)),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close, size: 20, color: ctx.t2),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              CollectAccountCard(
+                loggedIn: _loggedIn,
+                totalPages: _totalPages,
+                onChanged: () {
+                  Navigator.pop(ctx);
+                  _init();
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -453,6 +608,9 @@ class _AdminCollectTabState extends State<AdminCollectTab>
         _status = '';
         _results = [];
         _logs = [];
+        // 记录本次要采集的软件名（完成后到日志页反查链接用）
+        _pendingNames =
+            apps.map((a) => '${a['appname'] ?? ''}').where((s) => s.isNotEmpty).toList();
       });
       _startPoll();
     } catch (e) {
@@ -462,6 +620,9 @@ class _AdminCollectTabState extends State<AdminCollectTab>
 
   void _startPoll() {
     _poll?.cancel();
+    _taskAt = DateTime.now().millisecondsSinceEpoch;
+    int idleTicks = 0;
+
     _poll = Timer.periodic(const Duration(seconds: 2), (t) async {
       if (_taskId.isEmpty) {
         t.cancel();
@@ -470,6 +631,7 @@ class _AdminCollectTabState extends State<AdminCollectTab>
       try {
         final r = await _svc.collectStatus(_taskId);
         if (!mounted) return;
+        final prevCur = _cur;
         setState(() {
           _status = (r['status'] ?? '').toString();
           _total = (r['total'] as num?)?.toInt() ?? _total;
@@ -483,15 +645,77 @@ class _AdminCollectTabState extends State<AdminCollectTab>
               .map((e) => e.toString())
               .toList();
         });
+
         if (_status == 'done') {
           t.cancel();
-          setState(() => _running = false);
-          ToastUtil.success('采集完成：成功 $_ok，失败 $_fail');
+          await _finishFromLog();
+          return;
+        }
+
+        // ★ 站点会在任务完成后停止返回该 task_id（status 一直空、进度不动），
+        //   所以不能只等 status=='done'，否则永远卡在 0/N。
+        if (_cur == prevCur && _status.isEmpty) {
+          idleTicks++;
+        } else {
+          idleTicks = 0;
+        }
+        if (_status == '' && (_cur >= _total && _total > 0)) {
+          t.cancel();
+          await _finishFromLog();
+          return;
+        }
+        if (idleTicks >= 6) {
+          // 进度连续 12 秒没有任何变化 → 判定任务已结束，去日志取结果
+          t.cancel();
+          await _finishFromLog();
         }
       } catch (e) {
-        // 单次查询失败不中断
+        // 单次查询失败不中断；连续失败也会走到 idle 判定
       }
     });
+  }
+
+  /// ★ 任务结束后从站点「采集日志」按软件名反查蓝奏云链接
+  ///   （站点 task_status 不返回已完成任务的 results，这是唯一可靠的取法）
+  Future<void> _finishFromLog() async {
+    final names = _pendingNames.isNotEmpty
+        ? _pendingNames
+        : _results.map((r) => '${r['name']}').toList();
+    try {
+      final r = await _svc.collectResults(names, at: _taskAt);
+      if (!mounted) return;
+      final list = ((r['results'] as List?) ?? [])
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      setState(() {
+        _running = false;
+        _status = 'done';
+        if (list.isNotEmpty) {
+          _results = list;
+          _ok = list.where((x) => x['ok'] == true).length;
+          _fail = list.length - _ok;
+          _cur = list.length;
+          _total = list.length;
+        } else {
+          _cur = _total;
+          _ok = 0;
+          _fail = _total;
+        }
+      });
+      if (_ok > 0) {
+        ToastUtil.success('采集完成：成功 $_ok，失败 $_fail');
+      } else {
+        ToastUtil.info('任务已结束，但未在站点日志中找到链接');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _running = false;
+        _status = 'done';
+        _cur = _total;
+      });
+      ToastUtil.info('任务已提交完成，请到「日志」页查看结果链接');
+    }
   }
 
   Widget _progressCard() {
@@ -528,8 +752,20 @@ class _AdminCollectTabState extends State<AdminCollectTab>
             const SizedBox(height: 8),
             KitProgress(value: pct, color: _running ? C.brand : C.success),
             const SizedBox(height: 6),
-            Text('成功 $_ok · 失败 $_fail',
-                style: Ty.tiny.copyWith(color: context.t3)),
+            Row(
+              children: [
+                Text('成功 $_ok · 失败 $_fail',
+                    style: Ty.tiny.copyWith(color: context.t3)),
+                const Spacer(),
+                if (_running)
+                  GestureDetector(
+                    onTap: _finishFromLog,
+                    child: Text('卡住了？点此从日志取结果',
+                        style: Ty.tiny.copyWith(
+                            color: C.brand, fontWeight: FontWeight.w700)),
+                  ),
+              ],
+            ),
             if (doneLinks.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text('已生成蓝奏云链接：',

@@ -181,9 +181,56 @@ class AdminService {
     return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
   }
 
-  Future<List<Map<String, dynamic>>> users({String keyword = ''}) async {
-    final d = (await _post('users', {'keyword': keyword}))['data'];
+  Future<List<Map<String, dynamic>>> users({
+    String keyword = '',
+    String filter = 'all',
+    int page = 1,
+    int size = 30,
+  }) async {
+    final d = (await _post('users', {
+      'keyword': keyword,
+      'filter': filter,
+      'page': page,
+      'size': size,
+    }))['data'];
+    if (d is Map && d['list'] is List) {
+      return (d['list'] as List)
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    // 兼容旧版后端直接返回数组
     return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  /// 用户统计（总数/VIP/管理员/封禁/今日新增/累计余额）
+  Future<Map<String, dynamic>> userStat({
+    String keyword = '',
+    String filter = 'all',
+  }) async {
+    final d = (await _post('users', {
+      'keyword': keyword,
+      'filter': filter,
+      'page': 1,
+      'size': 10,
+    }))['data'];
+    if (d is Map && d['stat'] is Map) {
+      return Map<String, dynamic>.from(d['stat']);
+    }
+    return {};
+  }
+
+  /// 批量操作：op = vip | ban | unban | delete
+  Future<void> userBatch(List<int> ids, String op, {int days = 30}) async =>
+      _post('user_batch', {
+        'ids': jsonEncode(ids),
+        'op': op,
+        'days': days,
+      });
+
+  /// 导出用户 CSV 文本
+  Future<String> userExportCsv({String filter = 'all'}) async {
+    final d = (await _post('user_export', {'filter': filter}))['data'];
+    return d is Map ? (d['csv'] ?? '').toString() : '';
   }
 
   Future<void> grantVip(int id, int days) async =>
@@ -258,6 +305,19 @@ class AdminService {
   Future<Map<String, dynamic>> collectConfig() async =>
       Map<String, dynamic>.from((await _post('collect_config'))['data'] ?? {});
 
+  /// 账号密码自动登录（后端会识别验证码）；pass 留空表示用已保存的密码
+  Future<Map<String, dynamic>> collectLogin({
+    required String user,
+    String pass = '',
+  }) async =>
+      Map<String, dynamic>.from((await _post('collect_login', {
+        'user': user,
+        if (pass.isNotEmpty) 'pass': pass,
+      }))['data'] ?? {});
+
+  /// 退出采集平台登录
+  Future<void> collectLogout() async => _post('collect_logout');
+
   Future<bool> saveCollectConfig(Map<String, dynamic> data) async {
     final r = await _post('collect_save', data);
     final d = r['data'];
@@ -289,6 +349,51 @@ class AdminService {
   Future<Map<String, dynamic>> collectStatus(String taskId) async =>
       Map<String, dynamic>.from(
           (await _post('collect_status', {'task_id': taskId}))['data'] ?? {});
+
+  /// ★ 补齐采集结果：站点 task_status 不返回已完成任务的 results，
+  ///   完成后调用这里，从站点「采集日志」页按名称匹配出蓝奏云链接
+  Future<Map<String, dynamic>> collectResults(
+    List<String> names, {
+    int at = 0,
+  }) async =>
+      Map<String, dynamic>.from((await _post('collect_results', {
+        'names': jsonEncode(names),
+        'at': at,
+      }))['data'] ?? {});
+
+  /// 采集平台的目录配置（哪个目录 / 关键词 / 屏蔽词 / 兜底 / 启用状态）
+  Future<List<Map<String, dynamic>>> collectDirs() async {
+    final d = (await _post('collect_dirs'))['data'];
+    if (d is Map && d['dirs'] is List) {
+      return (d['dirs'] as List)
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return [];
+  }
+
+  /// 采集日志（全部历史结果，含蓝奏云链接）
+  Future<Map<String, dynamic>> collectLogs() async =>
+      Map<String, dynamic>.from((await _post('collect_logs'))['data'] ?? {});
+
+  /// 采集平台的「蓝奏云 Cookie」配置状态
+  Future<Map<String, dynamic>> collectLzyCookie() async =>
+      Map<String, dynamic>.from(
+          (await _post('collect_lzycookie'))['data'] ?? {});
+
+  /// 提交蓝奏云账号密码，让采集平台去获取并保存 Cookie
+  Future<Map<String, dynamic>> collectLzyCookieSave({
+    required String user,
+    required String pass,
+  }) async =>
+      Map<String, dynamic>.from((await _post('collect_lzycookie_save', {
+        'lzy_user': user,
+        'lzy_pass': pass,
+      }))['data'] ?? {});
+
+  /// 清空采集平台上的蓝奏云 Cookie
+  Future<void> collectLzyCookieClear() async =>
+      _post('collect_lzycookie_clear');
 
   /// 把采集结果导入软件库
   Future<Map<String, dynamic>> collectImport(List<Map<String, dynamic>> items,
