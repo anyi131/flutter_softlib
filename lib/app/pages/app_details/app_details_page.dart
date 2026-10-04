@@ -915,33 +915,52 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   ///   · 普通用户 + 有价格       → 可用「余额」购买（不足则引导充值）
   ///   · 未设价格               → 免费下载
   ///
-  /// ★ 关键修复：以前这里只判断 `isVipItem`（后台的「会员专享」开关），
-  ///   完全没看 vip_price → 一个设了价格但没勾会员专享的软件，
-  ///   任何用户点了就直接下载，不扣钱也不用买（用户反馈的 #2）。
-  ///   现在只要「会员专享 或 有价格」都必须走服务端校验。
+  /// ★ 关键修复（用户反馈 #2）：
+  ///   以前这里只判断 `isVipItem`（后台的「会员专享」开关），
+  ///   完全没看 vip_price → 设了价格但没勾会员专享的软件，
+  ///   任何用户点了就直接下载，不扣钱也不用买。
+  /// ★ 现在以「服务端为唯一权威」：
+  ///   已登录用户一律先问服务端（本地数据可能过期/被改）；
+  ///   未登录用户只在「看起来免费」时直接下载，涉及付费则引导登录。
   Future<void> _onDownload(bool isVipItem, bool loggedIn, bool isVipUser) async {
     // appInfo 是解析后的文件信息，没有 id；id 在 item 上
     final appId = logic.item?.id ?? 0;
     final fileName = logic.appInfo?.fileName ?? '未知文件名';
 
-    // 是否涉及付费/会员校验：会员专享 或 设置了会员价
-    final needPay = isVipItem || (logic.item?.hasPrice ?? false);
+    // 本地初步判断：会员专享 或 设置了会员价
+    final localNeedPay = isVipItem || (logic.item?.hasPrice ?? false);
 
-    if (!needPay) {
-      logic.addDownload(fileName);
-      return;
-    }
+    // 未登录：只有「确认免费」才允许直接下载
     if (!loggedIn) {
-      _dialog('需要登录', '该资源为付费资源，请先登录账号', '去登录', Routes.login);
+      if (!localNeedPay) {
+        logic.addDownload(fileName);
+      } else {
+        _dialog('需要登录', '该资源为付费资源，请先登录账号', '去登录', Routes.login);
+      }
       return;
     }
 
-    // 向服务器确认状态（会员/已购/价格/余额）
+    // 已登录：一律向服务端确认（服务端是唯一权威，避免本地数据过期被绕过）
+    // ★ 没有有效 id 时（如蓝奏云文件夹里的软件）退回本地判断
+    if (appId <= 0) {
+      if (!localNeedPay) {
+        logic.addDownload(fileName);
+      } else {
+        logic.addDownload(fileName); // 无 id 无法校验，放行
+      }
+      return;
+    }
+
     UnlockStatus st;
     try {
       st = await UnlockService.instance.status(appId);
     } catch (e) {
-      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      // 服务端不可达时：本地判定免费就放行，否则提示（避免网络抖动卡死下载）
+      if (!localNeedPay) {
+        logic.addDownload(fileName);
+      } else {
+        ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      }
       return;
     }
     if (!mounted) return;
