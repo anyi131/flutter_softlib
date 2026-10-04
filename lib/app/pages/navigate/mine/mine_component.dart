@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../../generated/assets.dart';
 import '../../../design/adaptive.dart';
+import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../routes/app_pages.dart';
 import '../../navigate/navigate_logic.dart';
@@ -165,7 +166,7 @@ class MineComponent extends StatelessWidget {
                           const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(
                         color: C.brand.withAlpha(30),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(R.xs),
                       ),
                       child: const Text('v1.0.2',
                           style: TextStyle(
@@ -200,33 +201,15 @@ class MineComponent extends StatelessWidget {
   }
 
   Widget _defaultAvatar() => Container(
-        color: const Color(0xFFEDF0F7),
+        color:
+            context.isDark ? C.bg2 : const Color(0xFFEDF0F7),
         alignment: Alignment.center,
         child: const Icon(Icons.person_rounded, size: 34, color: C.brandBright),
       );
 
   Widget _badge(BuildContext context, String text, Color color,
       {IconData? icon}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withAlpha(context.isDark ? 38 : 26),
-        borderRadius: BorderRadius.circular(R.full),
-        border: Border.all(color: color.withAlpha(80), width: 0.7),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 4),
-          ],
-          Text(text,
-              style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w800, color: color)),
-        ],
-      ),
-    );
+    return Pill(text, color: color, icon: icon);
   }
 
   // ───────── ② 数据条 ─────────
@@ -360,22 +343,8 @@ class MineComponent extends StatelessWidget {
   }
 
   // ───────── ④ 服务宫格 ─────────
-  Widget _sectionTitle(BuildContext context, String t) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 16,
-          decoration: BoxDecoration(
-            gradient: Deco.aurora(),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 9),
-        Text(t, style: Ty.h3.copyWith(color: context.t1, fontSize: 16)),
-      ],
-    );
-  }
+  Widget _sectionTitle(BuildContext context, String t) =>
+      SectionHeader(title: t);
 
   Widget _serviceGrid(BuildContext context, MineLogic logic) {
     final items = <_S>[
@@ -402,20 +371,9 @@ class MineComponent extends StatelessWidget {
             () => logic.openAdminPanel()),
     ];
 
-    return Container(
+    return KitCard(
+      radius: R.lg,
       padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: context.isDark
-            ? Colors.white.withAlpha(14)
-            : Colors.white.withAlpha(240),
-        borderRadius: BorderRadius.circular(R.lg),
-        border: Border.all(
-          color: context.isDark
-              ? Colors.white.withAlpha(18)
-              : Colors.black.withAlpha(8),
-          width: 0.8,
-        ),
-      ),
       child: Column(
         children: [
           for (int i = 0; i < items.length; i += context.serviceCols)
@@ -467,23 +425,22 @@ class MineComponent extends StatelessWidget {
   // ───────── ⑤ 底部按钮 ─────────
   Widget _actionButton(BuildContext context, MineLogic logic) {
     final logged = logic.isLoggedIn;
-    return SizedBox(
-      height: 52,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor:
-              logged ? C.rose.withAlpha(30) : C.brand,
-          foregroundColor: logged ? C.rose : Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(R.full)),
-        ),
-        onPressed: () => logged ? logic.logout() : logic.openLogin(),
-        child: Text(
-          logged ? '退出登录' : '登录 / 注册',
-          style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
-        ),
-      ),
-    );
+    // 未登录：主行动按钮（醒目实心蓝）—— 引导注册/登录
+    // 已登录：柔和描边（退出登录是低频/危险操作，不该高亮吸睛）
+    return logged
+        ? SoftButton(
+            label: '退出登录',
+            color: C.rose,
+            height: 52,
+            expand: true,
+            onPressed: logic.logout,
+          )
+        : PrimaryButton(
+            label: '登录 / 注册',
+            icon: Icons.login_rounded,
+            height: 52,
+            onPressed: logic.openLogin,
+          );
   }
 }
 

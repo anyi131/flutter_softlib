@@ -21,7 +21,7 @@ class SoftService {
       // 连接复用（加快连续请求）
       persistentConnection: true,
     ),
-  );
+  )..interceptors.add(_RetryInterceptor());
 
   /// 拉取全局配置（开屏/公告/远程控制）
   /// ★ 带内存缓存 + 并发去重：同一次会话内多个页面同时调用只发一次网络请求
@@ -278,3 +278,45 @@ class _CacheEntry {
   _CacheEntry(this.data) : at = DateTime.now();
   bool get expired => DateTime.now().difference(at) > SoftService._cacheTtl;
 }
+
+/// 自动重试拦截器
+/// 对「连接超时 / 连接错误 / 5xx」自动重试一次（第二次仍失败才抛错），
+/// 显著降低弱网下的加载失败率。
+class _RetryInterceptor extends Interceptor {
+  static const _maxRetry = 1;
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final opt = err.requestOptions;
+    final tried = (opt.extra['_retry'] as int?) ?? 0;
+    final retriable = err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.sendTimeout ||
+        err.type == DioExceptionType.connectionError ||
+        (err.response != null && (err.response!.statusCode ?? 0) >= 500);
+
+    if (retriable && tried < _maxRetry) {
+      opt.extra['_retry'] = tried + 1;
+      await Future.delayed(Duration(milliseconds: 400 * (tried + 1)));
+      try {
+        final resp = await Dio(BaseOptions(
+          baseUrl: opt.baseUrl,
+          connectTimeout: opt.connectTimeout,
+          receiveTimeout: opt.receiveTimeout,
+          headers: opt.headers,
+          persistentConnection: true,
+        )).request<dynamic>(
+          opt.path,
+          data: opt.data,
+          queryParameters: opt.queryParameters,
+          options: Options(method: opt.method),
+        );
+        return handler.resolve(resp);
+      } catch (_) {
+        // 重试仍失败 → 走原始错误
+      }
+    }
+    handler.next(err);
+  }
+}
+

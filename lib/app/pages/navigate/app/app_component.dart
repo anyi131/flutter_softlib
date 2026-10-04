@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import '../../../api/lzy_folder_parser.dart';
 import '../../../api/soft_service.dart';
 import '../../../design/adaptive.dart';
+import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../models/app_cat.dart';
 import '../../../models/app_config.dart';
@@ -433,61 +434,17 @@ class _AppComponentState extends State<AppComponent> {
   // ───── 列表 ─────
   Widget _body() {
     if (_loading) {
-      final cat = _currentCat;
-      final folder = cat != null && cat.isFolder;
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 46,
-                height: 46,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: folder ? C.brand : Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(folder ? '正在解析蓝奏云文件夹' : '加载中…',
-                  style: Ty.body.copyWith(
-                      color: context.t1, fontWeight: FontWeight.w700)),
-              if (folder) ...[
-                const SizedBox(height: 8),
-                Text('文件夹较大时需要一点时间，请稍候',
-                    style: Ty.tiny.copyWith(color: context.t3)),
-                if (_folderProgress.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: C.brand.withAlpha(context.isDark ? 34 : 20),
-                      borderRadius: BorderRadius.circular(R.full),
-                    ),
-                    child: Text(_folderProgress,
-                        style: Ty.small.copyWith(
-                            color: C.brand, fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ],
-            ],
-          ),
-        ),
-      );
+      // 文件夹解析时展示实时进度，其它情况用统一加载态
+      return LoadingState(
+          text: _folderParsing
+              ? (_folderProgress.isEmpty ? '正在解析蓝奏云文件夹…' : _folderProgress)
+              : null);
     }
     if (_apps.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inbox_rounded, size: 56, color: context.t3.withAlpha(90)),
-            const SizedBox(height: 12),
-            Text(_kw.isEmpty ? '该分类暂无软件' : '没有找到「$_kw」',
-                style: Ty.small.copyWith(color: context.t3)),
-          ],
-        ),
+      return EmptyState(
+        text: _kw.isEmpty ? '该分类暂无软件' : '没有找到「$_kw」',
+        hint: _kw.isEmpty ? '换个分类看看吧' : '试试更换关键词搜索',
+        icon: _kw.isEmpty ? Icons.inbox_rounded : Icons.search_off_rounded,
       );
     }
     return EasyRefresh(
@@ -541,16 +498,14 @@ class _AppComponentState extends State<AppComponent> {
     );
   }
 
-  // ───── 卡片 ─────
+  /// 卡片
   Widget _card(AppItem a) {
     final vip = a.isVipItem;
     return Padding(
       padding: EdgeInsets.fromLTRB(
           context.pagePadding, 5, context.pagePadding, 5),
-      child: Deco.glass(
-        context,
+      child: KitCard(
         radius: R.lg,
-        alpha: 0.075,
         onTap: () => Get.toNamed(Routes.appDetails,
             arguments: {'appId': a.id.toString(), 'item': a}),
         padding: const EdgeInsets.all(12),
@@ -621,8 +576,7 @@ class _AppComponentState extends State<AppComponent> {
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
+            Expanded(              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -654,7 +608,8 @@ class _AppComponentState extends State<AppComponent> {
                   // 一行装完：会员/免费 + 评分 + 大小
                   Row(
                     children: [
-                      _pill(vip ? '会员' : '免费', vip ? C.amber : C.mint),
+                      Pill(vip ? '会员' : '免费',
+                          color: vip ? C.amber : C.mint, small: true),
                       const SizedBox(width: 7),
                       if (a.scoreCount > 0) ...[
                         const Icon(Icons.star_rounded, size: 12, color: C.amber),
@@ -691,30 +646,6 @@ class _AppComponentState extends State<AppComponent> {
       ),
     );
   }
-
-  Widget _meta(IconData i, String t) {
-    if (t.isEmpty || t == '0') return const SizedBox.shrink();
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(i, size: 12, color: context.t3),
-        const SizedBox(width: 3),
-        Text(t, style: Ty.tiny.copyWith(color: context.t3)),
-      ],
-    );
-  }
-
-  Widget _pill(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-        decoration: BoxDecoration(
-          color: color.withAlpha(context.isDark ? 36 : 24),
-          borderRadius: BorderRadius.circular(R.full),
-          border: Border.all(color: color.withAlpha(70), width: 0.7),
-        ),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w800, color: color)),
-      );
 
   Widget _ph() => Container(
         width: 60,
