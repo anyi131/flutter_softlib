@@ -12,6 +12,7 @@ import 'package:flutter_softlib/app/pages/post_detail/post_detail_page.dart';
 import 'package:flutter_softlib/app/pages/splash/splash_page.dart';
 import 'package:flutter_softlib/app/pages/login/register_page.dart';
 import 'package:flutter_softlib/app/pages/login/reset_page.dart';
+import 'package:flutter_softlib/app/pages/vip_center/pay_web_page.dart';
 import 'package:flutter_softlib/app/pages/vip_center/vip_page.dart';
 import 'package:get/get.dart';
 
@@ -59,6 +60,7 @@ class AppPages {
       name: _Paths.vip,
       page: () => const VipPage(),
     ),
+    GetPage(name: _Paths.payWeb, page: () => const PayWebPage()),
     GetPage(name: _Paths.postDetail, page: () => const PostDetailPage()),
     GetPage(name: _Paths.admin, page: () => const AdminPage()),
     GetPage(name: _Paths.login, page: () => const LoginPage()),

@@ -29,6 +29,7 @@ class PrimaryButton extends StatelessWidget {
     this.loading = false,
     this.height = 54,
     this.enabled = true,
+    this.expand = true,
   });
 
   final String label;
@@ -39,6 +40,10 @@ class PrimaryButton extends StatelessWidget {
   final bool loading;
   final double height;
   final bool enabled;
+
+  /// 是否占满可用宽度。
+  /// ★ 放在 Row 里时必须设为 false —— 否则 width: infinity 会挤爆同行元素。
+  final bool expand;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +64,7 @@ class PrimaryButton extends StatelessWidget {
     return Opacity(
       opacity: active ? 1 : 0.55,
       child: Container(
-        width: double.infinity,
+        width: expand ? double.infinity : null,
         height: height,
         decoration: BoxDecoration(
           gradient: gradient,
@@ -105,41 +110,50 @@ class PrimaryButton extends StatelessWidget {
                     ),
                   ),
                 ),
-                Center(
-                  child: loading
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.4,
-                            valueColor: AlwaysStoppedAnimation<Color>(fg),
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (icon != null) ...[
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: fg.withAlpha(38),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(icon, size: 16, color: fg),
-                              ),
-                              const SizedBox(width: 9),
-                            ],
-                            Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.6,
-                                color: fg,
-                              ),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: expand ? 0 : 18),
+                  child: Center(
+                    child: loading
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              valueColor: AlwaysStoppedAnimation<Color>(fg),
                             ),
-                          ],
-                        ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (icon != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: fg.withAlpha(38),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(icon, size: 16, color: fg),
+                                ),
+                                const SizedBox(width: 9),
+                              ],
+                              Flexible(
+                                child: Text(
+                                  label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.6,
+                                    color: fg,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
               ],
             ),

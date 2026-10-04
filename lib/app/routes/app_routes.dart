@@ -10,6 +10,7 @@ abstract class Routes {
   static const appDetails = _Paths.appDetails;
   static const articleReading = _Paths.articleReading;
   static const vip = _Paths.vip;
+  static const payWeb = _Paths.payWeb;
   static const login = _Paths.login;
   static const register = _Paths.register;
   static const reset = _Paths.reset;
@@ -27,6 +28,7 @@ abstract class _Paths {
   static const appDetails = '/appDetails';
   static const articleReading = '/articleReading';
   static const vip = '/vip';
+  static const payWeb = '/payWeb';
   static const login = '/login';
   static const register = '/register';
   static const reset = '/reset';

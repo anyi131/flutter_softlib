@@ -520,15 +520,15 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                SizedBox(
+                // ★ expand:false —— 放在 Row 里必须限制宽度，
+                //   否则 width:infinity 会把输入框挤没、整行错乱
+                PrimaryButton(
+                  label: '发送',
                   height: 42,
-                  child: PrimaryButton(
-                    label: '发送',
-                    height: 42,
-                    loading: _sending,
-                    enabled: !_sending,
-                    onPressed: _send,
-                  ),
+                  expand: false,
+                  loading: _sending,
+                  enabled: !_sending,
+                  onPressed: _send,
                 ),
               ],
             ),

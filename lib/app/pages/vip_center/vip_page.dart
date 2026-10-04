@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/pay_service.dart';
 import '../../api/user_service.dart';
@@ -398,84 +397,19 @@ class _VipPageState extends State<VipPage> {
         ToastUtil.error('下单失败，请稍后重试');
         return;
       }
-      // 打开收银台（外部浏览器/系统 WebView）
-      final uri = Uri.tryParse(order.payUrl);
-      var opened = false;
-      if (uri != null) {
-        opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-      if (!opened) {
-        ToastUtil.error('无法打开支付页面');
-        return;
-      }
-      if (!mounted) return;
-      _showWaiting(order);
+      // ★ App 内打开收银台（不跳转外部浏览器）
+      Get.toNamed('/payWeb', arguments: {
+        'pay_url': order.payUrl,
+        'out_trade_no': order.outTradeNo,
+        'money': order.money,
+      });
+      if (mounted) setState(() => _submitting = false);
+      return;
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted && _submitting) setState(() => _submitting = false);
     }
   }
 
-  /// 支付等待中：给用户明确反馈，并在到账后自动刷新
-  void _showWaiting(PayOrder order) {
-    final done = ValueNotifier<bool>(false);
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (c) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(R.lg)),
-        title: const Text('等待支付结果'),
-        content: ValueListenableBuilder<bool>(
-          valueListenable: done,
-          builder: (_, ok, __) => Row(
-            children: [
-              if (!ok) ...[
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2.2),
-                ),
-                const SizedBox(width: 12),
-              ] else ...[
-                const Icon(Icons.check_circle_rounded,
-                    color: C.success, size: 20),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Text(
-                  ok
-                      ? '支付成功，会员已开通！'
-                      : '已调起支付页面，完成付款后会自动到账…\n订单号 ${order.outTradeNo}',
-                  style: const TextStyle(fontSize: 13.5, height: 1.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(c).pop(),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
-    );
-
-    // 后台轮询（同时也会在 App 回到前台时立刻查一次）
-    PayService.instance
-        .waitPaid(order.outTradeNo, timeout: const Duration(minutes: 8))
-        .then((paid) async {
-      if (!mounted) return;
-      if (paid) {
-        done.value = true;
-        await UserService.instance.refreshProfile();
-        if (mounted) setState(() {});
-        await Future.delayed(const Duration(milliseconds: 1200));
-        if (mounted) Navigator.of(context, rootNavigator: true).pop();
-        ToastUtil.success('会员已开通');
-      }
-    });
-  }
 }
