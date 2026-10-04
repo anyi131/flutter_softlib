@@ -308,7 +308,7 @@ class KitCard extends StatelessWidget {
         ),
       );
     }
-    if (margin != null) c = Padding(padding: margin, child: c);
+    if (margin != null) c = Padding(padding: margin!, child: c);
     return c;
   }
 }
