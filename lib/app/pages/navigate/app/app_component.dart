@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_refresh/easy_refresh.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -31,6 +32,8 @@ class _AppComponentState extends State<AppComponent> {
   List<AppItem> _apps = [];
   int _cat = 0;
   bool _loading = true;
+  /// 列表正在加载更多（不遮全屏，只在底部转圈）
+  bool _loadingMore = false;
   bool _hasMore = true;
   int _page = 1;
   static const _size = 15;
@@ -71,10 +74,14 @@ class _AppComponentState extends State<AppComponent> {
   }
 
   Future<void> _load({bool reset = false}) async {
+    final cat = _currentCat;
+    final isFolder = cat != null && cat.isFolder;
     if (reset) {
       _page = 1;
       _hasMore = true;
       setState(() => _loading = true);
+    } else {
+      setState(() => _loadingMore = true);
     }
     try {
       final cat = _currentCat;
@@ -82,7 +89,10 @@ class _AppComponentState extends State<AppComponent> {
       //   （服务器 IP 会被蓝奏云限流只能拿 500 条，客户端可拿全部）
       List<AppItem>? folderItems;
       if (cat != null && cat.isFolder) {
-        setState(() => _folderParsing = true);
+        setState(() {
+          _folderParsing = true;
+          _folderProgress = '正在打开文件夹…';
+        });
         try {
           folderItems = await LzyFolderParser.instance.parse(
             cat.url,
@@ -125,10 +135,29 @@ class _AppComponentState extends State<AppComponent> {
       List<AppItem> slice;
       bool hasMore;
       if (isFolderMode) {
-        // ★ 文件夹模式：一次性拿到全部（客户端解析），直接全量展示，不再切片
-        slice = all;
-        hasMore = false;
-      } else {
+        // ★ 文件夹模式：客户端一次性解析出全部（几百条），
+        //   本地切片展示：首批 50 条，滚到底自动加载下一批，
+        //   这样避免一次性渲染几百张远程图标导致卡顿。
+        final src = all;
+        final start = reset ? 0 : _apps.length;
+        slice = start >= src.length
+            ? <AppItem>[]
+            : src.sublist(start, (start + _size).clamp(0, src.length));
+        hasMore = (start + slice.length) < src.length;
+        if (!mounted) return;
+        setState(() {
+          if (reset) {
+            _apps = slice;
+          } else {
+            _apps.addAll(slice);
+          }
+          _hasMore = hasMore;
+          _loading = false;
+          _loadingMore = false;
+        });
+        return;
+      }
+      {
         final start = (_page - 1) * _size;
         slice = start >= all.length
             ? <AppItem>[]
@@ -137,7 +166,7 @@ class _AppComponentState extends State<AppComponent> {
       }
       if (!mounted) return;
       setState(() {
-        if (reset || isFolderMode) {
+        if (reset) {
           _apps = slice;
         } else {
           _apps.addAll(slice);
@@ -145,11 +174,13 @@ class _AppComponentState extends State<AppComponent> {
         _hasMore = hasMore;
         if (hasMore) _page++;
         _loading = false;
+        _loadingMore = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
+        _loadingMore = false;
         _hasMore = false;
       });
     }
@@ -383,22 +414,46 @@ class _AppComponentState extends State<AppComponent> {
   Widget _body() {
     if (_loading) {
       final cat = _currentCat;
+      final folder = cat != null && cat.isFolder;
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(strokeWidth: 3),
-            if (cat != null && cat.isFolder) ...[
-              const SizedBox(height: 14),
-              Text('正在解析蓝奏云文件夹…',
-                  style: Ty.small.copyWith(color: context.t3)),
-              if (_folderProgress.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(_folderProgress,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 46,
+                height: 46,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: folder ? C.brand : Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(folder ? '正在解析蓝奏云文件夹' : '加载中…',
+                  style: Ty.body.copyWith(
+                      color: context.t1, fontWeight: FontWeight.w700)),
+              if (folder) ...[
+                const SizedBox(height: 8),
+                Text('文件夹较大时需要一点时间，请稍候',
                     style: Ty.tiny.copyWith(color: context.t3)),
+                if (_folderProgress.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: C.brand.withAlpha(context.isDark ? 34 : 20),
+                      borderRadius: BorderRadius.circular(R.full),
+                    ),
+                    child: Text(_folderProgress,
+                        style: Ty.small.copyWith(
+                            color: C.brand, fontWeight: FontWeight.w700)),
+                  ),
+                ],
               ],
             ],
-          ],
+          ),
         ),
       );
     }
@@ -437,8 +492,31 @@ class _AppComponentState extends State<AppComponent> {
             parent: BouncingScrollPhysics()),
         padding: EdgeInsets.only(
             top: 8, bottom: tabBottomPadding(context) + 12),
-        itemCount: _apps.length,
-        itemBuilder: (context, i) => _card(_apps[i]),
+        itemCount: _apps.length + (_loadingMore ? 1 : 0),
+        itemBuilder: (context, i) {
+          if (i >= _apps.length) return _loadMoreFooter();
+          return _card(_apps[i]);
+        },
+      ),
+    );
+  }
+
+  /// 底部「加载更多」指示（文件夹模式分批加载时显示）
+  Widget _loadMoreFooter() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 15,
+            height: 15,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: C.brand),
+          ),
+          const SizedBox(width: 10),
+          Text('正在加载更多…', style: Ty.tiny.copyWith(color: context.t3)),
+        ],
       ),
     );
   }

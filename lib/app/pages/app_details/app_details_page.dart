@@ -663,14 +663,15 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     final isVipUser = UserService.instance.user?.isVip == true;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       decoration: BoxDecoration(
         color: isDark ? AppColor.cardDark : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 60 : 12),
-            blurRadius: 14,
-            offset: const Offset(0, -3),
+            color: Colors.black.withAlpha(isDark ? 70 : 16),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -680,130 +681,56 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           id: 'download',
           builder: (download) {
             final task = download.downloadTask;
-            // 下载完成 → 安装
+            // 下载完成 → 安装（带与未下载态一致的说明行，避免高度跳变）
             if (task != null && task.status == DownloadTaskStatus.complete) {
-              // ★ 安装按钮：饱满绿色渐变 + 光晕
-              return _installButton(download.openDownloadFile);
-            }
-            // 下载中
-            if (task != null) {
-              final total = download.appInfo?.fileSize ?? '';
-              final done = calculateDownloadedSize(total, task.progress);
-              final isPaused = task.status == DownloadTaskStatus.paused;
-              final isFailed = task.status == DownloadTaskStatus.failed;
               return Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        isFailed
-                            ? Icons.error_outline_rounded
-                            : (isPaused
-                                ? Icons.pause_circle_outline_rounded
-                                : Icons.downloading_rounded),
-                        size: 17,
-                        color: isFailed
-                            ? const Color(0xFFDC2626)
-                            : (isPaused
-                                ? const Color(0xFFD97706)
-                                : AppColor.primary),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        isFailed
-                            ? '下载失败'
-                            : (isPaused ? '已暂停' : '正在下载中'),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: isFailed
-                              ? const Color(0xFFDC2626)
-                              : (isPaused
-                                  ? const Color(0xFFD97706)
-                                  : AppColor.primary),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${task.progress}%',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(width: 8),
-                      _iconBtn(
-                        isPaused
-                            ? Icons.play_arrow_rounded
-                            : Icons.pause_rounded,
-                        isPaused
-                            ? download.resumeDownload
-                            : download.pauseDownload,
-                      ),
-                      const SizedBox(width: 5),
-                      _iconBtn(Icons.close_rounded, download.cancelDownload),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: task.progress / 100,
-                      minHeight: 8,
-                      backgroundColor: Colors.grey.withAlpha(40),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isFailed
-                            ? const Color(0xFFDC2626)
-                            : (isPaused ? AppColor.warning : AppColor.primary),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Text(
-                        '$done / ${total.isEmpty ? '未知' : total}',
-                        style: TextStyle(
-                            fontSize: 11.5, color: Colors.grey[600]),
-                      ),
-                      const Spacer(),
-                      if (isFailed)
-                        GestureDetector(
-                          onTap: download.retryDownload,
-                          child: Text('重试',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColor.primary,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                    ],
-                  ),
+                  _bottomHint(Icons.check_circle_outline_rounded, '下载完成 · 点击即可安装',
+                      AppColor.success),
+                  const SizedBox(height: 9),
+                  _installButton(download.openDownloadFile),
                 ],
               );
+            }
+            // 下载中 → 进度卡片
+            if (task != null) {
+              return _progressPanel(download, task);
             }
             // 未下载
             final String label;
             final IconData icon;
             final Color color;
+            final String sub;
             if (isVipItem) {
               label = isVipUser ? '会员下载' : '开通会员下载';
               icon = Icons.workspace_premium_rounded;
               color = AppColor.gold;
+              sub = isVipUser ? '会员专享 · 高速下载' : '该资源仅会员可下载';
             } else if (item?.isLocal == true) {
               label = '下载安装';
               icon = Icons.download_rounded;
               color = AppColor.primary;
+              sub = '服务器直连 · 极速下载';
             } else {
               label = '解析并下载';
               icon = Icons.cloud_download_rounded;
               color = AppColor.primary;
+              sub = '来自蓝奏云 · 解析后自动开始下载';
             }
-            return _btn(
-              label: label,
-              color: color,
-              icon: icon,
-              gold: isVipItem,
-              onTap: () => _onDownload(isVipItem, loggedIn, isVipUser),
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _bottomHint(icon, sub, color),
+                const SizedBox(height: 9),
+                _btn(
+                  label: label,
+                  color: color,
+                  icon: icon,
+                  gold: isVipItem,
+                  onTap: () => _onDownload(isVipItem, loggedIn, isVipUser),
+                ),
+              ],
             );
           },
         ),
@@ -811,94 +738,145 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  /// 安装按钮（专用：绿金渐变 + 强光晕）
-  Widget _installButton(VoidCallback onTap) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF34D399), Color(0xFF10B981), Color(0xFF059669)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(R.full),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF10B981).withAlpha(110),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+  /// 底部按钮上方的说明行（图标 + 文字）
+  Widget _bottomHint(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 13, color: color.withAlpha(190)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11.5,
+              color: context.t2,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(R.full),
-        child: InkWell(
-          onTap: onTap,
+        ),
+      ],
+    );
+  }
+
+  /// 下载中：进度面板（与整体设计语言一致）
+  Widget _progressPanel(AppDetailsLogic download, DownloadTask task) {
+    final total = download.appInfo?.fileSize ?? '';
+    final done = calculateDownloadedSize(total, task.progress);
+    final isPaused = task.status == DownloadTaskStatus.paused;
+    final isFailed = task.status == DownloadTaskStatus.failed;
+
+    final Color accent = isFailed
+        ? const Color(0xFFDC2626)
+        : (isPaused ? const Color(0xFFD97706) : AppColor.primary);
+    final String title =
+        isFailed ? '下载失败' : (isPaused ? '已暂停' : '正在下载中');
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: accent.withAlpha(38),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isFailed
+                    ? Icons.error_outline_rounded
+                    : (isPaused
+                        ? Icons.pause_rounded
+                        : Icons.downloading_rounded),
+                size: 14,
+                color: accent,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: accent)),
+            const Spacer(),
+            Text('${task.progress}%',
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w900)),
+          ],
+        ),
+        const SizedBox(height: 9),
+        ClipRRect(
           borderRadius: BorderRadius.circular(R.full),
-          child: Stack(
-            children: [
-              // 顶部内高光
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 28,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(R.full)),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withAlpha(70),
-                        Colors.white.withAlpha(0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              // 左滑光带（视觉亮点）
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: 5,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFFFF59D), Color(0x00FFFFFF)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                  ),
-                ),
-              ),
-              const Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.install_mobile_rounded,
-                        size: 20, color: Colors.white),
-                    SizedBox(width: 9),
-                    Text(
-                      '安装',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          child: LinearProgressIndicator(
+            value: task.progress / 100,
+            minHeight: 8,
+            backgroundColor:
+                context.isDark ? Colors.white.withAlpha(24) : Colors.black12,
+            valueColor: AlwaysStoppedAnimation<Color>(accent),
           ),
         ),
+        const SizedBox(height: 9),
+        Row(
+          children: [
+            Text('$done / ${total.isEmpty ? '未知' : total}',
+                style: TextStyle(fontSize: 11.5, color: context.t2)),
+            const Spacer(),
+            if (isFailed)
+              _miniAction('重试', Icons.refresh_rounded,
+                  download.retryDownload, accent)
+            else if (isPaused)
+              _miniAction('继续', Icons.play_arrow_rounded,
+                  download.resumeDownload, accent)
+            else
+              _miniAction('暂停', Icons.pause_rounded, download.pauseDownload,
+                  accent),
+            const SizedBox(width: 8),
+            _miniAction('取消', Icons.close_rounded, download.cancelDownload,
+                const Color(0xFF6B7280)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _miniAction(
+      String label, IconData icon, VoidCallback onTap, Color color) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(R.full),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withAlpha(context.isDark ? 40 : 24),
+          borderRadius: BorderRadius.circular(R.full),
+          border: Border.all(color: color.withAlpha(70)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: color)),
+          ],
+        ),
       ),
+    );
+  }
+
+  /// 安装按钮（与 _btn 完全同构，仅配色为成功绿，保证状态切换不跳戏）
+  Widget _installButton(VoidCallback onTap) {
+    return _btn(
+      label: '安装',
+      color: AppColor.success,
+      icon: Icons.install_mobile_rounded,
+      onTap: onTap,
     );
   }
 

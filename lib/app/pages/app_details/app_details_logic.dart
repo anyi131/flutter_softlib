@@ -112,86 +112,72 @@ class AppDetailsLogic extends GetxController {
   }
 
   /// 获取软件信息（双数据源）
+  /// ★ 性能：先用列表页已带过来的数据立即渲染（秒开），
+  ///   仅在关键信息缺失时才在后台静默补全，绝不阻塞首屏。
   Future<void> getAppInfo() async {
     isLoadingInfo = true;
     update(['appInfo', 'share', 'download']);
-    try {
-      // ★ 蓝奏云文件夹的软件：直接用传入的数据构造，不走后台查询
-      if (item != null && item!.fromFolder) {
+
+    // ① 立即用本地已有数据构造（不等待任何网络）
+    if (item != null) {
+      final it = item!;
+      final hasLocalInfo = it.description.isNotEmpty ||
+          it.size.isNotEmpty ||
+          it.icon.isNotEmpty ||
+          it.title.isNotEmpty;
+      if (hasLocalInfo || it.fromFolder) {
         appInfo = LzyFileInfoData(
-          fileIcon: item!.icon,
-          fileName: item!.title,
-          fileSize: item!.size,
-          fileTime: item!.uploadDate.isNotEmpty ? item!.uploadDate : '最近更新',
-          fileType: '蓝奏云',
-          fileDesc: item!.description.isNotEmpty
-              ? item!.description
-              : '本软件来自蓝奏云文件夹，请放心下载。',
-          fileImage: item!.screenshots.isNotEmpty
-              ? item!.screenshots.first
-              : '',
+          fileIcon: it.icon,
+          fileName: it.title,
+          fileSize: it.size,
+          fileTime: it.fromFolder
+              ? (it.uploadDate.isNotEmpty ? it.uploadDate : '最近更新')
+              : it.version,
+          fileType: it.isLocal ? '服务器直传' : '蓝奏云',
+          fileDesc: it.description.isNotEmpty
+              ? it.description
+              : (it.fromFolder ? '本软件来自蓝奏云文件夹，请放心下载。' : ''),
+          fileImage: it.screenshots.isNotEmpty ? it.screenshots.first : '',
         );
         isLoadingInfo = false;
         update(['appInfo', 'share', 'download']);
-        return;
       }
-      // 服务器直传：优先展示数据库信息
-      if (item != null &&
-          (item!.description.isNotEmpty ||
-              item!.size.isNotEmpty ||
-              item!.icon.isNotEmpty)) {
+    }
+
+    // ② 后台静默补全（仅当关闭了本地数据仍不完整时）
+    final needFetch = item == null
+        ? dowUrl.isNotEmpty
+        : (!item!.isLocal &&
+            item!.url.isNotEmpty &&
+            (item!.description.isEmpty || item!.size.isEmpty));
+    if (!needFetch) return;
+
+    try {
+      final target = item?.url ?? dowUrl;
+      final info = await service.lzyFileInfo(target);
+      if (info != null) {
+        final it = item;
+        final dbIcon = it?.icon ?? '';
+        final parsedIcon = (info['icon'] ?? '').toString();
         appInfo = LzyFileInfoData(
-          fileIcon: item!.icon,
-          fileName: item!.title,
-          fileSize: item!.size,
-          fileTime: item!.version,
-          fileType: item!.isLocal ? '服务器直传' : '蓝奏云',
-          fileDesc: item!.description,
+          fileIcon: dbIcon.isNotEmpty ? dbIcon : parsedIcon,
+          fileName: (it?.title.isNotEmpty == true)
+              ? it!.title
+              : (info['name'] ?? '').toString(),
+          fileSize: (it?.size.isNotEmpty == true)
+              ? it!.size
+              : (info['size'] ?? '').toString(),
+          fileTime: (info['time'] ?? it?.version ?? '').toString(),
+          fileType: (info['type'] ?? '蓝奏云').toString(),
+          fileDesc: (it?.description.isNotEmpty == true)
+              ? it!.description
+              : (info['des'] ?? '').toString(),
         );
-      }
-      // 蓝奏云：补充解析出的文件信息（图标优先用后台配置的）
-      if (item != null && !item!.isLocal && item!.url.isNotEmpty) {
-        final info = await service.lzyFileInfo(item!.url);
-        if (info != null) {
-          // 图标优先级：数据库 icon > 解析出的 icon > 空
-          final dbIcon = item!.icon;
-          final parsedIcon = (info['icon'] ?? '').toString();
-          appInfo = LzyFileInfoData(
-            fileIcon: dbIcon.isNotEmpty ? dbIcon : parsedIcon,
-            fileName: item!.title.isNotEmpty
-                ? item!.title
-                : (info['name'] ?? '').toString(),
-            fileSize: item!.size.isNotEmpty
-                ? item!.size
-                : (info['size'] ?? '').toString(),
-            fileTime: (info['time'] ?? item!.version).toString(),
-            fileType: (info['type'] ?? '蓝奏云').toString(),
-            fileDesc: item!.description.isNotEmpty
-                ? item!.description
-                : (info['des'] ?? '').toString(),
-          );
-        }
-      }
-      if (appInfo == null && dowUrl.isNotEmpty) {
-        // 兜底：只有蓝奏云链接（旧调用方式）
-        final info = await service.lzyFileInfo(dowUrl);
-        if (info != null) {
-          appInfo = LzyFileInfoData(
-            fileIcon: (info['icon'] ?? '').toString(),
-            fileName: (info['name'] ?? '').toString(),
-            fileSize: (info['size'] ?? '').toString(),
-            fileTime: (info['time'] ?? '').toString(),
-            fileType: (info['type'] ?? '').toString(),
-            fileDesc: (info['des'] ?? '').toString(),
-          );
-        }
-      }
-      if (appInfo == null) {
-        msgError = '获取软件信息失败';
       }
     } catch (e) {
       logger.e(e.toString());
-      msgError ??= '网络异常，请稍后重试';
+      // 已有本地数据时不报错，静默处理
+      if (appInfo == null) msgError ??= '网络异常，请稍后重试';
     } finally {
       isLoadingInfo = false;
       update(['appInfo', 'share', 'download']);

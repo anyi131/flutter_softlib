@@ -215,15 +215,21 @@ class SoftService {
   }
 
   /// 蓝奏云文件信息（文件名/大小/图标/描述）
+  /// ★ 带内存缓存，同一链接 10 分钟内不重复请求
   Future<Map<String, dynamic>?> lzyFileInfo(String lzyUrl) async {
+    final ck = 'lzyinfo_$lzyUrl';
+    final hit = _cache[ck];
+    if (hit != null && !hit.expired) return hit.data as Map<String, dynamic>?;
     final resp = await _dio.get(
       '/api/softlib/lzy_file_info',
       queryParameters: {'url': lzyUrl},
-      options: Options(receiveTimeout: const Duration(seconds: 30)),
+      options: Options(receiveTimeout: const Duration(seconds: 12)),
     );
     final data = resp.data;
     if (data is Map && data['code'] == 1 && data['data'] is Map) {
-      return Map<String, dynamic>.from(data['data']);
+      final map = Map<String, dynamic>.from(data['data']);
+      _cache[ck] = _CacheEntry(map);
+      return map;
     }
     return null;
   }
