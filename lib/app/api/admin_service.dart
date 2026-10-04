@@ -372,6 +372,19 @@ class AdminService {
     return [];
   }
 
+  /// 新增 / 编辑目录
+  Future<void> collectDirSave(Map<String, dynamic> data) async =>
+      _post('collect_dir_save', data);
+
+  /// 启用 / 禁用目录
+  Future<void> collectDirToggle(int configId, bool enabled) async =>
+      _post('collect_dir_toggle',
+          {'config_id': configId, 'status': enabled ? 1 : 0});
+
+  /// 删除目录
+  Future<void> collectDirDelete(int configId) async =>
+      _post('collect_dir_delete', {'config_id': configId});
+
   /// 采集日志（全部历史结果，含蓝奏云链接）
   Future<Map<String, dynamic>> collectLogs() async =>
       Map<String, dynamic>.from((await _post('collect_logs'))['data'] ?? {});

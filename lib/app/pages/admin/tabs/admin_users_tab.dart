@@ -577,6 +577,12 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                     icon: Icons.edit_outlined,
                     onTap: () => _editUser(u)),
                 MiniAction(
+                  label: '重置密码',
+                  icon: Icons.key_rounded,
+                  color: C.violet,
+                  onTap: () => _resetPassword(u),
+                ),
+                MiniAction(
                   label: '余额',
                   icon: Icons.account_balance_wallet_outlined,
                   color: C.success,
@@ -726,6 +732,79 @@ class _AdminUsersTabState extends State<AdminUsersTab>
       await _svc.grantVip(id, d);
       ToastUtil.success('已赠送 $d 天会员');
       _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  /// 重置用户密码（独立入口，不会在编辑资料时误改）
+  Future<void> _resetPassword(Map u) async {
+    final id = int.tryParse('${u['id']}') ?? 0;
+    final c1 = TextEditingController();
+    String err = '';
+    bool hide = true;
+
+    final ok = await Get.dialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
+        return AlertDialog(
+          title: Text('重置密码：${u['nickname']}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('设置一个新的登录密码（至少 6 位）。',
+                  style: TextStyle(fontSize: 12.5)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: c1,
+                obscureText: hide,
+                decoration: InputDecoration(
+                  labelText: '新密码',
+                  isDense: true,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      hide ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      size: 18,
+                    ),
+                    onPressed: () => setD(() => hide = !hide),
+                  ),
+                ),
+              ),
+              if (err.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(err,
+                      style: const TextStyle(
+                          fontSize: 12.5,
+                          color: C.danger,
+                          fontWeight: FontWeight.w700)),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Get.back(result: false),
+                child: const Text('取消')),
+            FilledButton(
+              onPressed: () {
+                if (c1.text.trim().length < 6) {
+                  setD(() => err = '密码至少 6 位');
+                  return;
+                }
+                Get.back(result: true);
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      }),
+    );
+    if (ok != true) return;
+    try {
+      await _svc.saveUser({'id': id, 'password': c1.text.trim()});
+      ToastUtil.success('密码已重置');
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
     }
@@ -963,7 +1042,6 @@ class _AdminUsersTabState extends State<AdminUsersTab>
     final scoreCtrl = TextEditingController(text: '${u['score'] ?? 0}');
     final moneyCtrl = TextEditingController(text: '${u['money'] ?? '0'}');
     final titleCtrl = TextEditingController(text: '${u['title'] ?? ''}');
-    final pwdCtrl = TextEditingController();
 
     final ok = await showDialog<bool>(
       context: context,
@@ -1018,10 +1096,6 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                     decoration: const InputDecoration(
                         labelText: '自定义称号',
                         helperText: '显示在广场动态旁，留空则清除')),
-                TextField(
-                    controller: pwdCtrl,
-                    decoration: const InputDecoration(
-                        labelText: '新密码（留空不修改）')),
               ],
             ),
           ),
@@ -1045,7 +1119,6 @@ class _AdminUsersTabState extends State<AdminUsersTab>
         'score': int.tryParse(scoreCtrl.text) ?? 0,
         'money': moneyCtrl.text.trim(),
         'title': titleCtrl.text.trim(),
-        if (pwdCtrl.text.trim().isNotEmpty) 'password': pwdCtrl.text.trim(),
       });
       ToastUtil.success('保存成功');
       _load();

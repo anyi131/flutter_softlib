@@ -11,6 +11,7 @@ import 'package:photo_view/photo_view.dart';
 import '../../api/post_service.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
+import '../../routes/app_pages.dart';
 import '../../utils/toast_util.dart';
 import '../../api/user_service.dart';
 import '../../models/post_item.dart';
