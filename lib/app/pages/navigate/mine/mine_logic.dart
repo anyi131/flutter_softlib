@@ -104,7 +104,7 @@ class MineLogic extends GetxController {
   /// 充值余额 —— 打开会员中心（复用现有支付通道）
   Future<void> recharge() async {
     if (!isLoggedIn) return openLogin();
-    Get.toNamed(Routes.vip);
+    Get.toNamed(Routes.recharge);
   }
 
   Future<void> openLogin() async {

@@ -71,6 +71,37 @@ class PayService {
   }
 
   /// 创建订单，返回收银台地址
+  /// 余额充值套餐（与会员套餐分开）
+  Future<RechargePlans> rechargePlans() async {
+    final data = _unwrap(await _dio.get('/api/softlib/pay/recharge_plans'));
+    final m = data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+    final list = ((m['plans'] as List?) ?? [])
+        .whereType<Map>()
+        .map((e) => PayPlan.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+    final methods = ((m['methods'] as Map?) ?? {})
+        .map((k, v) => MapEntry(k.toString(), v == true || v == 1));
+    return RechargePlans(
+      plans: list,
+      enabled: m['enabled'] == true || m['enabled'] == 1,
+      methods: methods,
+    );
+  }
+
+  /// 创建余额充值订单 → 返回收银台地址
+  Future<String> createRecharge({
+    required String money,
+    required String payType,
+  }) async {
+    final data = _unwrap(await _dio.post('/api/softlib/pay/recharge', data: {
+      'token': UserService.instance.token,
+      'money': money,
+      'pay_type': payType,
+    }));
+    final m = data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+    return (m['pay_url'] ?? '').toString();
+  }
+
   Future<PayOrder> create({
     required String planId,
     required String payType,
@@ -122,4 +153,17 @@ class PayService {
     }
     return false;
   }
+}
+
+/// 余额充值套餐集合
+class RechargePlans {
+  final List<PayPlan> plans;
+  final bool enabled;
+  final Map<String, bool> methods;
+
+  RechargePlans({
+    required this.plans,
+    required this.enabled,
+    required this.methods,
+  });
 }

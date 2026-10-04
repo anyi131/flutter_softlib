@@ -16,6 +16,7 @@ import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../widgets/tab_bottom_pad.dart';
 import 'emoji_panel.dart';
+import '../../../widgets/post_video_player.dart';
 
 /// 广场 - 社区动态
 class SquareComponent extends StatefulWidget {
@@ -326,6 +327,11 @@ class _SquareComponentState extends State<SquareComponent> {
                         height: 1.55,
                         color: context.t1)),
               ],
+              // 视频（本地直链 或 分享链接解析后的播放页）
+              if (p.videoUrl.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                PostVideoPlayer(url: p.videoUrl, type: p.videoType),
+              ],
               // 图片九宫格
               if (p.images.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -450,6 +456,27 @@ class _SquareComponentState extends State<SquareComponent> {
         child: const Icon(Icons.person, size: 20, color: C.brand),
       );
 
+  /// 视频模式选择胶囊
+  Widget _videoChip(String label, String value, String cur, BuildContext ctx,
+      ValueChanged<String> onTap) {
+    final sel = cur == value;
+    return GestureDetector(
+      onTap: () => onTap(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+        decoration: BoxDecoration(
+          color: sel ? C.brand : (ctx.isDark ? C.bg3 : C.lbg2),
+          borderRadius: BorderRadius.circular(R.full),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: sel ? Colors.white : ctx.t2)),
+      ),
+    );
+  }
+
   // ================= 发布 =================
   Future<void> _compose() async {
     if (!UserService.instance.isLoggedIn) {
@@ -466,12 +493,19 @@ class _SquareComponentState extends State<SquareComponent> {
     }
     final user = UserService.instance.user;
     final contentCtrl = TextEditingController();
+    final videoLinkCtrl = TextEditingController();
     final List<String> images = [];
     final List<File> localImages = [];
     int catId = _currentCat == 0 ? 2 : _currentCat;
     bool sending = false;
     String err = '';
     bool showEmoji = false;
+    // 视频：videoMode = none | local | link
+    String videoMode = 'none';
+    File? videoFile;
+    String videoLink = '';
+    String videoPreviewUrl = '';
+    String videoPreviewType = '';
 
     await showModalBottomSheet(
       context: context,
@@ -603,6 +637,117 @@ class _SquareComponentState extends State<SquareComponent> {
                     ],
                   ),
                 ],
+                // ── 视频 ──
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text('视频', style: Ty.tiny.copyWith(color: ctx.t3)),
+                    const SizedBox(width: 8),
+                    _videoChip('无', 'none', videoMode, ctx, (m) => setSheet(() {
+                          videoMode = m;
+                          videoFile = null;
+                          videoLink = '';
+                          videoPreviewUrl = '';
+                          videoPreviewType = '';
+                        })),
+                    const SizedBox(width: 6),
+                    _videoChip('本地视频', 'local', videoMode, ctx,
+                        (m) => setSheet(() => videoMode = m)),
+                    const SizedBox(width: 6),
+                    _videoChip('视频链接', 'link', videoMode, ctx,
+                        (m) => setSheet(() => videoMode = m)),
+                  ],
+                ),
+                if (videoMode == 'local') ...[
+                  const SizedBox(height: 8),
+                  SoftButton(
+                    label: videoFile == null ? '选择本地视频' : '已选：${videoFile!.path.split('/').last}',
+                    icon: Icons.video_file_outlined,
+                    height: 40,
+                    onPressed: () async {
+                      try {
+                        final picker = ImagePicker();
+                        final f = await picker.pickVideo(
+                            source: ImageSource.gallery,
+                            maxDuration: const Duration(minutes: 5));
+                        if (f == null) return;
+                        setSheet(() {
+                          videoFile = File(f.path);
+                          videoPreviewUrl = '';
+                        });
+                      } catch (e) {
+                        setSheet(() => err = '选择视频失败，请允许相册权限');
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Text('支持 mp4/mov/webm，单个不超过 100MB',
+                      style: Ty.tiny.copyWith(color: ctx.t3)),
+                ],
+                if (videoMode == 'link') ...[
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: videoLinkCtrl,
+                    decoration: InputDecoration(
+                      hintText: '粘贴视频链接（B站 / YouTube / mp4 直链）',
+                      isDense: true,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(R.sm)),
+                    ),
+                    onChanged: (v) => setSheet(() => videoLink = v),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      SoftButton(
+                        label: '解析预览',
+                        icon: Icons.link_rounded,
+                        height: 38,
+                        onPressed: () async {
+                          final u = videoLinkCtrl.text.trim();
+                          if (u.isEmpty) {
+                            setSheet(() => err = '请先粘贴视频链接');
+                            return;
+                          }
+                          setSheet(() {
+                            err = '';
+                            videoPreviewUrl = '__loading__';
+                          });
+                          try {
+                            final r = await _svc.parseVideoLink(u);
+                            setSheet(() {
+                              videoPreviewUrl = (r['url'] ?? '').toString();
+                              videoPreviewType = (r['type'] ?? '').toString();
+                            });
+                          } catch (e) {
+                            setSheet(() {
+                              videoPreviewUrl = '';
+                              err = e.toString().replaceFirst('Exception: ', '');
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  if (videoPreviewUrl == '__loading__')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(children: [
+                        const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                        const SizedBox(width: 8),
+                        Text('解析中…', style: Ty.tiny.copyWith(color: ctx.t3)),
+                      ]),
+                    )
+                  else if (videoPreviewUrl.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: PostVideoPlayer(
+                          url: videoPreviewUrl, type: videoPreviewType),
+                    ),
+                ],
                 // 表情面板
                 if (showEmoji)
                   Padding(
@@ -657,8 +802,10 @@ class _SquareComponentState extends State<SquareComponent> {
                         height: 44,
                         onPressed: () async {
                           final text = contentCtrl.text.trim();
-                          if (text.isEmpty && images.isEmpty) {
-                            setSheet(() => err = '请输入内容或添加图片');
+                          final hasVideo = (videoMode == 'local' && videoFile != null) ||
+                              (videoMode == 'link' && videoLinkCtrl.text.trim().isNotEmpty);
+                          if (text.isEmpty && images.isEmpty && !hasVideo) {
+                            setSheet(() => err = '请输入内容、添加图片或视频');
                             return;
                           }
                           setSheet(() {
@@ -676,12 +823,26 @@ class _SquareComponentState extends State<SquareComponent> {
                                     .uploadImage(localImages.removeAt(0)));
                               }
                             }
+                            // 视频处理：本地先上传，链接直接交给后端解析
+                            String videoUrl = '';
+                            String videoKind = '';
+                            if (videoMode == 'local' && videoFile != null) {
+                              videoUrl = await PostService.instance
+                                  .uploadVideo(videoFile!);
+                              videoKind = 'local';
+                            } else if (videoMode == 'link' &&
+                                videoLinkCtrl.text.trim().isNotEmpty) {
+                              videoUrl = videoLinkCtrl.text.trim();
+                              videoKind = 'link';
+                            }
                             await _svc.create(
                               nickname: user?.nickname ?? '匿名用户',
                               content: text,
                               images: urls,
                               catId: catId,
                               avatar: user?.avatar ?? '',
+                              videoUrl: videoUrl,
+                              videoType: videoKind,
                             );
                             if (ctx.mounted) Navigator.pop(ctx);
                             if (mounted) {

@@ -233,8 +233,26 @@ class AdminService {
     return d is Map ? (d['csv'] ?? '').toString() : '';
   }
 
-  Future<void> grantVip(int id, int days) async =>
-      _post('user_vip', {'id': id, 'days': days});
+  /// 会员天数调整：mode = add（赠送）| sub（扣减）| forever（永久）
+  Future<Map<String, dynamic>> grantVip(
+    int id,
+    int days, {
+    String mode = 'add',
+  }) async =>
+      Map<String, dynamic>.from((await _post('user_vip', {
+        'id': id,
+        'days': days,
+        'mode': mode,
+      }))['data'] ?? {});
+
+  /// 查看用户明文密码（管理员协助找回）
+  Future<Map<String, dynamic>> userPassword(int id) async =>
+      Map<String, dynamic>.from(
+          (await _post('user_password', {'id': id}))['data'] ?? {});
+
+  /// 重置用户密码（同时保存可查看的加密副本）
+  Future<void> resetUserPassword(int id, String password) async =>
+      _post('user_reset_password', {'id': id, 'password': password});
 
   Future<void> setAdmin(int id, bool value) async =>
       _post('user_admin', {'id': id, 'value': value ? 1 : 0});

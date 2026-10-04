@@ -61,6 +61,8 @@ class PostService {
     List<String> images = const [],
     int catId = 0,
     String avatar = '',
+    String videoUrl = '',
+    String videoType = '',
   }) async {
     final r = await _dio.post('/api/softlib/post/create', data: {
       'token': UserService.instance.token,
@@ -69,6 +71,8 @@ class PostService {
       'images': images.join(','),
       'cat_id': catId,
       'avatar': avatar,
+      if (videoUrl.isNotEmpty) 'video_url': videoUrl,
+      if (videoType.isNotEmpty) 'video_type': videoType,
     });
     if (r.data is Map && r.data['code'] != 1) {
       throw Exception(r.data['msg'] ?? '发布失败');
@@ -167,5 +171,30 @@ class PostService {
       return (r.data['data']['url'] ?? '').toString();
     }
     throw Exception(r.data is Map ? (r.data['msg'] ?? '上传失败') : '上传失败');
+  }
+
+  /// 上传视频（本地模式）
+  Future<String> uploadVideo(File file) async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(file.path,
+          filename: file.path.split('/').last),
+    });
+    final r = await _dio.post('/api/softlib/video/index',
+        data: form,
+        options: Options(receiveTimeout: const Duration(minutes: 5)));
+    if (r.data is Map && r.data['code'] == 1) {
+      return (r.data['data']['url'] ?? '').toString();
+    }
+    throw Exception(r.data is Map ? (r.data['msg'] ?? '视频上传失败') : '视频上传失败');
+  }
+
+  /// 解析视频分享链接（链接模式）
+  Future<Map<String, dynamic>> parseVideoLink(String url) async {
+    final r = await _dio.get('/api/softlib/videoparse/index',
+        queryParameters: {'url': url});
+    if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
+      return Map<String, dynamic>.from(r.data['data']);
+    }
+    throw Exception(r.data is Map ? (r.data['msg'] ?? '解析失败') : '解析失败');
   }
 }

@@ -589,7 +589,7 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                   onTap: () => _editMoney(u),
                 ),
                 MiniAction(
-                  label: '+VIP',
+                  label: '会员',
                   icon: Icons.workspace_premium_outlined,
                   color: C.gold,
                   onTap: () => _grantVip(id, 30),
@@ -662,125 +662,104 @@ class _AdminUsersTabState extends State<AdminUsersTab>
         ],
       );
 
-  /// 赠送会员：天数可从后台配置里读，也可自由输入
+  /// 会员天数调整：赠送 / 扣减 / 设为永久
   Future<void> _grantVip(int id, int days) async {
-    int d = days;
-    final dayCtrl = TextEditingController(text: '$d');
-
-    final ok = await Get.dialog<bool>(AlertDialog(
-      title: const Text('赠送会员'),
-      content: StatefulBuilder(builder: (ctx, setD) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('会在现有到期日上叠加（不是从今天算）',
-                style: TextStyle(fontSize: 12)),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [7, 30, 90, 180, 365, 3650].map((n) {
-                final sel = d == n;
-                return GestureDetector(
-                  onTap: () => setD(() {
-                    d = n;
-                    dayCtrl.text = '$n';
-                  }),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 13, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: sel ? Deco.brandGradient : null,
-                      color: sel ? null : Theme.of(ctx).cardColor,
-                      borderRadius: BorderRadius.circular(R.full),
-                      border: sel ? null : Border.all(color: C.stroke),
-                    ),
-                    child: Text(n >= 3650 ? '永久' : '$n 天',
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: sel ? Colors.white : ctx.t2)),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: dayCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: '自定义天数',
-                helperText: '点上面的快捷选项或直接输入',
-                isDense: true,
-              ),
-              onChanged: (v) => setD(() => d = int.tryParse(v) ?? d),
-            ),
-          ],
-        );
-      }),
-      actions: [
-        TextButton(
-            onPressed: () => Get.back(result: false),
-            child: const Text('取消')),
-        FilledButton(
-            onPressed: () => Get.back(result: true), child: const Text('确定')),
-      ],
-    ));
-    if (ok != true) return;
-    try {
-      await _svc.grantVip(id, d);
-      ToastUtil.success('已赠送 $d 天会员');
-      _load();
-    } catch (e) {
-      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
-    }
-  }
-
-  /// 重置用户密码（独立入口，不会在编辑资料时误改）
-  Future<void> _resetPassword(Map u) async {
-    final id = int.tryParse('${u['id']}') ?? 0;
-    final c1 = TextEditingController();
+    String mode = 'add'; // add | sub | forever
+    final dayCtrl = TextEditingController(text: '30');
     String err = '';
-    bool hide = true;
 
     final ok = await Get.dialog<bool>(
       StatefulBuilder(builder: (ctx, setD) {
         return AlertDialog(
-          title: Text('重置密码：${u['nickname']}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('设置一个新的登录密码（至少 6 位）。',
-                  style: TextStyle(fontSize: 12.5)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: c1,
-                obscureText: hide,
-                decoration: InputDecoration(
-                  labelText: '新密码',
-                  isDense: true,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      hide ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                      size: 18,
-                    ),
-                    onPressed: () => setD(() => hide = !hide),
+          title: const Text('会员天数调整',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('「赠送」在现有到期日上叠加；「扣减」从到期日往前扣。',
+                      style: TextStyle(fontSize: 12)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _modeChip('赠送', 'add', mode, ctx,
+                          (m) => setD(() => mode = m)),
+                      _modeChip('扣减', 'sub', mode, ctx,
+                          (m) => setD(() => mode = m)),
+                      _modeChip('设为永久', 'forever', mode, ctx,
+                          (m) => setD(() => mode = m)),
+                    ],
                   ),
-                ),
+                  if (mode != 'forever') ...[
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [1, 7, 30, 90, 365].map((n) {
+                        final sel = dayCtrl.text == '$n';
+                        return GestureDetector(
+                          onTap: () => setD(() => dayCtrl.text = '$n'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 13, vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: sel ? Deco.brandGradient : null,
+                              color: sel ? null : Theme.of(ctx).cardColor,
+                              borderRadius: BorderRadius.circular(R.full),
+                              border: sel ? null : Border.all(color: C.stroke),
+                            ),
+                            child: Text('$n 天',
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: sel ? Colors.white : ctx.t2)),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: dayCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: '天数（也可自己输入）',
+                        isDense: true,
+                      ),
+                      onChanged: (_) => setD(() {}),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: C.gold.withAlpha(24),
+                        borderRadius: BorderRadius.circular(R.sm),
+                      ),
+                      child: const Text('设为永久会员（到期日 2099-12-31）',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: C.gold)),
+                    ),
+                  ],
+                  if (err.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(err,
+                          style: const TextStyle(
+                              fontSize: 12.5,
+                              color: C.danger,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                ],
               ),
-              if (err.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(err,
-                      style: const TextStyle(
-                          fontSize: 12.5,
-                          color: C.danger,
-                          fontWeight: FontWeight.w700)),
-                ),
-            ],
+            ),
           ),
           actions: [
             TextButton(
@@ -788,24 +767,218 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                 child: const Text('取消')),
             FilledButton(
               onPressed: () {
-                if (c1.text.trim().length < 6) {
-                  setD(() => err = '密码至少 6 位');
-                  return;
+                if (mode != 'forever') {
+                  final n = int.tryParse(dayCtrl.text.trim()) ?? 0;
+                  if (n <= 0) {
+                    setD(() => err = '请输入大于 0 的天数');
+                    return;
+                  }
                 }
                 Get.back(result: true);
               },
-              child: const Text('保存'),
+              child: const Text('确定'),
             ),
           ],
         );
       }),
     );
     if (ok != true) return;
+    final n = mode == 'forever' ? 0 : (int.tryParse(dayCtrl.text.trim()) ?? 0);
     try {
-      await _svc.saveUser({'id': id, 'password': c1.text.trim()});
-      ToastUtil.success('密码已重置');
+      final r = await _svc.grantVip(id, n, mode: mode);
+      ToastUtil.success(mode == 'forever'
+          ? '已设为永久会员'
+          : (mode == 'sub' ? '已扣减 $n 天' : '已赠送 $n 天'));
+      _load();
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  /// 密码管理：查看原密码 + 重置新密码（两个 Tab）
+  Future<void> _resetPassword(Map u) async {
+    final id = int.tryParse('${u['id']}') ?? 0;
+    final c1 = TextEditingController();
+    String err = '';
+    bool hide = true;
+    bool loadingOld = true;
+    String oldPwd = '';
+    bool oldAvailable = false;
+    bool showOld = false;
+    String tab = 'view'; // view | set
+
+    await Get.dialog<bool>(
+      StatefulBuilder(builder: (ctx, setD) {
+        // 首次打开时拉取原密码
+        if (loadingOld) {
+          AdminService.instance.userPassword(id).then((r) {
+            if (!ctx.mounted) return;
+            setD(() {
+              loadingOld = false;
+              oldPwd = (r['password'] ?? '').toString();
+              oldAvailable = r['available'] == true;
+            });
+          }).catchError((e) {
+            if (ctx.mounted) {
+              setD(() {
+                loadingOld = false;
+                oldAvailable = false;
+              });
+            }
+          });
+        }
+
+        return AlertDialog(
+          title: Text('密码管理：${u['nickname']}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _modeChip('查看原密码', 'view', tab, ctx,
+                          (m) => setD(() => tab = m)),
+                      const SizedBox(width: 8),
+                      _modeChip('重置密码', 'set', tab, ctx,
+                          (m) => setD(() => tab = m)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (tab == 'view') ...[
+                    if (loadingOld)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Row(children: [
+                          SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 10),
+                          Text('读取中…', style: TextStyle(fontSize: 12.5)),
+                        ]),
+                      )
+                    else if (!oldAvailable)
+                      const Text(
+                        '该账号没有可查看的密码。\n'
+                        '原因：这是站点上注册或早期创建的账号，只存了单向加密的密码哈希，'
+                        '无法还原。可以切到「重置密码」设一个新密码。',
+                        style: TextStyle(fontSize: 12.5, height: 1.6),
+                      )
+                    else ...[
+                      const Text('该用户当前密码：',
+                          style: TextStyle(fontSize: 12.5)),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 11),
+                        decoration: BoxDecoration(
+                          color: C.brand.withAlpha(20),
+                          borderRadius: BorderRadius.circular(R.sm),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: SelectableText(
+                                showOld ? oldPwd : '●' * oldPwd.length.clamp(6, 16),
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'monospace'),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                showOld
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                size: 18,
+                              ),
+                              onPressed: () => setD(() => showOld = !showOld),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.copy_rounded, size: 18),
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(text: oldPwd));
+                                ToastUtil.success('已复制');
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '仅用于协助用户找回密码，请勿泄露。',
+                        style: TextStyle(fontSize: 11, color: C.warning),
+                      ),
+                    ],
+                  ] else ...[
+                    const Text('设置一个新的登录密码（至少 6 位）。',
+                        style: TextStyle(fontSize: 12.5)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c1,
+                      obscureText: hide,
+                      decoration: InputDecoration(
+                        labelText: '新密码',
+                        isDense: true,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            hide
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                            size: 18,
+                          ),
+                          onPressed: () => setD(() => hide = !hide),
+                        ),
+                      ),
+                    ),
+                    if (err.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Text(err,
+                            style: const TextStyle(
+                                fontSize: 12.5,
+                                color: C.danger,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Get.back(result: false),
+                child: const Text('关闭')),
+            if (tab == 'set')
+              FilledButton(
+                onPressed: () {
+                  if (c1.text.trim().length < 6) {
+                    setD(() => err = '密码至少 6 位');
+                    return;
+                  }
+                  Get.back(result: true);
+                },
+                child: const Text('保存'),
+              ),
+          ],
+        );
+      }),
+    );
+
+    // 只有点了「保存」且密码非空才提交
+    if (c1.text.trim().length >= 6) {
+      try {
+        await _svc.resetUserPassword(id, c1.text.trim());
+        ToastUtil.success('密码已重置为新密码');
+      } catch (e) {
+        ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 

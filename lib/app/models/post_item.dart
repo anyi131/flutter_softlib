@@ -6,6 +6,9 @@ class PostItem {
   final String avatar;
   final String content;
   final List<String> images;
+  final String videoUrl;
+  final String videoType;
+  final String videoCover;
   final int catId;
   final String catTitle;
   final int likeCount;
@@ -23,6 +26,9 @@ class PostItem {
     required this.avatar,
     required this.content,
     required this.images,
+    this.videoUrl = '',
+    this.videoType = '',
+    this.videoCover = '',
     required this.catId,
     required this.catTitle,
     required this.likeCount,
@@ -43,6 +49,9 @@ class PostItem {
         nickname: _s(j['nickname']),
         avatar: _s(j['avatar']),
         content: _s(j['content']),
+        videoUrl: _s(j['video_url']),
+        videoType: _s(j['video_type']),
+        videoCover: _s(j['video_cover']),
         images: (j['images'] is List)
             ? (j['images'] as List).map((e) => e.toString()).toList()
             : _s(j['images'])

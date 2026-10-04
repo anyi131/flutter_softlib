@@ -27,6 +27,9 @@ class _PayWebPageState extends State<PayWebPage> {
   late final String _url;
   late final String _outTradeNo;
   late final String _amount;
+  /// 完成后的回调（余额充值用它刷新余额；会员续费不传）
+  Future<void> Function()? _onReturn;
+  late final String _title;
   late final WebViewController _controller;
   Timer? _poll;
   bool _done = false;
@@ -41,6 +44,9 @@ class _PayWebPageState extends State<PayWebPage> {
     _url = (m['pay_url'] ?? '').toString();
     _outTradeNo = (m['out_trade_no'] ?? '').toString();
     _amount = (m['money'] ?? '').toString();
+    _title = (m['title'] ?? '会员开通').toString();
+    final cb = m['onReturn'];
+    if (cb is Future<void> Function()) _onReturn = cb;
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -96,8 +102,13 @@ class _PayWebPageState extends State<PayWebPage> {
     _poll?.cancel();
     if (paid) {
       await UserService.instance.refreshProfile();
+      if (_onReturn != null) {
+        try {
+          await _onReturn!();
+        } catch (_) {}
+      }
       if (mounted) {
-        ToastUtil.success('支付成功，会员已开通');
+        ToastUtil.success('支付成功，已到账');
         Get.back(result: true);
       }
     }
@@ -144,7 +155,7 @@ class _PayWebPageState extends State<PayWebPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('安全支付',
+                      Text(_title,
                           style: Ty.h3.copyWith(fontSize: 15, color: context.t1)),
                       if (_amount.isNotEmpty)
                         Text('应付 ¥$_amount',
