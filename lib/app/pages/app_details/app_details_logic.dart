@@ -262,7 +262,7 @@ class AppDetailsLogic extends GetxController {
       JumpUtil.openUrl(originUrl);
     } else if (go == false) {
       // 用户选「重试」
-      if (mounted) addDownload(appInfo?.fileName ?? '未知文件名');
+      addDownload(appInfo?.fileName ?? '未知文件名');
     }
   }
 

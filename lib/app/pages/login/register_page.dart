@@ -100,7 +100,7 @@ class _RegisterPageState extends State<RegisterPage> {
       _errServer = '';
     });
     try {
-      await UserService.instance.sendCode(email, 'register');
+      await UserService.instance.sendCode(email, scene: 'register');
       if (!mounted) return;
       ToastUtil.success('验证码已发送，请查收邮箱');
       setState(() => _countdown = 60);

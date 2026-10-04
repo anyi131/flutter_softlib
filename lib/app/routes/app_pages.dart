@@ -15,8 +15,8 @@ import 'package:flutter_softlib/app/pages/login/reset_page.dart';
 import 'package:flutter_softlib/app/pages/vip_center/pay_web_page.dart';
 import 'package:flutter_softlib/app/pages/vip_center/vip_page.dart';
 import 'package:flutter_softlib/app/pages/wallet/recharge_page.dart';
-import 'package:flutter_softlib/app/pages/about/about_page.dart';
-import 'package:flutter_softlib/app/pages/about/agreement_page.dart';
+import 'package:flutter_softlib/app/pages/appinfo/about_page.dart';
+import 'package:flutter_softlib/app/pages/appinfo/agreement_page.dart';
 import 'package:flutter_softlib/app/pages/message/message_page.dart';
 import 'package:get/get.dart';
 
