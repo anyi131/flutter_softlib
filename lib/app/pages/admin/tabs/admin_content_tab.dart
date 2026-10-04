@@ -719,7 +719,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             color: C.brand.withAlpha(context.isDark ? 34 : 18),
             borderRadius: BorderRadius.circular(R.sm),
           ),
-          child: const Text(
+          child: Text(
             '添加蓝奏云文件夹链接后，App 软件库会多出一个分类，点击实时解析文件夹里的软件。',
             style: Ty.small.copyWith(color: C.brand, height: 1.5),
           ),
@@ -1203,7 +1203,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             color: C.brand.withAlpha(context.isDark ? 34 : 18),
             borderRadius: BorderRadius.circular(R.sm),
           ),
-          child: const Text(
+          child: Text(
             '提示：版本号需大于 App 当前版本才会提示更新。如当前是 1.0.0，填 v1.1.0 即可触发。',
             style: Ty.small.copyWith(color: C.brand, height: 1.5),
           ),

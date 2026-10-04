@@ -129,10 +129,10 @@ class MineComponent extends StatelessWidget {
                     ? CachedNetworkImage(
                         imageUrl: logic.avatarUrl,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => _defaultAvatar(),
-                        errorWidget: (_, __, ___) => _defaultAvatar(),
+                        placeholder: (_, __) => _defaultAvatar(context),
+                        errorWidget: (_, __, ___) => _defaultAvatar(context),
                       )
-                    : _defaultAvatar(),
+                    : _defaultAvatar(context),
               ),
             ),
           ),
@@ -200,7 +200,7 @@ class MineComponent extends StatelessWidget {
     );
   }
 
-  Widget _defaultAvatar() => Container(
+  Widget _defaultAvatar(BuildContext context) => Container(
         color:
             context.isDark ? C.bg2 : const Color(0xFFEDF0F7),
         alignment: Alignment.center,
