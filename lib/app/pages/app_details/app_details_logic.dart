@@ -68,6 +68,15 @@ class AppDetailsLogic extends GetxController {
     if (appIdInt > 0) service.addAppView(appIdInt);
     getAppInfo();
     getTaskInfo();
+    // ★ 重新进入页面时，若已有进行中的任务，恢复进度轮询
+    Future.delayed(const Duration(milliseconds: 500), () {
+      final st = downloadTask?.status;
+      if (st == DownloadTaskStatus.running ||
+          st == DownloadTaskStatus.enqueued ||
+          st == DownloadTaskStatus.paused) {
+        _startProgressPolling();
+      }
+    });
     IsolateNameServer.removePortNameMapping('app_details_downloader_send_port');
     IsolateNameServer.registerPortWithName(
       port.sendPort,
@@ -228,14 +237,36 @@ class AppDetailsLogic extends GetxController {
   Future<void> getTaskInfo() async {
     String? taskIdTemp = await downloadTaskDao.queryDownloadTaskByAppId(appId);
     taskId = taskIdTemp;
+    downloadTask = null;
     if (taskId != null && taskId!.isNotEmpty) {
       List<DownloadTask>? tasks = await FlutterDownloader.loadTasksWithRawQuery(
         query: "SELECT * FROM task WHERE task_id='$taskId'",
       );
       if (tasks != null && tasks.isNotEmpty) {
         downloadTask = tasks.first;
-      } else {
-        downloadTask = null;
+      }
+    }
+    // ★ 兜底：DB 记录失效（被清理/写入失败）时，按文件名在全部任务里找，
+    //   避免「下载已开始但底部不显示进度条」
+    if (downloadTask == null) {
+      final name = appInfo?.fileName;
+      if (name != null && name.isNotEmpty) {
+        try {
+          final all = await FlutterDownloader.loadTasks();
+          if (all != null) {
+            final key = name.replaceAll(' ', '_');
+            for (final t in all.reversed) {
+              final fn = t.filename ?? '';
+              if (fn.startsWith(key) || fn.contains(key)) {
+                downloadTask = t;
+                taskId = t.taskId;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          logger.e(e.toString());
+        }
       }
     }
     update(['download']);
@@ -304,13 +335,18 @@ class AppDetailsLogic extends GetxController {
       ToastUtil.error('下载失败，请稍后重试');
       return;
     }
-    downloadTaskDao.setDownloadTask(
-      taskId: newTaskId,
-      appId: appId,
-      appIcon: appInfo?.fileIcon ?? '',
-      appName: appInfo?.fileName ?? fileName,
-      appSize: appInfo?.fileSize ?? '',
-    );
+    // 记录任务（失败也不能中断后续流程，否则进度条不会出现）
+    try {
+      await downloadTaskDao.setDownloadTask(
+        taskId: newTaskId,
+        appId: appId,
+        appIcon: appInfo?.fileIcon ?? '',
+        appName: appInfo?.fileName ?? fileName,
+        appSize: appInfo?.fileSize ?? '',
+      );
+    } catch (e) {
+      logger.e('保存下载记录失败: $e');
+    }
     _askedInstall = false;
     await getTaskInfo();
     // 轮询进度（FlutterDownloader 回调在部分机型不稳定）
@@ -321,20 +357,14 @@ class AppDetailsLogic extends GetxController {
   void _startProgressPolling() {
     _progressTimer?.cancel();
     _progressTimer = Timer.periodic(const Duration(milliseconds: 700), (t) async {
-      if (taskId == null || taskId!.isEmpty) {
+      // 交给 getTaskInfo 处理（内含 DB + 文件名兜底），它同时负责 update
+      await getTaskInfo();
+      final t0 = downloadTask;
+      if (t0 == null) {
+        // 一条任务都没找到，停止轮询
         t.cancel();
         return;
       }
-      final tasks = await FlutterDownloader.loadTasksWithRawQuery(
-        query: "SELECT * FROM task WHERE task_id='$taskId'",
-      );
-      if (tasks == null || tasks.isEmpty) {
-        t.cancel();
-        return;
-      }
-      final t0 = tasks.first;
-      downloadTask = t0;
-      update(['download']);
       if (t0.status == DownloadTaskStatus.complete) {
         t.cancel();
         _onDownloadComplete();

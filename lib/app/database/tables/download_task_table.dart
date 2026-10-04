@@ -24,7 +24,10 @@ class DownloadTaskDao extends DatabaseAccessor<AppDatabase>
     with _$DownloadTaskDaoMixin {
   DownloadTaskDao(super.db);
 
-  ///添加数据
+  /// 添加/覆盖下载任务记录
+  /// ★ 必须 upsert：appId 与 taskId 都是 unique，同一个软件重复下载时
+  ///   纯 insert 会抛 UNIQUE constraint failed，异常会中断调用方流程
+  ///   （下载已开始，但进度轮询没启动 → 底部永远不显示进度条）。
   Future<int> setDownloadTask({
     required String taskId,
     required String appId,
@@ -32,6 +35,10 @@ class DownloadTaskDao extends DatabaseAccessor<AppDatabase>
     required String appSize,
     required String appIcon,
   }) async {
+    // 先清掉该 appId 与同 taskId 的旧记录，避免唯一约束冲突
+    await (delete(downloadTasks)
+          ..where((tbl) => tbl.appId.equals(appId) | tbl.taskId.equals(taskId)))
+        .go();
     return into(downloadTasks).insert(
       DownloadTasksCompanion.insert(
         appId: appId,
