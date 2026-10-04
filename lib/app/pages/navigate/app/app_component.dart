@@ -120,23 +120,30 @@ class _AppComponentState extends State<AppComponent> {
               force: reset,
             ));
       final isFolderMode = cat != null && cat.isFolder;
-      // 文件夹模式：后端已分页，直接用返回结果
-      // 普通模式：后端一次返回全部，前端做切片
-      final start = (_page - 1) * _size;
-      final slice = isFolderMode
-          ? all
-          : (start >= all.length
-              ? <AppItem>[]
-              : all.sublist(start, (start + _size).clamp(0, all.length)));
+      debugPrint('[Softlib] _load: cat=${cat?.title} isFolder=$isFolderMode '
+          'folderItems=${folderItems?.length} all=${all.length} page=$_page reset=$reset');
+      List<AppItem> slice;
+      bool hasMore;
+      if (isFolderMode) {
+        // ★ 文件夹模式：一次性拿到全部（客户端解析），直接全量展示，不再切片
+        slice = all;
+        hasMore = false;
+      } else {
+        final start = (_page - 1) * _size;
+        slice = start >= all.length
+            ? <AppItem>[]
+            : all.sublist(start, (start + _size).clamp(0, all.length));
+        hasMore = slice.length >= _size;
+      }
       if (!mounted) return;
       setState(() {
-        if (reset) {
+        if (reset || isFolderMode) {
           _apps = slice;
         } else {
           _apps.addAll(slice);
         }
-        _hasMore = isFolderMode ? (all.isNotEmpty && slice.length >= 10) : (slice.length >= _size);
-        if (_hasMore) _page++;
+        _hasMore = hasMore;
+        if (hasMore) _page++;
         _loading = false;
       });
     } catch (_) {

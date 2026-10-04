@@ -149,9 +149,31 @@ class MineComponent extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  logged ? '账号 ${logic.uid}' : '登录后享受完整功能',
-                  style: Ty.small.copyWith(color: context.t3),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        logged ? '账号 ${logic.uid}' : '登录后享受完整功能',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Ty.small.copyWith(color: context.t3),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: C.brand.withAlpha(30),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('v1.0.2',
+                          style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: C.brandBright)),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 Row(

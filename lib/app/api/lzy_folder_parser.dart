@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/app_item.dart';
 
@@ -66,6 +67,7 @@ class LzyFolderParser {
     final uid = _match(html, RegExp(r"'uid'\s*:\s*'([^']+)'")) ?? '';
     final puid = _match(html, RegExp(r"'puid'\s*:\s*'([^']+)'")) ?? '';
 
+    debugPrint('[LzyFolder] token: fid=$fid uid=$uid puid=${puid.isNotEmpty} t=$t k=${k.length}位');
     if (fid.isEmpty || uid.isEmpty) {
       throw Exception('无法解析该文件夹（链接可能已失效）');
     }
@@ -92,6 +94,7 @@ class LzyFolderParser {
       };
       if (puid.isNotEmpty) body['puid'] = puid;
 
+      debugPrint('[LzyFolder] page $pg 请求中…');
       Map<String, dynamic>? data;
       try {
         final r = await dio.post(
@@ -111,6 +114,7 @@ class LzyFolderParser {
       }
 
       if (data == null || data['zt'] != 1) {
+        debugPrint('[LzyFolder] page $pg 失败: zt=${data?['zt']} info=${data?['info']}');
         if (pg == 1) {
           throw Exception((data?['info'] ?? '解析失败').toString());
         }
@@ -145,6 +149,7 @@ class LzyFolderParser {
         ));
       }
 
+      debugPrint('[LzyFolder] page $pg 成功: ${list.length} 条, 累计 ${out.length}');
       onProgress?.call(pg, out.length);
       if (list.length < 50) break;         // 不足一页 = 到底
 

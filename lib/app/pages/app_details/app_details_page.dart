@@ -682,12 +682,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             final task = download.downloadTask;
             // 下载完成 → 安装
             if (task != null && task.status == DownloadTaskStatus.complete) {
-              return _btn(
-                label: '安装',
-                color: C.mint,
-                icon: Icons.install_mobile_rounded,
-                onTap: download.openDownloadFile,
-              );
+              // ★ 安装按钮：饱满绿色渐变 + 光晕
+              return _installButton(download.openDownloadFile);
             }
             // 下载中
             if (task != null) {
@@ -810,6 +806,97 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               onTap: () => _onDownload(isVipItem, loggedIn, isVipUser),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  /// 安装按钮（专用：绿金渐变 + 强光晕）
+  Widget _installButton(VoidCallback onTap) {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF34D399), Color(0xFF10B981), Color(0xFF059669)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(R.full),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF10B981).withAlpha(110),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(R.full),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(R.full),
+          child: Stack(
+            children: [
+              // 顶部内高光
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 28,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(R.full)),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withAlpha(70),
+                        Colors.white.withAlpha(0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // 左滑光带（视觉亮点）
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 5,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFFFFF59D), Color(0x00FFFFFF)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+              const Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.install_mobile_rounded,
+                        size: 20, color: Colors.white),
+                    SizedBox(width: 9),
+                    Text(
+                      '安装',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

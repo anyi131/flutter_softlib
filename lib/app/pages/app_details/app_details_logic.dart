@@ -25,9 +25,13 @@ import '../../widgets/posters/posters_widget.dart';
 class AppDetailsLogic extends GetxController {
   /// 参数：appId(String) + item(AppItem) 【或旧格式 dowUrl】
   int appIdInt = 0;
+
+  /// 下载任务唯一标识
+  /// ★ 文件夹里的软件 id=0，必须用 url 生成唯一 key，否则不同软件共用下载状态
+  String _taskKey = '';
   AppItem? item;
 
-  String get appId => appIdInt.toString();
+  String get appId => _taskKey.isNotEmpty ? _taskKey : appIdInt.toString();
 
   /// 蓝奏云情况下需要的信息来源
   String dowUrl = '';
@@ -90,6 +94,10 @@ class AppDetailsLogic extends GetxController {
         item = it;
         appIdInt = it.id;
         dowUrl = it.url;
+        // ★ 唯一标识：优先用 url（文件夹软件 id=0 会冲突）
+        _taskKey = it.url.isNotEmpty
+            ? 'u_${it.url.hashCode.abs()}'
+            : (it.id > 0 ? 'i_${it.id}' : 'n_${it.title.hashCode.abs()}');
       }
       final rawId = args['appId'];
       if (rawId != null && appIdInt == 0) {
@@ -97,6 +105,9 @@ class AppDetailsLogic extends GetxController {
       }
       final rawUrl = args['dowUrl'];
       if (rawUrl != null && dowUrl.isEmpty) dowUrl = rawUrl.toString();
+      if (_taskKey.isEmpty && dowUrl.isNotEmpty) {
+        _taskKey = 'u_${dowUrl.hashCode.abs()}';
+      }
     }
   }
 
