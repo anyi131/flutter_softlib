@@ -48,12 +48,16 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
     final c = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
+      ..setUserAgent(
+          'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 '
+          '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
       ..setNavigationDelegate(NavigationDelegate(
         onPageFinished: (_) {
           if (mounted) setState(() => _ready = true);
         },
         onWebResourceError: (e) {
-          if (mounted) {
+          // 只把「主文档」的错误当失败，子资源(图片/统计)失败忽略
+          if (e.isForMainFrame != false && mounted) {
             setState(() {
               _failed = true;
               _err = e.description;

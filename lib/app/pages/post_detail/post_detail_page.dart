@@ -543,41 +543,73 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
     final ctrl = TextEditingController();
     final focus = FocusNode();
+    final List<String> images = [];
+    final List<File> localImages = [];
     bool sending = false;
     String err = '';
+    bool showEmoji = false;
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
+        Future<void> pickImage() async {
+          try {
+            final picked =
+                await ImagePicker().pickMultiImage(imageQuality: 82);
+            if (picked.isEmpty) return;
+            for (final f in picked) {
+              if (images.length >= 6) break;
+              localImages.add(File(f.path));
+              images.add(f.path);
+            }
+            setSheet(() {});
+          } catch (e) {
+            setSheet(() => err = '选择图片失败，请允许相册权限');
+          }
+        }
+
         Future<void> send() async {
           final text = ctrl.text.trim();
-          if (text.isEmpty) {
-            setSheet(() => err = '请输入内容');
+          if (text.isEmpty && images.isEmpty) {
+            setSheet(() => err = '请输入内容或添加图片');
             return;
           }
           setSheet(() {
             sending = true;
             err = '';
           });
-          final ok = await _svc.comment(
-            postId: _post!.id,
-            nickname: user.nickname.isEmpty ? '匿名用户' : user.nickname,
-            content: text,
-            avatar: user.avatar,
-            replyTo: replyTo,
-          );
-          if (!ctx.mounted) return;
-          if (ok) {
-            Navigator.pop(ctx);
-            if (!mounted) return;
-            ToastUtil.success(replyTo > 0 ? '回复成功' : '评论成功');
-            _refreshComments();
-          } else {
+          try {
+            // 先上传本地图片
+            final urls = <String>[];
+            for (final f in List<File>.from(localImages)) {
+              urls.add(await _svc.uploadImage(f));
+            }
+            final ok = await _svc.comment(
+              postId: _post!.id,
+              nickname: user.nickname.isEmpty ? '匿名用户' : user.nickname,
+              content: text.isEmpty ? '[图片]' : text,
+              avatar: user.avatar,
+              images: urls,
+              replyTo: replyTo,
+            );
+            if (!ctx.mounted) return;
+            if (ok) {
+              Navigator.pop(ctx);
+              if (!mounted) return;
+              ToastUtil.success(replyTo > 0 ? '回复成功' : '评论成功');
+              _refreshComments();
+            } else {
+              setSheet(() {
+                sending = false;
+                err = '发送失败，请重试';
+              });
+            }
+          } catch (e) {
             setSheet(() {
               sending = false;
-              err = '发送失败，请重试';
+              err = e.toString().replaceFirst('Exception: ', '');
             });
           }
         }
@@ -617,12 +649,64 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   maxLength: 500,
                   style: const TextStyle(fontSize: 14.5, height: 1.5),
                   decoration: InputDecoration(
-                    hintText:
-                        replyTo > 0 ? '回复 @$replyNick…' : '说点什么…',
+                    hintText: replyTo > 0 ? '回复 @$replyNick…' : '说点什么…',
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(R.md)),
                   ),
                 ),
+                // 已选图片预览
+                if (images.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: SizedBox(
+                      height: 66,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: images.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 6),
+                        itemBuilder: (_, i) => Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(R.xs),
+                              child: Image.file(File(images[i]),
+                                  width: 66, height: 66, fit: BoxFit.cover),
+                            ),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: GestureDetector(
+                                onTap: () => setSheet(() {
+                                  images.removeAt(i);
+                                  localImages.removeAt(i);
+                                }),
+                                child: Container(
+                                  padding: const EdgeInsets.all(1.5),
+                                  decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle),
+                                  child: const Icon(Icons.close,
+                                      size: 12, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                // 表情面板
+                if (showEmoji)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: EmojiPanel(
+                      onPick: (e) {
+                        ctrl.text += e;
+                        ctrl.selection = TextSelection.fromPosition(
+                            TextPosition(offset: ctrl.text.length));
+                        setSheet(() {});
+                      },
+                    ),
+                  ),
                 if (err.isNotEmpty) ...[
                   Text(err,
                       style: const TextStyle(
@@ -633,17 +717,29 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 ],
                 Row(
                   children: [
-                    Icon(Icons.info_outline_rounded,
-                        size: 13, color: ctx.t3),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        replyTo > 0
-                            ? '对方会收到一条回复通知提示'
-                            : '文明发言，共建良好氛围',
-                        style: Ty.tiny.copyWith(color: ctx.t3),
+                    // 图片
+                    GestureDetector(
+                      onTap: pickImage,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(Icons.image_outlined,
+                            size: 22, color: ctx.t3),
                       ),
                     ),
+                    // 表情
+                    GestureDetector(
+                      onTap: () => setSheet(() => showEmoji = !showEmoji),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(Icons.emoji_emotions_outlined,
+                            size: 22,
+                            color: showEmoji ? C.brand : ctx.t3),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text('${ctrl.text.length}/500',
+                        style: Ty.tiny.copyWith(color: ctx.t3)),
+                    const SizedBox(width: 10),
                     SizedBox(
                       width: 104,
                       child: PrimaryButton(
