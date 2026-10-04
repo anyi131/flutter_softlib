@@ -167,6 +167,14 @@ class AdminService {
 
   Future<void> deleteSource(int id) async => _post('source_del', {'id': id});
 
+  /// 同步数据源（分批抓取蓝奏云文件夹内容到本地缓存）
+  Future<Map<String, dynamic>> syncSource(int id,
+      {int fromPage = 1, int pages = 10}) async {
+    final d = (await _post('source_sync',
+        {'id': id, 'from_page': fromPage, 'pages': pages}))['data'];
+    return d is Map ? Map<String, dynamic>.from(d) : {};
+  }
+
   Future<List<Map<String, dynamic>>> appCats() async {
     final d = (await _post('app_cats'))['data'];
     return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];

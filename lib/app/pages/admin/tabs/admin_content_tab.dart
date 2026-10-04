@@ -809,13 +809,21 @@ class _AdminContentTabState extends State<AdminContentTab>
                           style: const TextStyle(
                               fontSize: 14, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
-                      Text('${s['url']}',
+                      Text(
+                          '${s['url']}'
+                          '${(s['sync_count'] ?? 0) > 0 ? '  ·  已同步 ${s['sync_count']} 条' : '  ·  未同步'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize: 11, color: Colors.grey[500])),
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: '同步文件夹内容',
+                  icon: const Icon(Icons.sync_rounded,
+                      size: 19, color: Color(0xFF10B981)),
+                  onPressed: () => _syncSource(s),
                 ),
                 IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 19),
@@ -993,6 +1001,71 @@ class _AdminContentTabState extends State<AdminContentTab>
         'default_shots': shotsCtrl.text.trim(),
       });
       ToastUtil.success('保存成功');
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  /// 同步数据源（自动分批续传）
+  Future<void> _syncSource(Map s) async {
+    final id = int.tryParse('${s['id']}') ?? 0;
+    if (id <= 0) return;
+
+    // 询问起止页
+    final ctrl = TextEditingController(
+        text: '${(int.tryParse('${s['sync_count']}') ?? 0) > 0 ? 1 : 1}');
+    final pagesCtrl = TextEditingController(text: '10');
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('同步文件夹'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '蓝奏云有频率限制，建议每次同步 10 页（500 条），'
+              '若提示限流请等待 1-2 分钟后再次同步（已同步的会保留）。',
+              style: TextStyle(fontSize: 12.5, color: Colors.grey[600], height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: '起始页')),
+            const SizedBox(height: 10),
+            TextField(
+                controller: pagesCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: '本批页数')),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false), child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Get.back(result: true), child: const Text('开始同步')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    ToastUtil.info('正在同步，请稍候…');
+    try {
+      final d = await _svc.syncSource(
+        id,
+        fromPage: int.tryParse(ctrl.text) ?? 1,
+        pages: int.tryParse(pagesCtrl.text) ?? 10,
+      );
+      if (d['throttled'] == true) {
+        ToastUtil.error('蓝奏云限流中，请等待 1-2 分钟后重试'
+            '（已保留 ${d['total']} 条）');
+      } else {
+        final next = (d['last_page'] ?? 0) as int;
+        final more = d['has_more'] == true;
+        ToastUtil.success('已同步 ${d['total']} 条'
+            '${more ? '，可继续从第 ${next + 1} 页同步' : ''}');
+      }
       _load();
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
