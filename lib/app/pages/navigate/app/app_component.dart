@@ -3,6 +3,7 @@ import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../api/lzy_folder_parser.dart';
 import '../../../api/soft_service.dart';
 import '../../../design/adaptive.dart';
 import '../../../design/ui.dart';
@@ -37,6 +38,8 @@ class _AppComponentState extends State<AppComponent> {
 
   /// 数据源（后台可配）：all / local / lzy
   String _source = 'all';
+  bool _folderParsing = false;
+  String _folderProgress = '';
 
   @override
   void initState() {
@@ -75,15 +78,47 @@ class _AppComponentState extends State<AppComponent> {
     }
     try {
       final cat = _currentCat;
-      // ★ 蓝奏云文件夹分类：直接解析文件夹内容（支持翻页）
-      final all = (cat != null && cat.isFolder)
-          ? await _svc.fetchFolder(cat.url, pwd: cat.pwd, pgs: _page)
-          : await _svc.fetchApps(
+      // ★ 蓝奏云文件夹分类：优先用【客户端本地解析】
+      //   （服务器 IP 会被蓝奏云限流只能拿 500 条，客户端可拿全部）
+      List<AppItem>? folderItems;
+      if (cat != null && cat.isFolder) {
+        setState(() => _folderParsing = true);
+        try {
+          folderItems = await LzyFolderParser.instance.parse(
+            cat.url,
+            pwd: cat.pwd.isEmpty ? 'password' : cat.pwd,
+            onProgress: (pg, cnt) {
+              if (mounted) {
+                setState(() {
+                  _folderProgress = '已解析 $cnt 个（第 $pg 页）';
+                });
+              }
+            },
+          );
+        } catch (e) {
+          // 客户端解析失败 → 退回服务端缓存/解析
+          debugPrint('[Softlib] client parse failed: $e');
+          folderItems = null;
+        } finally {
+          if (mounted) {
+            setState(() {
+              _folderParsing = false;
+              _folderProgress = '';
+            });
+          }
+        }
+      }
+
+      final all = (folderItems != null)
+          ? folderItems
+          : ((cat != null && cat.isFolder)
+              ? await _svc.fetchFolder(cat.url, pwd: cat.pwd, pgs: _page)
+              : await _svc.fetchApps(
               catId: _cat,
               keyword: _kw,
               provider: _source == 'all' ? '' : _source,
               force: reset,
-            );
+            ));
       final isFolderMode = cat != null && cat.isFolder;
       // 文件夹模式：后端已分页，直接用返回结果
       // 普通模式：后端一次返回全部，前端做切片
@@ -350,6 +385,11 @@ class _AppComponentState extends State<AppComponent> {
               const SizedBox(height: 14),
               Text('正在解析蓝奏云文件夹…',
                   style: Ty.small.copyWith(color: context.t3)),
+              if (_folderProgress.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(_folderProgress,
+                    style: Ty.tiny.copyWith(color: context.t3)),
+              ],
             ],
           ],
         ),
