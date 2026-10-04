@@ -47,6 +47,10 @@ class _AdminUsersTabState extends State<AdminUsersTab>
   void initState() {
     super.initState();
     _load();
+    // ★ 数据实时性：Tab 切回来就重新拉一次，避免看到旧数据
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _load();
+    });
   }
 
   Future<void> _load() async {
@@ -573,7 +577,13 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                     icon: Icons.edit_outlined,
                     onTap: () => _editUser(u)),
                 MiniAction(
-                  label: '+30天VIP',
+                  label: '余额',
+                  icon: Icons.account_balance_wallet_outlined,
+                  color: C.success,
+                  onTap: () => _editMoney(u),
+                ),
+                MiniAction(
+                  label: '+VIP',
                   icon: Icons.workspace_premium_outlined,
                   color: C.gold,
                   onTap: () => _grantVip(id, 30),
@@ -646,27 +656,34 @@ class _AdminUsersTabState extends State<AdminUsersTab>
         ],
       );
 
+  /// 赠送会员：天数可从后台配置里读，也可自由输入
   Future<void> _grantVip(int id, int days) async {
     int d = days;
+    final dayCtrl = TextEditingController(text: '$d');
+
     final ok = await Get.dialog<bool>(AlertDialog(
       title: const Text('赠送会员'),
       content: StatefulBuilder(builder: (ctx, setD) {
         return Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('选择赠送天数（会在现有到期日上叠加）',
-                style: TextStyle(fontSize: 12.5)),
+            const Text('会在现有到期日上叠加（不是从今天算）',
+                style: TextStyle(fontSize: 12)),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: [7, 30, 90, 365, 3650].map((n) {
+              children: [7, 30, 90, 180, 365, 3650].map((n) {
                 final sel = d == n;
                 return GestureDetector(
-                  onTap: () => setD(() => d = n),
+                  onTap: () => setD(() {
+                    d = n;
+                    dayCtrl.text = '$n';
+                  }),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                        horizontal: 13, vertical: 8),
                     decoration: BoxDecoration(
                       gradient: sel ? Deco.brandGradient : null,
                       color: sel ? null : Theme.of(ctx).cardColor,
@@ -681,6 +698,17 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                   ),
                 );
               }).toList(),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: dayCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: '自定义天数',
+                helperText: '点上面的快捷选项或直接输入',
+                isDense: true,
+              ),
+              onChanged: (v) => setD(() => d = int.tryParse(v) ?? d),
             ),
           ],
         );
@@ -703,9 +731,130 @@ class _AdminUsersTabState extends State<AdminUsersTab>
     }
   }
 
+  /// 修改余额（充值 / 扣减 / 直接设定）
+  Future<void> _editMoney(Map u) async {
+    final id = int.tryParse('${u['id']}') ?? 0;
+    final cur = double.tryParse('${u['money'] ?? 0}') ?? 0;
+    final amtCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    String mode = 'add'; // add | sub | set
+
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: Text('修改余额：${u['nickname']}',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+      content: StatefulBuilder(builder: (ctx, setD) {
+        final amt = double.tryParse(amtCtrl.text.trim()) ?? 0;
+        double preview = cur;
+        if (mode == 'add') preview = cur + amt;
+        if (mode == 'sub') preview = cur - amt;
+        if (mode == 'set') preview = amt;
+        if (preview < 0) preview = 0;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('当前余额  ¥${cur.toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 12.5)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                _modeChip('充值', 'add', mode, ctx, (m) => setD(() => mode = m)),
+                _modeChip('扣减', 'sub', mode, ctx, (m) => setD(() => mode = m)),
+                _modeChip('直接设定', 'set', mode, ctx,
+                    (m) => setD(() => mode = m)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: amtCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: '金额（元）',
+                isDense: true,
+                prefixText: '¥ ',
+              ),
+              onChanged: (_) => setD(() {}),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: noteCtrl,
+              decoration: const InputDecoration(
+                labelText: '备注（选填）',
+                hintText: '如：活动奖励 / 退款',
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: C.success.withAlpha(22),
+                borderRadius: BorderRadius.circular(R.sm),
+              ),
+              child: Text('改后余额  ¥${preview.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: C.success)),
+            ),
+          ],
+        );
+      }),
+      actions: [
+        TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消')),
+        FilledButton(
+            onPressed: () => Get.back(result: true), child: const Text('确定')),
+      ],
+    ));
+    if (ok != true) return;
+
+    final amt = double.tryParse(amtCtrl.text.trim()) ?? 0;
+    double target = cur;
+    if (mode == 'add') target = cur + amt;
+    if (mode == 'sub') target = cur - amt;
+    if (mode == 'set') target = amt;
+    if (target < 0) target = 0;
+    try {
+      await _svc.saveUser({
+        'id': id,
+        'money': target.toStringAsFixed(2),
+      });
+      ToastUtil.success('余额已更新为 ¥${target.toStringAsFixed(2)}');
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Widget _modeChip(String label, String value, String cur, BuildContext ctx,
+      ValueChanged<String> onTap) {
+    final sel = cur == value;
+    return GestureDetector(
+      onTap: () => onTap(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: sel ? Deco.brandGradient : null,
+          color: sel ? null : Theme.of(ctx).cardColor,
+          borderRadius: BorderRadius.circular(R.full),
+          border: sel ? null : Border.all(color: C.stroke),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: sel ? Colors.white : ctx.t2)),
+      ),
+    );
+  }
+
   /// 用户详情（只读，展示全部字段）
   Future<void> _showDetail(Map u) async {
-    final isVip = u['is_vip'] == true;
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

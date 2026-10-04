@@ -103,13 +103,14 @@ class PostService {
     return [];
   }
 
-  /// 发评论
+  /// 发评论（支持 @回复）
   Future<bool> comment({
     required int postId,
     required String nickname,
     required String content,
     String avatar = '',
     List<String> images = const [],
+    int replyTo = 0,
   }) async {
     final r = await _dio.post('/api/softlib/post/comment', data: {
       'token': UserService.instance.token,
@@ -118,6 +119,16 @@ class PostService {
       'content': content,
       'avatar': avatar,
       'images': images.join(','),
+      if (replyTo > 0) 'reply_to': replyTo,
+    });
+    return r.data is Map && r.data['code'] == 1;
+  }
+
+  /// 删除评论（仅作者或管理员）
+  Future<bool> deleteComment(int id) async {
+    final r = await _dio.post('/api/softlib/post/comment_del', data: {
+      'token': UserService.instance.token,
+      'id': id,
     });
     return r.data is Map && r.data['code'] == 1;
   }

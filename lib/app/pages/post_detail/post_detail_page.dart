@@ -37,6 +37,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
   final List<File> _imageFiles = [];
   bool _showEmoji = false;
 
+  /// 正在回复哪条评论（0 = 普通评论）
+  int _replyTo = 0;
+  String _replyNick = '';
+  final FocusNode _focus = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +51,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   @override
   void dispose() {
     _ctrl.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -341,15 +347,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ),
       );
 
-  Widget _commentHeader() =>
-      const SectionHeader(title: '评论', accent: C.brand);
+  Widget _commentHeader() => Row(
+        children: [
+          const SectionHeader(title: '评论', accent: C.brand),
+          const Spacer(),
+          Text('${_comments.length} 条',
+              style: Ty.tiny.copyWith(color: context.t3)),
+        ],
+      );
 
+  /// 评论条目：头像 + 昵称 + 身份徽标 + 内容 + @回复 + 操作
   Widget _commentTile(Map<String, dynamic> c) {
     final avatar = (c['avatar'] ?? '').toString();
-    return KitCard(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      radius: R.sm,
+    final nickname = (c['nickname'] ?? '匿名用户').toString();
+    final isAdmin = c['is_admin'] == true || c['is_admin'] == 1;
+    final isVip = c['is_vip'] == true || c['is_vip'] == 1;
+    final title = (c['title'] ?? '').toString();
+    final replyNick = (c['reply_nickname'] ?? '').toString();
+    final replyTo = (c['reply_to'] as num?)?.toInt() ?? 0;
+    final canDel = _canDeleteComment(c);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -368,14 +387,42 @@ class _PostDetailPageState extends State<PostDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${c['nickname'] ?? '匿名用户'}',
-                    style: Ty.small.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: context.t1)),
+                // 昵称 + 身份徽标
+                Wrap(
+                  spacing: 5,
+                  runSpacing: 3,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(nickname,
+                        style: Ty.small.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: context.t1)),
+                    if (isAdmin)
+                      const Pill('管理', color: C.danger, solid: true, small: true),
+                    if (isVip)
+                      const Pill('VIP', color: C.gold, solid: true, small: true),
+                    if (title.isNotEmpty)
+                      Pill(title, color: C.brand, small: true),
+                  ],
+                ),
                 const SizedBox(height: 4),
-                Text('${c['content'] ?? ''}',
-                    style: Ty.body.copyWith(fontSize: 14, height: 1.5)),
+                // 内容（回复时先显示 @某人）
+                RichText(
+                  text: TextSpan(
+                    style: Ty.body.copyWith(
+                        fontSize: 14, height: 1.5, color: context.t1),
+                    children: [
+                      if (replyTo > 0 && replyNick.isNotEmpty)
+                        TextSpan(
+                          text: '@$replyNick ',
+                          style: const TextStyle(
+                              color: C.brand, fontWeight: FontWeight.w700),
+                        ),
+                      TextSpan(text: '${c['content'] ?? ''}'),
+                    ],
+                  ),
+                ),
                 if (c['images'] is List && (c['images'] as List).isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 7),
@@ -399,12 +446,98 @@ class _PostDetailPageState extends State<PostDetailPage> {
                           .toList(),
                     ),
                   ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    Text(_relTime((c['createtime'] as num?)?.toInt() ?? 0),
+                        style: Ty.tiny.copyWith(fontSize: 10.5, color: context.t3)),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () => _startReply(c),
+                      child: Text('回复',
+                          style: Ty.tiny.copyWith(
+                              fontSize: 11.5,
+                              color: C.brand,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                    if (canDel) ...[
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: () => _deleteComment(c),
+                        child: Text('删除',
+                            style: Ty.tiny.copyWith(
+                                fontSize: 11.5, color: C.danger)),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// 自己发的或管理员可删
+  bool _canDeleteComment(Map<String, dynamic> c) {
+    final u = UserService.instance.user;
+    if (u == null) return false;
+    if (u.isAdmin) return true;
+    final cid = (c['user_id'] as num?)?.toInt() ?? 0;
+    return cid > 0 && cid == u.id;
+  }
+
+  Future<void> _deleteComment(Map<String, dynamic> c) async {
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: const Text('删除评论'),
+      content: const Text('确定删除这条评论吗？'),
+      actions: [
+        TextButton(
+            onPressed: () => Get.back(result: false), child: const Text('取消')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: C.danger),
+          onPressed: () => Get.back(result: true),
+          child: const Text('删除'),
+        ),
+      ],
+    ));
+    if (ok != true) return;
+    final done = await _svc.deleteComment((c['id'] as num?)?.toInt() ?? 0);
+    if (done) {
+      ToastUtil.success('已删除');
+      setState(() => _comments.remove(c));
+    } else {
+      ToastUtil.error('删除失败');
+    }
+  }
+
+  /// 点击「回复」→ 记录目标，输入框切到回复模式
+  void _startReply(Map<String, dynamic> c) {
+    setState(() {
+      _replyTo = (c['id'] as num?)?.toInt() ?? 0;
+      _replyNick = (c['nickname'] ?? '').toString();
+    });
+    _focus.requestFocus();
+  }
+
+  void _cancelReply() {
+    setState(() {
+      _replyTo = 0;
+      _replyNick = '';
+    });
+  }
+
+  String _relTime(int ts) {
+    if (ts <= 0) return '';
+    final d = DateTime.now().difference(
+        DateTime.fromMillisecondsSinceEpoch(ts * 1000));
+    if (d.inMinutes < 1) return '刚刚';
+    if (d.inHours < 1) return '${d.inMinutes}分钟前';
+    if (d.inDays < 1) return '${d.inHours}小时前';
+    if (d.inDays < 30) return '${d.inDays}天前';
+    final dt = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 
   Widget _inputBar() {
@@ -425,6 +558,31 @@ class _PostDetailPageState extends State<PostDetailPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // ★ 回复模式提示条
+            if (_replyTo > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.reply_rounded, size: 14, color: C.brand),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text('正在回复 @$_replyNick',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Ty.tiny.copyWith(
+                              fontSize: 12,
+                              color: C.brand,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                    GestureDetector(
+                      onTap: _cancelReply,
+                      child: Icon(Icons.close_rounded,
+                          size: 16, color: context.t3),
+                    ),
+                  ],
+                ),
+              ),
             if (_err.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
@@ -509,8 +667,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 Expanded(
                   child: TextField(
                     controller: _ctrl,
+                    focusNode: _focus,
                     decoration: InputDecoration(
-                      hintText: '写评论…',
+                      hintText: _replyTo > 0 ? '回复 @$_replyNick…' : '写评论…',
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 11),
@@ -617,6 +776,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       content: text,
       avatar: user?.avatar ?? '',
       images: urls,
+      replyTo: _replyTo,
     );
     if (!mounted) return;
     if (ok) {
@@ -624,21 +784,40 @@ class _PostDetailPageState extends State<PostDetailPage> {
       setState(() {
         _sending = false;
         _showEmoji = false;
+        // 本地先插入，带上自己的身份标识，立刻可见
         _comments.add({
+          'id': -DateTime.now().millisecondsSinceEpoch,
+          'user_id': user?.id ?? 0,
           'nickname': user?.nickname ?? '匿名用户',
           'avatar': user?.avatar ?? '',
           'content': text,
           'images': urls,
+          'createtime': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          'reply_to': _replyTo,
+          'reply_nickname': _replyNick,
+          'is_admin': user?.isAdmin == true ? 1 : 0,
+          'is_vip': user?.isVip == true ? 1 : 0,
+          'title': user?.title ?? '',
         });
         _images.clear();
         _imageFiles.clear();
+        _replyTo = 0;
+        _replyNick = '';
       });
+      // 后台再拉一次，拿真实的 id/身份
+      _refreshComments();
     } else {
       setState(() {
         _sending = false;
         _err = '评论失败，请重试';
       });
     }
+  }
+
+  Future<void> _refreshComments() async {
+    final cs = await _svc.comments(_post!.id);
+    if (!mounted || cs.isEmpty) return;
+    setState(() => _comments = cs);
   }
 
   void _preview(String url) {

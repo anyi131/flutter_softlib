@@ -621,7 +621,7 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   void _startPoll() {
     _poll?.cancel();
     _taskAt = DateTime.now().millisecondsSinceEpoch;
-    int idleTicks = 0;
+    int expiredTicks = 0;
 
     _poll = Timer.periodic(const Duration(seconds: 2), (t) async {
       if (_taskId.isEmpty) {
@@ -631,7 +631,18 @@ class _AdminCollectTabState extends State<AdminCollectTab>
       try {
         final r = await _svc.collectStatus(_taskId);
         if (!mounted) return;
-        final prevCur = _cur;
+
+        // 任务记录已被站点清理（任务早已结束）
+        if (r['expired'] == true) {
+          expiredTicks++;
+          if (expiredTicks >= 2 || !_running) {
+            t.cancel();
+            await _finishFromLog();
+          }
+          return;
+        }
+        expiredTicks = 0;
+
         setState(() {
           _status = (r['status'] ?? '').toString();
           _total = (r['total'] as num?)?.toInt() ?? _total;
@@ -641,36 +652,19 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           _results = ((r['results'] as List?) ?? [])
               .map((e) => Map<String, dynamic>.from(e))
               .toList();
+          // ★ 站点每 2 秒返回真实进度日志，直接展示，用户能实时看到在干什么
           _logs = ((r['logs'] as List?) ?? [])
               .map((e) => e.toString())
               .toList();
         });
 
-        if (_status == 'done') {
-          t.cancel();
-          await _finishFromLog();
-          return;
-        }
-
-        // ★ 站点会在任务完成后停止返回该 task_id（status 一直空、进度不动），
-        //   所以不能只等 status=='done'，否则永远卡在 0/N。
-        if (_cur == prevCur && _status.isEmpty) {
-          idleTicks++;
-        } else {
-          idleTicks = 0;
-        }
-        if (_status == '' && (_cur >= _total && _total > 0)) {
-          t.cancel();
-          await _finishFromLog();
-          return;
-        }
-        if (idleTicks >= 6) {
-          // 进度连续 12 秒没有任何变化 → 判定任务已结束，去日志取结果
+        // 进度满了就说明该完成的都完成了（站点可能稍后才给 done）
+        if (_status == 'done' || (_results.isNotEmpty && _cur >= _total && _total > 0)) {
           t.cancel();
           await _finishFromLog();
         }
       } catch (e) {
-        // 单次查询失败不中断；连续失败也会走到 idle 判定
+        // 单次查询失败不中断，继续轮询
       }
     });
   }
@@ -732,16 +726,18 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           children: [
             Row(
               children: [
-                Icon(
-                  _running
-                      ? Icons.cloud_upload_rounded
-                      : Icons.check_circle_rounded,
-                  size: 17,
-                  color: _running ? C.brand : C.success,
-                ),
-                const SizedBox(width: 7),
+                if (_running)
+                  const SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  Icon(Icons.check_circle_rounded,
+                      size: 17, color: C.success),
+                const SizedBox(width: 8),
                 Text(
-                  _running ? '正在上传到你的蓝奏云…' : '采集完成',
+                  _running ? '正在上传到你的蓝奏云…' : '采集结束',
                   style: Ty.h3.copyWith(fontSize: 13.5, color: context.t1),
                 ),
                 const Spacer(),
@@ -749,33 +745,79 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                     style: Ty.small.copyWith(color: context.t2)),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 9),
             KitProgress(value: pct, color: _running ? C.brand : C.success),
-            const SizedBox(height: 6),
+            const SizedBox(height: 7),
             Row(
               children: [
-                Text('成功 $_ok · 失败 $_fail',
-                    style: Ty.tiny.copyWith(color: context.t3)),
+                _miniStat('成功', _ok, C.success),
+                const SizedBox(width: 14),
+                _miniStat('失败', _fail, C.danger),
+                const SizedBox(width: 14),
+                _miniStat('总数', _total, C.brand),
                 const Spacer(),
                 if (_running)
                   GestureDetector(
                     onTap: _finishFromLog,
-                    child: Text('卡住了？点此从日志取结果',
+                    child: Text('立即取结果',
                         style: Ty.tiny.copyWith(
                             color: C.brand, fontWeight: FontWeight.w700)),
                   ),
               ],
             ),
+            // ★ 站点每 2 秒返回的真实进度日志 —— 直接展示，用户能看到在干什么
+            if (_logs.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.terminal_rounded, size: 13, color: context.t3),
+                  const SizedBox(width: 5),
+                  Text('实时日志',
+                      style: Ty.tiny.copyWith(
+                          color: context.t2, fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 5),
+              Container(
+                height: 116,
+                width: double.infinity,
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: context.isDark ? Colors.black38 : const Color(0xFF10131C),
+                  borderRadius: BorderRadius.circular(R.sm),
+                ),
+                child: ListView(
+                  reverse: true,
+                  children: _logs
+                      .map((l) => Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Text(
+                              l,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                height: 1.5,
+                                fontFamily: 'monospace',
+                                color: Color(0xFF9FE8B5),
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
             if (doneLinks.isNotEmpty) ...[
               const SizedBox(height: 10),
-              Text('已生成蓝奏云链接：',
+              Text('已生成蓝奏云链接（${doneLinks.length}）',
                   style: Ty.tiny.copyWith(
                       color: context.t2, fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
-              ...doneLinks.take(5).map((r) => Padding(
+              ...doneLinks.take(8).map((r) => Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
+                        Icon(Icons.check_circle_outline_rounded,
+                            size: 13, color: C.success),
+                        const SizedBox(width: 5),
                         Expanded(
                           child: Text(
                             '${r['name']}',
@@ -784,8 +826,6 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                             style: Ty.tiny.copyWith(color: context.t1),
                           ),
                         ),
-                        Text('已生成',
-                            style: Ty.tiny.copyWith(color: C.success)),
                       ],
                     ),
                   )),
@@ -797,34 +837,27 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                 onPressed: () => _import(doneLinks),
               ),
             ],
-            if (!_running && _logs.isNotEmpty) ...[
+            if (!_running && _logs.isEmpty && doneLinks.isEmpty) ...[
               const SizedBox(height: 8),
-              SizedBox(
-                height: 70,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: context.isDark
-                        ? Colors.black26
-                        : Colors.black.withAlpha(6),
-                    borderRadius: BorderRadius.circular(R.sm),
-                  ),
-                  child: ListView(
-                    children: _logs
-                        .map((l) => Text(
-                              l.replaceAll(RegExp(r'\|URL:.*$'), ''),
-                              style: Ty.tiny.copyWith(color: context.t3),
-                            ))
-                        .toList(),
-                  ),
-                ),
-              ),
+              Text('任务已结束，可到「日志」子页查看结果链接。',
+                  style: Ty.tiny.copyWith(color: context.t3)),
             ],
           ],
         ),
       ),
     );
   }
+
+  Widget _miniStat(String label, int v, Color color) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$v',
+              style: Ty.small
+                  .copyWith(fontSize: 12.5, fontWeight: FontWeight.w800, color: color)),
+          const SizedBox(width: 3),
+          Text(label, style: Ty.tiny.copyWith(fontSize: 10.5, color: context.t3)),
+        ],
+      );
 
   Future<void> _import(List<Map<String, dynamic>> results) async {
     final items = results
