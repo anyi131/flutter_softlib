@@ -34,13 +34,15 @@ class _VipPageState extends State<VipPage> {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Deco.pageBackground(context),
           ListView(
-            padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
+            // ★ 顶部留出状态栏 + 悬浮返回栏的高度，避免内容被遮挡
+            padding: EdgeInsets.fromLTRB(14, topInset + 52, 14, 28),
             children: [
               _buildHeaderCard(),
               const SizedBox(height: 18),
@@ -99,6 +101,31 @@ class _VipPageState extends State<VipPage> {
                 ),
               ),
             ],
+          ),
+          // 悬浮返回栏（透明背景，仅一个圆形返回按钮）
+          Positioned(
+            top: topInset + 4,
+            left: 12,
+            child: GestureDetector(
+              onTap: () => Get.back(),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: context.isDark
+                      ? Colors.white.withAlpha(16)
+                      : Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: context.isDark
+                        ? Colors.white.withAlpha(24)
+                        : Colors.black.withAlpha(8),
+                  ),
+                ),
+                child: Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 16, color: context.t1),
+              ),
+            ),
           ),
         ],
       ),
