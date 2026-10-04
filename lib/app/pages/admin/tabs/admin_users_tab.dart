@@ -880,7 +880,9 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                 _detailRow('状态',
                     u['status'] == 'hidden' ? '已禁用' : '正常'),
                 _detailRow('会员',
-                    isVip ? 'VIP 至 ${u['vip_expire_text']}' : '非会员'),
+                    u['is_vip'] == true
+                        ? 'VIP 至 ${u['vip_expire_text']}'
+                        : '非会员'),
                 _detailRow('注册时间', '${u['createtime_text'] ?? '-'}'),
                 _detailRow('最后登录', '${u['login_time_text'] ?? '-'}'),
                 _detailRow('登录 IP', '${u['login_ip'] ?? '-'}'),
