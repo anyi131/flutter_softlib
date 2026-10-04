@@ -3,6 +3,8 @@ import 'package:flutter_softlib/app/widgets/report_list/report_list_logic.dart';
 import 'package:flutter_softlib/app/widgets/report_list/report_list_widget.dart';
 import 'package:get/get.dart';
 
+import '../../../design/kit.dart';
+import '../../../design/ui.dart';
 import '../../../models/http/results/report_cat_model.dart';
 import 'tips_logic.dart';
 
@@ -23,16 +25,21 @@ class _TipsComponentState extends State<TipsComponent> {
       builder: (logic) {
         List<ReportCatData>? reportCats = logic.reportCatList;
         if (reportCats == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const LoadingState(text: '正在加载线报分类…');
         }
         if (reportCats.isEmpty) {
-          return const Center(child: Text('暂无数据'));
+          return const EmptyState(
+            text: '暂无数据',
+            hint: '线报分类还没有内容，稍后再来看看',
+            icon: Icons.campaign_outlined,
+          );
         }
         return DefaultTabController(
           length: reportCats.length,
           child: Scaffold(
+            backgroundColor: Colors.transparent,
             appBar: AppBar(
-              title: Text('线报', style: TextStyle(fontWeight: FontWeight.w500)),
+              title: const Text('线报', style: Ty.h3),
               bottom: TabBar(
                 tabs:
                     reportCats
@@ -43,6 +50,9 @@ class _TipsComponentState extends State<TipsComponent> {
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
                 overlayColor: WidgetStateColor.transparent,
+                indicatorColor: C.brand,
+                labelColor: C.brand,
+                unselectedLabelColor: context.t2,
               ),
             ),
             body: TabBarView(

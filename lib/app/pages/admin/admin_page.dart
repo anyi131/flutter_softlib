@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import '../../api/admin_service.dart';
 import '../../api/user_service.dart';
 import '../../design/adaptive.dart';
+import '../../design/kit.dart';
 import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import 'tabs/admin_apps_tab.dart';
@@ -64,7 +64,7 @@ class _AdminPageState extends State<AdminPage>
         backgroundColor: Colors.transparent,
         body: Stack(children: [
           Deco.pageBackground(context),
-          const Center(child: CircularProgressIndicator(strokeWidth: 3)),
+          const LoadingState(text: '正在校验管理员权限…'),
         ]),
       );
     }
@@ -73,20 +73,10 @@ class _AdminPageState extends State<AdminPage>
         backgroundColor: Colors.transparent,
         body: Stack(children: [
           Deco.pageBackground(context),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.lock_outline,
-                    size: 56, color: context.t3.withAlpha(110)),
-                const SizedBox(height: 14),
-                Text('仅管理员可访问',
-                    style: Ty.h3.copyWith(color: context.t1)),
-                const SizedBox(height: 8),
-                Text('请使用管理员账号登录后重试',
-                    style: Ty.small.copyWith(color: context.t3)),
-              ],
-            ),
+          const EmptyState(
+            icon: Icons.lock_outline_rounded,
+            text: '仅管理员可访问',
+            hint: '请使用管理员账号登录后重试',
           ),
         ]),
       );
@@ -236,7 +226,7 @@ class _AdminPageState extends State<AdminPage>
                       color: sel ? Colors.white : context.t2),
                   const SizedBox(width: 6),
                   Text(items[i].$2,
-                      style: TextStyle(
+                      style: Ty.small.copyWith(
                           fontSize: 13,
                           fontWeight: sel ? FontWeight.w900 : FontWeight.w600,
                           color: sel ? Colors.white : context.t2)),
@@ -286,7 +276,7 @@ class _OverviewTabState extends State<_OverviewTab> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 3));
+      return const LoadingState(text: '加载概览数据…');
     }
     final items = [
       ('软件总数', _d['apps'], C.brandBright, Icons.apps_rounded),
@@ -312,10 +302,8 @@ class _OverviewTabState extends State<_OverviewTab> {
             crossAxisSpacing: 12,
             childAspectRatio: 1.7,
             children: items
-                .map((it) => Deco.glass(
-                      context,
+                .map((it) => KitCard(
                       radius: R.lg,
-                      alpha: 0.07,
                       padding: const EdgeInsets.all(14),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 
 import '../../../api/admin_service.dart';
 import '../../../api/post_service.dart';
+import '../../../design/kit.dart';
+import '../../../design/ui.dart';
 import '../../../utils/toast_util.dart';
 
 /// 内容管理：动态 / 评价 / 协议配置
@@ -81,10 +83,10 @@ class _AdminContentTabState extends State<AdminContentTab>
       children: [
         TabBar(
           controller: _tab,
-          indicatorColor: const Color(0xFF465CFF),
-          labelColor: const Color(0xFF465CFF),
-          unselectedLabelColor: Colors.grey[500],
-          labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+          indicatorColor: C.brand,
+          labelColor: C.brand,
+          unselectedLabelColor: context.t3,
+          labelStyle: Ty.small.copyWith(fontSize: 13.5, fontWeight: FontWeight.w700),
           dividerColor: Colors.transparent,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -103,7 +105,7 @@ class _AdminContentTabState extends State<AdminContentTab>
         ),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(strokeWidth: 3))
+              ? const LoadingState(text: '加载内容数据…')
               : TabBarView(
                   controller: _tab,
                   children: [
@@ -125,22 +127,18 @@ class _AdminContentTabState extends State<AdminContentTab>
   }
 
   Widget _postList() {
-    if (_posts.isEmpty) return const Center(child: Text('暂无动态'));
+    if (_posts.isEmpty) {
+      return const EmptyState(text: '暂无动态', hint: '用户发布的动态会显示在这里');
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(14),
       itemCount: _posts.length,
       itemBuilder: (context, i) {
         final p = _posts[i];
         final imgs = (p['images'] is List) ? (p['images'] as List) : [];
-        return Container(
+        return KitCard(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1C1C1E)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -152,11 +150,11 @@ class _AdminContentTabState extends State<AdminContentTab>
                   const SizedBox(width: 8),
                   Text('${p['createtime_text']}',
                       style:
-                          TextStyle(fontSize: 11, color: Colors.grey[500])),
+                          Ty.tiny.copyWith(color: context.t3)),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.delete_outline,
-                        size: 18, color: Color(0xFFDC2626)),
+                        size: 18, color: C.danger),
                     onPressed: () async {
                       await _svc.deletePost(
                           int.tryParse('${p['id']}') ?? 0);
@@ -192,7 +190,7 @@ class _AdminContentTabState extends State<AdminContentTab>
               ],
               const SizedBox(height: 6),
               Text('赞 ${p['like_count']} · 评论 ${p['comment_count']} · 浏览 ${p['views']}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  style: Ty.tiny.copyWith(color: context.t3)),
             ],
           ),
         );
@@ -201,21 +199,18 @@ class _AdminContentTabState extends State<AdminContentTab>
   }
 
   Widget _reviewList() {
-    if (_reviews.isEmpty) return const Center(child: Text('暂无评价'));
+    if (_reviews.isEmpty) {
+      return const EmptyState(
+          text: '暂无评价', icon: Icons.rate_review_outlined);
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(14),
       itemCount: _reviews.length,
       itemBuilder: (context, i) {
         final r = _reviews[i];
-        return Container(
+        return KitCard(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1C1C1E)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -233,14 +228,14 @@ class _AdminContentTabState extends State<AdminContentTab>
                             ? Icons.star_rounded
                             : Icons.star_border_rounded,
                         size: 13,
-                        color: const Color(0xFFFFB300),
+                        color: C.amber,
                       ),
                     ),
                   ),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.delete_outline,
-                        size: 18, color: Color(0xFFDC2626)),
+                        size: 18, color: C.danger),
                     onPressed: () async {
                       await _svc.deleteReview(
                           int.tryParse('${r['id']}') ?? 0);
@@ -254,7 +249,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                   style: const TextStyle(fontSize: 13.5, height: 1.5)),
               const SizedBox(height: 4),
               Text('软件ID ${r['app_id']} · ${r['createtime_text']}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  style: Ty.tiny.copyWith(color: context.t3)),
             ],
           ),
         );
@@ -267,30 +262,18 @@ class _AdminContentTabState extends State<AdminContentTab>
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            onPressed: () => _editCat(null),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('新增分类'),
-          ),
+        PrimaryButton(
+          label: '新增分类',
+          icon: Icons.add,
+          height: 46,
+          onPressed: () => _editCat(null),
         ),
+
         const SizedBox(height: 12),
         for (final c in _cats)
-          Container(
+          KitCard(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1C1C1E)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
             child: Row(
               children: [
                 Expanded(
@@ -303,7 +286,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                       const SizedBox(height: 2),
                       Text('${c['count'] ?? 0} 个软件 · 权重 ${c['weigh'] ?? 0}',
                           style:
-                              TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+                              Ty.tiny.copyWith(color: context.t3)),
                     ],
                   ),
                 ),
@@ -312,7 +295,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     onPressed: () => _editCat(c)),
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
-                      size: 19, color: Color(0xFFDC2626)),
+                      size: 19, color: C.danger),
                   onPressed: () async {
                     await _svc.deleteCat(int.tryParse('${c['id']}') ?? 0);
                     ToastUtil.success('已删除');
@@ -375,30 +358,18 @@ class _AdminContentTabState extends State<AdminContentTab>
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            onPressed: () => _editCarousel(null),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('新增轮播图'),
-          ),
+        PrimaryButton(
+          label: '新增轮播图',
+          icon: Icons.add,
+          height: 46,
+          onPressed: () => _editCarousel(null),
         ),
+
         const SizedBox(height: 12),
         for (final c in _carousels)
-          Container(
+          KitCard(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1C1C1E)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
             child: Row(
               children: [
                 ClipRRect(
@@ -425,7 +396,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     onPressed: () => _editCarousel(c)),
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
-                      size: 19, color: Color(0xFFDC2626)),
+                      size: 19, color: C.danger),
                   onPressed: () async {
                     await _svc
                         .deleteCarousel(int.tryParse('${c['id']}') ?? 0);
@@ -441,7 +412,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
                 child: Text('暂无轮播图，可在网页后台添加',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+                    style: Ty.small.copyWith(color: context.t3))),
           ),
       ],
     );
@@ -459,7 +430,7 @@ class _AdminContentTabState extends State<AdminContentTab>
       context: context,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
           title: Text(c == null ? '新增轮播图' : '编辑轮播图'),
           content: SingleChildScrollView(
             child: Column(
@@ -533,7 +504,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(err,
                         style: const TextStyle(
-                            fontSize: 12, color: Color(0xFFDC2626))),
+                            fontSize: 12, color: C.danger)),
                   ),
               ],
             ),
@@ -572,26 +543,20 @@ class _AdminContentTabState extends State<AdminContentTab>
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            onPressed: () => _editReport(null),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('新增线报文章'),
-          ),
+        PrimaryButton(
+          label: '新增线报文章',
+          icon: Icons.add,
+          height: 46,
+          onPressed: () => _editReport(null),
         ),
+
         const SizedBox(height: 12),
         if (_reports.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
                 child: Text('暂无线报文章',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+                    style: Ty.small.copyWith(color: context.t3))),
           )
         else
           ..._reports.map((r) => _reportTile(r)),
@@ -600,15 +565,9 @@ class _AdminContentTabState extends State<AdminContentTab>
   }
 
   Widget _reportTile(Map r) {
-    return Container(
+    return KitCard(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1C1C1E)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
           child: Row(
             children: [
               Expanded(
@@ -623,7 +582,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     const SizedBox(height: 3),
                     Text('浏览 ${r['views']}',
                         style:
-                            TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+                            Ty.tiny.copyWith(color: context.t3)),
                   ],
                 ),
               ),
@@ -632,7 +591,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                   onPressed: () => _editReport(r)),
               IconButton(
                 icon: const Icon(Icons.delete_outline,
-                    size: 19, color: Color(0xFFDC2626)),
+                    size: 19, color: C.danger),
                 onPressed: () async {
                   await _svc.deleteReport(int.tryParse('${r['id']}') ?? 0);
                   ToastUtil.success('已删除');
@@ -661,7 +620,7 @@ class _AdminContentTabState extends State<AdminContentTab>
       context: context,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
           title: Text(r == null ? '新增线报' : '编辑线报'),
           content: SizedBox(
             width: double.maxFinite,
@@ -757,48 +716,36 @@ class _AdminContentTabState extends State<AdminContentTab>
           padding: const EdgeInsets.all(11),
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF5FF),
-            borderRadius: BorderRadius.circular(10),
+            color: C.brand.withAlpha(context.isDark ? 34 : 18),
+            borderRadius: BorderRadius.circular(R.sm),
           ),
           child: const Text(
             '添加蓝奏云文件夹链接后，App 软件库会多出一个分类，点击实时解析文件夹里的软件。',
-            style: TextStyle(fontSize: 12, color: Color(0xFF2563EB), height: 1.5),
+            style: Ty.small.copyWith(color: C.brand, height: 1.5),
           ),
         ),
-        SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            onPressed: () => _editSource(null),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('添加蓝奏云文件夹'),
-          ),
+        PrimaryButton(
+          label: '添加蓝奏云文件夹',
+          icon: Icons.add,
+          height: 46,
+          onPressed: () => _editSource(null),
         ),
+
         const SizedBox(height: 12),
         for (final s in _sources)
-          Container(
+          KitCard(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1C1C1E)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF22D3EE).withAlpha(28),
+                    color: C.cyan.withAlpha(context.isDark ? 44 : 28),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: const Icon(Icons.cloud_outlined,
-                      size: 18, color: Color(0xFF22D3EE)),
+                      size: 18, color: C.cyan),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -814,15 +761,14 @@ class _AdminContentTabState extends State<AdminContentTab>
                           '${(s['sync_count'] ?? 0) > 0 ? '  ·  已同步 ${s['sync_count']} 条' : '  ·  未同步'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey[500])),
+                          style: Ty.tiny.copyWith(color: context.t3)),
                     ],
                   ),
                 ),
                 IconButton(
                   tooltip: '同步文件夹内容',
                   icon: const Icon(Icons.sync_rounded,
-                      size: 19, color: Color(0xFF10B981)),
+                      size: 19, color: C.success),
                   onPressed: () => _syncSource(s),
                 ),
                 IconButton(
@@ -830,7 +776,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     onPressed: () => _editSource(s)),
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
-                      size: 19, color: Color(0xFFDC2626)),
+                      size: 19, color: C.danger),
                   onPressed: () async {
                     await _svc.deleteSource(int.tryParse('${s['id']}') ?? 0);
                     ToastUtil.success('已删除');
@@ -845,7 +791,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
                 child: Text('暂无数据源',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+                    style: Ty.small.copyWith(color: context.t3))),
           ),
       ],
     );
@@ -865,7 +811,7 @@ class _AdminContentTabState extends State<AdminContentTab>
       context: context,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
           title: Text(s == null ? '添加数据源' : '编辑数据源'),
           content: SingleChildScrollView(
             child: Column(
@@ -1018,7 +964,7 @@ class _AdminContentTabState extends State<AdminContentTab>
     final pagesCtrl = TextEditingController(text: '10');
     final ok = await Get.dialog<bool>(
       AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
         title: const Text('同步文件夹'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1026,7 +972,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             Text(
               '蓝奏云有频率限制，建议每次同步 10 页（500 条），'
               '若提示限流请等待 1-2 分钟后再次同步（已同步的会保留）。',
-              style: TextStyle(fontSize: 12.5, color: Colors.grey[600], height: 1.5),
+              style: Ty.small.copyWith(color: context.t2, height: 1.5),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -1077,30 +1023,18 @@ class _AdminContentTabState extends State<AdminContentTab>
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            onPressed: () => _editReferral(null),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('新增推荐位'),
-          ),
+        PrimaryButton(
+          label: '新增推荐位',
+          icon: Icons.add,
+          height: 46,
+          onPressed: () => _editReferral(null),
         ),
+
         const SizedBox(height: 12),
         for (final r in _referrals)
-          Container(
+          KitCard(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1C1C1E)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
             child: Row(
               children: [
                 ClipRRect(
@@ -1127,7 +1061,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     onPressed: () => _editReferral(r)),
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
-                      size: 19, color: Color(0xFFDC2626)),
+                      size: 19, color: C.danger),
                   onPressed: () async {
                     await _svc
                         .deleteReferral(int.tryParse('${r['id']}') ?? 0);
@@ -1143,7 +1077,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
                 child: Text('暂无推荐位',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+                    style: Ty.small.copyWith(color: context.t3))),
           ),
       ],
     );
@@ -1160,7 +1094,7 @@ class _AdminContentTabState extends State<AdminContentTab>
       context: context,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
           title: Text(r == null ? '新增推荐位' : '编辑推荐位'),
           content: SingleChildScrollView(
             child: Column(
@@ -1266,38 +1200,26 @@ class _AdminContentTabState extends State<AdminContentTab>
           padding: const EdgeInsets.all(11),
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF5FF),
-            borderRadius: BorderRadius.circular(10),
+            color: C.brand.withAlpha(context.isDark ? 34 : 18),
+            borderRadius: BorderRadius.circular(R.sm),
           ),
           child: const Text(
             '提示：版本号需大于 App 当前版本才会提示更新。如当前是 1.0.0，填 v1.1.0 即可触发。',
-            style: TextStyle(fontSize: 12, color: Color(0xFF2563EB), height: 1.5),
+            style: Ty.small.copyWith(color: C.brand, height: 1.5),
           ),
         ),
-        SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            onPressed: () => _editVersion(null),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('发布新版本'),
-          ),
+        PrimaryButton(
+          label: '发布新版本',
+          icon: Icons.add,
+          height: 46,
+          onPressed: () => _editVersion(null),
         ),
+
         const SizedBox(height: 12),
         for (final v in _versions)
-          Container(
+          KitCard(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1C1C1E)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
             child: Row(
               children: [
                 Expanded(
@@ -1312,25 +1234,13 @@ class _AdminContentTabState extends State<AdminContentTab>
                                   fontWeight: FontWeight.w800)),
                           const SizedBox(width: 8),
                           if ('${v['forced_switch']}' == '1')
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF2F2),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text('强制更新',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFFDC2626))),
-                            ),
+                            const Pill('强制更新',
+                                color: C.danger, small: true),
                         ],
                       ),
                       const SizedBox(height: 3),
                       Text('${v['title'] ?? ''} · ${v['createtime_text'] ?? ''}',
-                          style: TextStyle(
-                              fontSize: 11.5, color: Colors.grey[500])),
+                          style: Ty.tiny.copyWith(color: context.t3)),
                     ],
                   ),
                 ),
@@ -1339,7 +1249,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     onPressed: () => _editVersion(v)),
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
-                      size: 19, color: Color(0xFFDC2626)),
+                      size: 19, color: C.danger),
                   onPressed: () async {
                     await _svc.deleteVersion(int.tryParse('${v['id']}') ?? 0);
                     ToastUtil.success('已删除');
@@ -1354,7 +1264,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
                 child: Text('暂无版本记录',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+                    style: Ty.small.copyWith(color: context.t3))),
           ),
       ],
     );
@@ -1370,7 +1280,7 @@ class _AdminContentTabState extends State<AdminContentTab>
       context: context,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
           title: Text(v == null ? '发布新版本' : '编辑版本'),
           content: SingleChildScrollView(
             child: Column(
@@ -1404,7 +1314,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                             style: TextStyle(fontSize: 13.5))),
                     Switch(
                       value: forced,
-                      activeThumbColor: const Color(0xFF5B6CFF),
+                      activeThumbColor: C.brand,
                       onChanged: (x) => setD(() => forced = x),
                     ),
                   ],
@@ -1446,30 +1356,18 @@ class _AdminContentTabState extends State<AdminContentTab>
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            onPressed: _genCards,
-            icon: const Icon(Icons.add_card, size: 18),
-            label: const Text('批量生成卡密'),
-          ),
+        PrimaryButton(
+          label: '批量生成卡密',
+          icon: Icons.add_card,
+          height: 46,
+          onPressed: _genCards,
         ),
+
         const SizedBox(height: 12),
         for (final c in _cards)
-          Container(
+          KitCard(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1C1C1E)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
             child: Row(
               children: [
                 Expanded(
@@ -1486,15 +1384,14 @@ class _AdminContentTabState extends State<AdminContentTab>
                         '${c['type'] == 'vip' ? '会员 ${c['value']} 天' : '积分 ${c['value']}'}'
                         ' · ${c['used'] == 1 ? '已使用' : '未使用'}',
                         style: TextStyle(
-                            fontSize: 11.5,
-                            color: const Color(0xFF667085)),
+                            fontSize: 11.5, color: context.t3),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
-                      size: 19, color: Color(0xFFDC2626)),
+                      size: 19, color: C.danger),
                   onPressed: () async {
                     await _svc.deleteCard(int.tryParse('${c['id']}') ?? 0);
                     ToastUtil.success('已删除');
@@ -1509,7 +1406,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
                 child: Text('暂无卡密，点上方按钮生成',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]))),
+                    style: Ty.small.copyWith(color: context.t3))),
           ),
       ],
     );
@@ -1521,7 +1418,7 @@ class _AdminContentTabState extends State<AdminContentTab>
     String type = 'vip';
     final ok = await Get.dialog<bool>(
       AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
         title: const Text('批量生成卡密'),
         content: StatefulBuilder(builder: (ctx, setD) {
           return Column(
@@ -1582,7 +1479,7 @@ class _AdminContentTabState extends State<AdminContentTab>
       future: _svc.config(),
       builder: (context, snap) {
         if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator(strokeWidth: 3));
+          return const LoadingState(text: '加载协议配置…');
         }
         if (placard.text.isEmpty) {
           placard.text = '${snap.data!['placard'] ?? ''}';
@@ -1596,30 +1493,22 @@ class _AdminContentTabState extends State<AdminContentTab>
             _f('用户协议', agreement, 6),
             _f('隐私政策', privacy, 6),
             const SizedBox(height: 6),
-            SizedBox(
+            PrimaryButton(
+              label: '保存配置',
+              icon: Icons.save_rounded,
               height: 46,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF465CFF),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(23)),
-                ),
-                onPressed: () async {
-                  try {
-                    await _svc.saveConfig({
-                      'placard': placard.text,
-                      'agreement': agreement.text,
-                      'privacy': privacy.text,
-                    });
-                    ToastUtil.success('保存成功');
-                  } catch (e) {
-                    ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
-                  }
-                },
-                child: const Text('保存配置',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700)),
-              ),
+              onPressed: () async {
+                try {
+                  await _svc.saveConfig({
+                    'placard': placard.text,
+                    'agreement': agreement.text,
+                    'privacy': privacy.text,
+                  });
+                  ToastUtil.success('保存成功');
+                } catch (e) {
+                  ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+                }
+              },
             ),
           ],
         );
@@ -1635,7 +1524,7 @@ class _AdminContentTabState extends State<AdminContentTab>
           style: const TextStyle(fontSize: 13.5),
           decoration: InputDecoration(
             labelText: label,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(R.sm)),
           ),
         ),
       );

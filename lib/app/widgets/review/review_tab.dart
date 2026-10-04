@@ -3,13 +3,14 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../design/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 
 import '../../api/review_service.dart';
 import '../../api/user_service.dart';
+import '../../design/kit.dart';
+import '../../design/ui.dart';
 import '../../models/review_item.dart';
 import '../../routes/app_pages.dart';
 import 'star_rating.dart';
@@ -51,9 +52,11 @@ class _ReviewTabState extends State<ReviewTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 3));
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: LoadingState(text: '正在加载评价…'),
+      );
     }
     // 注意：本组件嵌在外层 ListView 中，必须用 Column（不能用 ListView 嵌套）
     return Padding(
@@ -61,43 +64,36 @@ class _ReviewTabState extends State<ReviewTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        _summaryCard(isDark),
+        _summaryCard(),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            const Text('用户评价',
-                style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
-            const Spacer(),
-            GestureDetector(
-              onTap: _toggleSort,
-              child: Row(
-                children: [
-                  Text(_sort == 'latest' ? '最新' : '最热',
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey[600])),
-                  Icon(Icons.swap_vert, size: 15, color: Colors.grey[600]),
-                ],
-              ),
+        SectionHeader(
+          title: '用户评价',
+          accent: C.brand,
+          action: GestureDetector(
+            onTap: _toggleSort,
+            child: Row(
+              children: [
+                Text(_sort == 'latest' ? '最新' : '最热',
+                    style: Ty.small.copyWith(color: context.t2)),
+                Icon(Icons.swap_vert, size: 15, color: context.t3),
+              ],
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 10),
         _filterRow(),
         const SizedBox(height: 12),
         if (_list.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
-            child: Column(
-              children: [
-                Icon(Icons.rate_review_outlined,
-                    size: 46, color: Colors.grey.withAlpha(90)),
-                const SizedBox(height: 10),
-                Text('还没有评价，来写第一条吧',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 13.5)),
-              ],
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: EmptyState(
+              text: '还没有评价，来写第一条吧',
+              hint: '你的评价会帮助更多人',
+              icon: Icons.rate_review_outlined,
             ),
           )
         else
-          ..._list.map((r) => _reviewTile(r, isDark)),
+          ..._list.map((r) => _reviewTile(r)),
         ],
       ),
     );
@@ -109,17 +105,14 @@ class _ReviewTabState extends State<ReviewTab> {
   }
 
   // ===== 评分卡 =====
-  Widget _summaryCard(bool isDark) {
+  Widget _summaryCard() {
     final total = _summary.count;
     final good = _summary.good;
     final mid = _summary.mid;
     final bad = _summary.bad;
-    return Container(
+    return KitCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF232323) : const Color(0xFFF7F8FC),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      radius: R.md,
       child: Column(
         children: [
           Row(
@@ -130,11 +123,8 @@ class _ReviewTabState extends State<ReviewTab> {
                 children: [
                   Text(
                     total > 0 ? _summary.avg.toStringAsFixed(1) : '—',
-                    style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w900,
-                        height: 1.0,
-                        letterSpacing: -1),
+                    style: Ty.display.copyWith(
+                        fontSize: 40, height: 1.0, color: context.t1),
                   ),
                   const SizedBox(height: 6),
                   StarRating(score: _summary.avg, size: 13),
@@ -145,53 +135,40 @@ class _ReviewTabState extends State<ReviewTab> {
               Expanded(
                 child: Column(
                   children: [
-                    _bar(good, total, AppColor.primary),
+                    _bar(good, total, C.brand),
                     const SizedBox(height: 5),
-                    _bar(mid, total, const Color(0xFFFFB300)),
+                    _bar(mid, total, C.amber),
                     const SizedBox(height: 5),
-                    _bar(bad, total, const Color(0xFFEF4444)),
+                    _bar(bad, total, C.danger),
                   ],
                 ),
               ),
               const SizedBox(width: 14),
               // 写评论按钮
-              GestureDetector(
-                onTap: _openCompose,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColor.primary,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('写评论',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700)),
-                      SizedBox(width: 3),
-                      Icon(Icons.add_circle, size: 15, color: Colors.white),
-                    ],
-                  ),
-                ),
+              SoftButton(
+                label: '写评论',
+                icon: Icons.add_circle_outline_rounded,
+                height: 34,
+                onPressed: _openCompose,
               ),
             ],
           ),
           const SizedBox(height: 14),
-          Divider(height: 1, color: Colors.grey.withAlpha(30)),
+          Divider(
+              height: 1,
+              color: context.isDark
+                  ? Colors.white.withAlpha(24)
+                  : Colors.black.withAlpha(20)),
           const SizedBox(height: 10),
           Row(
             children: [
               Text('$total 人参与了评分',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  style: Ty.small.copyWith(fontSize: 12, color: context.t2)),
               const SizedBox(width: 14),
               Text('${_summary.goodRate}% 好评率',
-                  style: TextStyle(
+                  style: Ty.small.copyWith(
                       fontSize: 12,
-                      color: AppColor.primary,
+                      color: C.brand,
                       fontWeight: FontWeight.w700)),
             ],
           ),
@@ -205,22 +182,14 @@ class _ReviewTabState extends State<ReviewTab> {
     return Row(
       children: [
         Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 6,
-              backgroundColor: Colors.grey.withAlpha(40),
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
+          child: KitProgress(value: ratio, color: color, height: 6),
         ),
         const SizedBox(width: 8),
         SizedBox(
           width: 18,
           child: Text('$value',
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+              style: Ty.tiny.copyWith(color: context.t2)),
         ),
       ],
     );
@@ -249,15 +218,19 @@ class _ReviewTabState extends State<ReviewTab> {
               duration: const Duration(milliseconds: 160),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: sel ? AppColor.primary : Colors.grey.withAlpha(28),
-                borderRadius: BorderRadius.circular(16),
+                color: sel
+                    ? C.brand
+                    : (context.isDark
+                        ? Colors.white.withAlpha(22)
+                        : Colors.black.withAlpha(16)),
+                borderRadius: BorderRadius.circular(R.full),
               ),
               child: Text(
                 '${e.$2}${e.$3 > 0 ? ' ${e.$3}' : ''}',
-                style: TextStyle(
+                style: Ty.small.copyWith(
                   fontSize: 12.5,
                   fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
-                  color: sel ? Colors.white : Colors.grey[700],
+                  color: sel ? Colors.white : context.t2,
                 ),
               ),
             ),
@@ -268,17 +241,14 @@ class _ReviewTabState extends State<ReviewTab> {
   }
 
   // ===== 单条评价 =====
-  Widget _reviewTile(ReviewItem r, bool isDark) {
+  Widget _reviewTile(ReviewItem r) {
     final myId = UserService.instance.user?.id ?? 0;
     final isAdmin = UserService.instance.user?.isAdmin == true;
     final canDelete = r.userId == myId || isAdmin;
-    return Container(
+    return KitCard(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF232323) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
+      radius: R.md,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -294,9 +264,9 @@ class _ReviewTabState extends State<ReviewTab> {
                     : Container(
                         width: 36,
                         height: 36,
-                        color: AppColor.primary.withAlpha(26),
-                        child:
-                            Icon(Icons.person, size: 19, color: AppColor.primary)),
+                        color: C.brand.withAlpha(26),
+                        child: const Icon(Icons.person,
+                            size: 19, color: C.brand)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -304,27 +274,29 @@ class _ReviewTabState extends State<ReviewTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(r.nickname.isEmpty ? '匿名用户' : r.nickname,
-                        style: const TextStyle(
-                            fontSize: 13.5, fontWeight: FontWeight.w700)),
+                        style: Ty.small.copyWith(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: context.t1)),
                     const SizedBox(height: 3),
                     Row(
                       children: [
                         StarRating(score: r.score.toDouble(), size: 12.5),
                         const SizedBox(width: 6),
                         Text('${r.score}.0',
-                            style: const TextStyle(
+                            style: Ty.tiny.copyWith(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFFFF8F00))),
+                                color: C.amber)),
                         const SizedBox(width: 5),
                         Text(r.levelText,
-                            style: TextStyle(
+                            style: Ty.tiny.copyWith(
                                 fontSize: 11.5,
                                 color: r.level == 'good'
-                                    ? const Color(0xFF0E9F6E)
+                                    ? C.success
                                     : (r.level == 'mid'
-                                        ? const Color(0xFFD97706)
-                                        : const Color(0xFFDC2626)))),
+                                        ? C.warning
+                                        : C.danger))),
                       ],
                     ),
                   ],
@@ -335,10 +307,8 @@ class _ReviewTabState extends State<ReviewTab> {
           if (r.content.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(r.content,
-                style: TextStyle(
-                    fontSize: 14,
-                    height: 1.6,
-                    color: isDark ? Colors.grey[200] : const Color(0xFF2C2C2C))),
+                style: Ty.body.copyWith(
+                    fontSize: 14, height: 1.6, color: context.t1)),
           ],
           if (r.images.isNotEmpty) ...[
             const SizedBox(height: 9),
@@ -349,7 +319,7 @@ class _ReviewTabState extends State<ReviewTab> {
                   .map((u) => GestureDetector(
                         onTap: () => _preview(u),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(9),
+                          borderRadius: BorderRadius.circular(R.xs),
                           child: CachedNetworkImage(
                             imageUrl: u,
                             width: 76,
@@ -374,10 +344,10 @@ class _ReviewTabState extends State<ReviewTab> {
             Container(
               padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1A1A1A)
-                    : const Color(0xFFF6F7FA),
-                borderRadius: BorderRadius.circular(10),
+                color: context.isDark
+                    ? C.bg1
+                    : C.lbg2,
+                borderRadius: BorderRadius.circular(R.sm),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,26 +358,23 @@ class _ReviewTabState extends State<ReviewTab> {
                           padding: const EdgeInsets.symmetric(vertical: 3),
                           child: RichText(
                             text: TextSpan(
-                              style: TextStyle(
+                              style: Ty.small.copyWith(
                                 fontSize: 12.5,
                                 height: 1.55,
-                                color: isDark
-                                    ? Colors.grey[300]
-                                    : const Color(0xFF3C4043),
+                                color: context.t2,
                               ),
                               children: [
                                 TextSpan(
                                   text: rp.nickname,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w700,
-                                      color: AppColor.primary),
+                                      color: C.brand),
                                 ),
                                 if (rp.replyTo.isNotEmpty)
                                   TextSpan(
                                     text: ' 回复 ${rp.replyTo}',
-                                    style: TextStyle(
-                                        color: Colors.grey[500],
-                                        fontSize: 12),
+                                    style: Ty.tiny.copyWith(
+                                        color: context.t3, fontSize: 12),
                                   ),
                                 TextSpan(text: '：${rp.content}'),
                               ],
@@ -423,7 +390,8 @@ class _ReviewTabState extends State<ReviewTab> {
           Row(
             children: [
               Text(r.timeText,
-                  style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+                  style: Ty.tiny.copyWith(
+                      fontSize: 11.5, color: context.t3)),
               const SizedBox(width: 16),
               _miniBtn('回复', () => _openReply(r)),
               if (canDelete) ...[
@@ -436,7 +404,7 @@ class _ReviewTabState extends State<ReviewTab> {
                   } else {
                     _toast('删除失败');
                   }
-                }, color: const Color(0xFFDC2626)),
+                }, color: C.danger),
               ],
               const Spacer(),
               GestureDetector(
@@ -447,11 +415,11 @@ class _ReviewTabState extends State<ReviewTab> {
                 child: Row(
                   children: [
                     Icon(Icons.favorite_border_rounded,
-                        size: 15, color: Colors.grey[500]),
+                        size: 15, color: context.t3),
                     const SizedBox(width: 3),
                     Text('${r.likeCount}',
-                        style:
-                            TextStyle(fontSize: 11.5, color: Colors.grey[600])),
+                        style: Ty.tiny.copyWith(
+                            fontSize: 11.5, color: context.t2)),
                   ],
                 ),
               ),
@@ -466,9 +434,9 @@ class _ReviewTabState extends State<ReviewTab> {
       GestureDetector(
         onTap: onTap,
         child: Text(label,
-            style: TextStyle(
+            style: Ty.tiny.copyWith(
                 fontSize: 11.5,
-                color: color ?? const Color(0xFF6B7280),
+                color: color ?? context.t2,
                 fontWeight: FontWeight.w600)),
       );
 
@@ -484,7 +452,7 @@ class _ReviewTabState extends State<ReviewTab> {
         TextButton(
             onPressed: () => Get.back(result: false), child: const Text('取消')),
         FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            style: FilledButton.styleFrom(backgroundColor: C.danger),
             onPressed: () => Get.back(result: true),
             child: const Text('删除')),
       ],
@@ -528,10 +496,8 @@ class _ReviewTabState extends State<ReviewTab> {
       builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
         return AlertDialog(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('回复 ${r.nickname}',
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
+          title: Text('回复 ${r.nickname}', style: Ty.h3.copyWith(fontSize: 16)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -543,15 +509,14 @@ class _ReviewTabState extends State<ReviewTab> {
                 decoration: InputDecoration(
                   hintText: '写下你的回复…',
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(R.sm)),
                 ),
               ),
               if (err.isNotEmpty)
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(err,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFFDC2626))),
+                      style: Ty.tiny.copyWith(fontSize: 12, color: C.danger)),
                 ),
             ],
           ),
@@ -560,7 +525,7 @@ class _ReviewTabState extends State<ReviewTab> {
                 onPressed: sending ? null : () => Navigator.pop(ctx),
                 child: const Text('取消')),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColor.primary),
+              style: FilledButton.styleFrom(backgroundColor: C.brand),
               onPressed: sending
                   ? null
                   : () async {
@@ -649,9 +614,8 @@ class _ReviewTabState extends State<ReviewTab> {
 
         return AlertDialog(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('写评论',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
+          title: Text('写评论', style: Ty.h3.copyWith(fontSize: 17)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -662,8 +626,8 @@ class _ReviewTabState extends State<ReviewTab> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF6F7F9),
-                    borderRadius: BorderRadius.circular(10),
+                    color: C.lbg2,
+                    borderRadius: BorderRadius.circular(R.sm),
                   ),
                   child: Row(
                     children: [
@@ -685,7 +649,7 @@ class _ReviewTabState extends State<ReviewTab> {
                   decoration: InputDecoration(
                     hintText: '请输入评论内容',
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(R.sm)),
                   ),
                 ),
                 // 已选图片
@@ -699,7 +663,7 @@ class _ReviewTabState extends State<ReviewTab> {
                         Stack(
                           children: [
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(R.xs),
                               child: Image.file(File(images[i]),
                                   width: 58, height: 58, fit: BoxFit.cover),
                             ),
@@ -727,8 +691,8 @@ class _ReviewTabState extends State<ReviewTab> {
                   ),
                 ],
                 const SizedBox(height: 10),
-                const Text('选择表情',
-                    style: TextStyle(fontSize: 12.5, color: Colors.grey)),
+                Text('选择表情',
+                    style: Ty.small.copyWith(fontSize: 12.5, color: context.t3)),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 2,
@@ -749,8 +713,7 @@ class _ReviewTabState extends State<ReviewTab> {
                 if (err.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(err,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFFDC2626))),
+                      style: Ty.tiny.copyWith(fontSize: 12, color: C.danger)),
                 ],
               ],
             ),
@@ -771,7 +734,7 @@ class _ReviewTabState extends State<ReviewTab> {
                 onPressed: sending ? null : () => Navigator.pop(ctx),
                 child: const Text('取消')),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColor.primary),
+              style: FilledButton.styleFrom(backgroundColor: C.brand),
               onPressed: sending
                   ? null
                   : () async {

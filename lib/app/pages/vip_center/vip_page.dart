@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../design/app_theme.dart';
 import 'package:get/get.dart';
+
+import '../../design/kit.dart';
+import '../../design/ui.dart';
 
 /// 开通会员 / VIP 中心页
 /// 复刻用户提供的截图：VIP PRO 头卡 + 三档套餐 + 支付方式 + 立即开通 + 会员权益
@@ -21,9 +23,6 @@ class _Plan {
 }
 
 class _VipPageState extends State<VipPage> {
-  static const Color kGold = Color(0xFFB8860B);
-  static const Color kGoldLight = Color(0xFFD4A73F);
-
   final List<_Plan> _plans = const [
     _Plan('一周会员', '8', '体验'),
     _Plan('三个月会员', '28.88', '推荐', recommended: true),
@@ -35,104 +34,71 @@ class _VipPageState extends State<VipPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
-    final cardBg = isDark ? const Color(0xFF222222) : Colors.white;
-
     return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        title: const Text('开通会员', style: TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: bg,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
+      backgroundColor: Colors.transparent,
+      body: Stack(
         children: [
-          _buildHeaderCard(),
-          const SizedBox(height: 18),
-          Text('选择套餐',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black87,
-              )),
-          const SizedBox(height: 10),
-          Row(
-            children: List.generate(_plans.length, (i) {
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: i == _plans.length - 1 ? 0 : 10),
-                  child: _buildPlanCard(i, isDark),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 20),
-          Text('支付方式',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black87,
-              )),
-          const SizedBox(height: 10),
-          Row(
+          Deco.pageBackground(context),
+          ListView(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
             children: [
-              _buildPayItem(0, '支付宝', Icons.account_balance_wallet_outlined),
-              const SizedBox(width: 10),
-              _buildPayItem(1, '微信', Icons.chat_bubble_outline),
-              const SizedBox(width: 10),
-              _buildPayItem(2, 'QQ', Icons.pets_outlined),
-            ],
-          ),
-          const SizedBox(height: 22),
-          SizedBox(
-            height: 50,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF2B2B2B),
-                foregroundColor: const Color(0xFFF5D283),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              _buildHeaderCard(),
+              const SizedBox(height: 18),
+              SectionHeader(
+                title: '选择套餐',
+                accent: C.gold,
+              ),
+              Row(
+                children: List.generate(_plans.length, (i) {
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                          right: i == _plans.length - 1 ? 0 : 10),
+                      child: _buildPlanCard(i),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+              const SectionHeader(title: '支付方式'),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _buildPayItem(0, '支付宝', Icons.account_balance_wallet_outlined),
+                  const SizedBox(width: 10),
+                  _buildPayItem(1, '微信', Icons.chat_bubble_outline),
+                  const SizedBox(width: 10),
+                  _buildPayItem(2, 'QQ', Icons.pets_outlined),
+                ],
+              ),
+              const SizedBox(height: 22),
+              PrimaryButton(
+                label: '立即开通会员',
+                icon: Icons.workspace_premium_rounded,
+                gold: true,
+                onPressed: _onBuy,
+              ),
+              const SizedBox(height: 20),
+              KitCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionHeader(title: '会员权益', accent: C.gold),
+                    _benefit('不限次数下载软件库资源'),
+                    _benefit('评论区展示会员身份标识'),
+                    _benefit('新功能和资源优先体验'),
+                  ],
                 ),
               ),
-              onPressed: _onBuy,
-              child: const Text(
-                '立即开通会员',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              const SizedBox(height: 14),
+              Center(
+                child: Text(
+                  '支付完成后会员状态会自动同步到账户',
+                  style: Ty.tiny.copyWith(color: context.t3),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('会员权益',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : Colors.black87,
-                    )),
-                const SizedBox(height: 12),
-                _benefit('不限次数下载软件库资源'),
-                _benefit('评论区展示会员身份标识'),
-                _benefit('新功能和资源优先体验'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          Center(
-            child: Text(
-              '支付完成后会员状态会自动同步到账户',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-            ),
+            ],
           ),
         ],
       ),
@@ -149,7 +115,14 @@ class _VipPageState extends State<VipPage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(R.xl),
+        boxShadow: [
+          BoxShadow(
+            color: C.gold.withAlpha(context.isDark ? 60 : 34),
+            blurRadius: 22,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,8 +130,8 @@ class _VipPageState extends State<VipPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: kGoldLight,
-              borderRadius: BorderRadius.circular(12),
+              gradient: Deco.goldGradient,
+              borderRadius: BorderRadius.circular(R.full),
             ),
             child: const Text(
               'VIP PRO',
@@ -194,54 +167,39 @@ class _VipPageState extends State<VipPage> {
   }
 
   /// 套餐卡片
-  Widget _buildPlanCard(int index, bool isDark) {
+  Widget _buildPlanCard(int index) {
     final plan = _plans[index];
     final selected = _selectedPlan == index;
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = index),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 6),
         decoration: BoxDecoration(
           color: selected
-              ? (isDark ? const Color(0xFF2C2618) : const Color(0xFFFFFBF0))
-              : (isDark ? const Color(0xFF262626) : Colors.white),
-          borderRadius: BorderRadius.circular(14),
+              ? (context.isDark
+                  ? C.bg3
+                  : C.gold.withAlpha(18))
+              : (context.isDark ? C.bg2 : Colors.white),
+          borderRadius: BorderRadius.circular(R.md),
           border: Border.all(
-            color: selected ? kGoldLight : Colors.transparent,
+            color: selected ? C.gold : Colors.transparent,
             width: 1.5,
           ),
         ),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(
-                color: plan.recommended
-                    ? const Color(0xFFF3E4C0)
-                    : (isDark
-                        ? const Color(0xFF333333)
-                        : const Color(0xFFEFEFEF)),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Text(
-                plan.tag,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: plan.recommended
-                      ? const Color(0xFF8A6A16)
-                      : (isDark ? Colors.grey[400] : Colors.grey[700]),
-                ),
-              ),
+            Pill(
+              plan.tag,
+              color: plan.recommended ? C.gold : context.t3,
+              solid: plan.recommended,
+              small: true,
             ),
             const SizedBox(height: 10),
             Text(
               plan.name,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
+              style: Ty.small.copyWith(
+                  fontSize: 14, fontWeight: FontWeight.w700, color: context.t1),
             ),
             const SizedBox(height: 8),
             Row(
@@ -249,19 +207,16 @@ class _VipPageState extends State<VipPage> {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                const Text('¥',
-                    style: TextStyle(
+                Text('¥',
+                    style: Ty.small.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFFC0562E))),
+                        color: C.accentOrange)),
                 const SizedBox(width: 2),
                 Text(
                   plan.price,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFC0562E),
-                  ),
+                  style: Ty.h1.copyWith(
+                      fontSize: 22, color: C.accentOrange),
                 ),
               ],
             ),
@@ -274,35 +229,37 @@ class _VipPageState extends State<VipPage> {
   /// 支付方式项
   Widget _buildPayItem(int index, String label, IconData icon) {
     final selected = _payMethod == index;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = C.brand;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _payMethod = index),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
           height: 44,
           decoration: BoxDecoration(
             color: selected
-                ? const Color(0xFFEAF0FF)
-                : (isDark ? const Color(0xFF262626) : Colors.white),
-            borderRadius: BorderRadius.circular(10),
+                ? accent.withAlpha(context.isDark ? 38 : 22)
+                : (context.isDark ? C.bg2 : Colors.white),
+            borderRadius: BorderRadius.circular(R.sm),
             border: Border.all(
-              color:
-                  selected ? const Color(0xFF6B8CFF) : Colors.grey.withAlpha(60),
+              color: selected
+                  ? accent.withAlpha(150)
+                  : (context.isDark
+                      ? Colors.white.withAlpha(22)
+                      : Colors.black.withAlpha(20)),
             ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon,
-                  size: 17,
-                  color: selected ? const Color(0xFF3B5BDB) : Colors.grey[600]),
+              Icon(icon, size: 17, color: selected ? accent : context.t3),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
+                style: Ty.small.copyWith(
                   fontSize: 13,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? const Color(0xFF3B5BDB) : Colors.grey[700],
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                  color: selected ? accent : context.t2,
                 ),
               ),
             ],
@@ -317,11 +274,10 @@ class _VipPageState extends State<VipPage> {
       padding: const EdgeInsets.only(bottom: 9),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, size: 16, color: kGoldLight),
+          const Icon(Icons.check_circle_rounded, size: 16, color: C.gold),
           const SizedBox(width: 8),
           Expanded(
-            child:
-                Text(text, style: const TextStyle(fontSize: 13.5, height: 1.4)),
+            child: Text(text, style: Ty.body.copyWith(fontSize: 13.5)),
           ),
         ],
       ),

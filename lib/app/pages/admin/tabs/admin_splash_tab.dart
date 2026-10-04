@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../api/admin_service.dart';
+import '../../../design/kit.dart';
+import '../../../design/ui.dart';
 import '../../../utils/toast_util.dart';
 
 /// 开屏与远程控制管理
@@ -99,27 +101,20 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 3));
+      return const LoadingState(text: '加载开屏配置…');
     }
     if (!_inited) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('加载失败'),
-            const SizedBox(height: 10),
-            OutlinedButton(onPressed: _load, child: const Text('重试')),
-          ],
-        ),
+      return ErrorState(
+        text: '加载配置失败',
+        hint: '请检查网络连接后重试',
+        onRetry: _load,
       );
     }
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
         _card(
-          isDark,
           title: '开屏页',
           children: [
             _switch('启用开屏页', splashEnable,
@@ -133,7 +128,6 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         ),
         const SizedBox(height: 12),
         _card(
-          isDark,
           title: '公告弹窗',
           children: [
             _switch('启用公告弹窗', noticeEnable,
@@ -146,7 +140,6 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         ),
         const SizedBox(height: 12),
         _card(
-          isDark,
           title: '远程控制',
           children: [
             _switch('开启维护模式（App 显示维护页）', maintainEnable,
@@ -155,38 +148,23 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
           ],
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 46,
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF465CFF),
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
-            ),
-            onPressed: _save,
-            child: const Text('保存全部配置',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w800)),
-          ),
+        PrimaryButton(
+          label: '保存全部配置',
+          icon: Icons.save_rounded,
+          onPressed: _save,
         ),
         const SizedBox(height: 30),
       ],
     );
   }
 
-  Widget _card(bool isDark, {required String title, required List<Widget> children}) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+  Widget _card({required String title, required List<Widget> children}) {
+    return KitCard(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
+          SectionHeader(title: title),
           ...children,
         ],
       ),
@@ -202,7 +180,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
               child: Text(label, style: const TextStyle(fontSize: 13.5))),
           Switch(
             value: value,
-            activeThumbColor: const Color(0xFF465CFF),
+            activeThumbColor: C.brand,
             onChanged: onChanged,
           ),
         ],
@@ -224,7 +202,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
           isDense: true,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(R.md)),
         ),
       ),
     );

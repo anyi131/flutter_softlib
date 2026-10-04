@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../design/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 
 import '../../api/post_service.dart';
+import '../../design/kit.dart';
 import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import '../../api/user_service.dart';
@@ -66,17 +66,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? AppColor.bgDark : AppColor.bgLight;
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: bg,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        title: const Text('动态详情',
-            style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700)),
+        title: const Text('动态详情', style: Ty.h3),
         actions: [
           if (_canDelete())
             IconButton(
@@ -86,52 +82,48 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 3))
+          ? const LoadingState(text: '正在加载动态…')
           : (_post == null
-              ? const Center(child: Text('动态不存在或已删除'))
+              ? const EmptyState(
+                  text: '动态不存在或已删除',
+                  hint: '内容可能已被作者删除',
+                  icon: Icons.article_outlined,
+                )
               : Column(
                   children: [
                     Expanded(
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
                         children: [
-                          _postCard(isDark),
+                          _postCard(),
                           const SizedBox(height: 12),
                           _commentHeader(),
                           const SizedBox(height: 8),
                           if (_comments.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 34),
-                              child: Column(
-                                children: [
-                                  Icon(Icons.chat_bubble_outline,
-                                      size: 44, color: Colors.grey.withAlpha(90)),
-                                  const SizedBox(height: 10),
-                                  Text('还没有评论，快来抢沙发~',
-                                      style: TextStyle(
-                                          color: Colors.grey[500], fontSize: 13.5)),
-                                ],
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              child: EmptyState(
+                                text: '还没有评论，快来抢沙发~',
+                                hint: '说说你的看法吧',
+                                icon: Icons.chat_bubble_outline_rounded,
                               ),
                             )
                           else
-                            ..._comments.map((c) => _commentTile(c, isDark)),
+                            ..._comments.map((c) => _commentTile(c)),
                         ],
                       ),
                     ),
-                    _inputBar(isDark),
+                    _inputBar(),
                   ],
                 )),
     );
   }
 
-  Widget _postCard(bool isDark) {
+  Widget _postCard() {
     final p = _post!;
-    return Container(
+    return KitCard(
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: isDark ? AppColor.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      radius: R.md,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -144,8 +136,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     : Container(
                         width: 40,
                         height: 40,
-                        color: AppColor.primary.withAlpha(26),
-                        child: Icon(Icons.person, size: 21, color: AppColor.primary),
+                        color: C.brand.withAlpha(26),
+                        child: const Icon(Icons.person,
+                            size: 21, color: C.brand),
                       ),
               ),
               const SizedBox(width: 10),
@@ -160,23 +153,24 @@ class _PostDetailPageState extends State<PostDetailPage> {
                               p.nickname.isEmpty ? '匿名用户' : p.nickname,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 14.5, fontWeight: FontWeight.w800)),
+                              style: Ty.body.copyWith(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: context.t1)),
                         ),
                         if (p.isAdmin) ...[
                           const SizedBox(width: 5),
-                          _badge('管理', const Color(0xFFDC2626),
-                              const Color(0xFFFEF2F2)),
+                          const Pill('管理',
+                              color: C.danger, solid: true, small: true),
                         ],
                         if (p.isVip) ...[
                           const SizedBox(width: 4),
-                          _badge('VIP', const Color(0xFFB45309),
-                              const Color(0xFFFEF3C7)),
+                          const Pill('VIP',
+                              color: C.gold, solid: true, small: true),
                         ],
                         if (p.title.isNotEmpty) ...[
                           const SizedBox(width: 4),
-                          _badge(p.title, const Color(0xFF5B6CFF),
-                              const Color(0xFFEEF1FF)),
+                          Pill(p.title, color: C.brand, small: true),
                         ],
                       ],
                     ),
@@ -188,27 +182,23 @@ class _PostDetailPageState extends State<PostDetailPage> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
-                              color: AppColor.primary.withAlpha(22),
-                              borderRadius: BorderRadius.circular(4),
+                              color: C.brand.withAlpha(22),
+                              borderRadius: BorderRadius.circular(R.xs),
                             ),
                             child: Text(p.catTitle,
-                                style: const TextStyle(
+                                style: Ty.tiny.copyWith(
                                     fontSize: 10,
-                                    color: AppColor.primary,
+                                    color: C.brand,
                                     fontWeight: FontWeight.w700)),
                           ),
                           const SizedBox(width: 6),
                         ],
-                        Text(p.relTime,
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey[500])),
+                        Text(p.relTime, style: Ty.tiny.copyWith(color: context.t3)),
                         const SizedBox(width: 8),
-                        Icon(Icons.visibility_outlined,
-                            size: 12, color: Colors.grey[400]),
+                        Icon(Icons.visibility_outlined, size: 12, color: context.t3),
                         const SizedBox(width: 3),
                         Text('${p.views}',
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey[500])),
+                            style: Ty.tiny.copyWith(color: context.t3)),
                       ],
                     ),
                   ],
@@ -219,10 +209,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
           if (p.content.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(p.content,
-                style: TextStyle(
-                    fontSize: 15,
-                    height: 1.65,
-                    color: isDark ? Colors.grey[200] : const Color(0xFF2C2C2C))),
+                style: Ty.body.copyWith(
+                    fontSize: 15, height: 1.65, color: context.t1)),
           ],
           if (p.images.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -232,7 +220,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 child: GestureDetector(
                   onTap: () => _preview(img),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(R.sm),
                     child: CachedNetworkImage(
                       imageUrl: img,
                       width: double.infinity,
@@ -249,7 +237,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
               ),
           ],
           const SizedBox(height: 10),
-          Divider(height: 1, color: Colors.grey.withAlpha(25)),
+          Divider(
+              height: 1,
+              color: context.isDark
+                  ? Colors.white.withAlpha(25)
+                  : Colors.black.withAlpha(20)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -280,54 +272,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
     );
   }
 
-  Widget _badge(String text, Color fg, Color bg) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 9.5, fontWeight: FontWeight.w800, color: fg)),
-      );
-
   Widget _action(IconData icon, String label, VoidCallback onTap) => InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(R.xs),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
           child: Row(children: [
-            Icon(icon, size: 17, color: const Color(0xFF8A8F98)),
+            Icon(icon, size: 17, color: context.t3),
             const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(fontSize: 12.5, color: Colors.grey[600])),
+            Text(label, style: Ty.small.copyWith(fontSize: 12.5, color: context.t2)),
           ]),
         ),
       );
 
-  Widget _commentHeader() => Row(
-        children: [
-          Container(
-            width: 3.5,
-            height: 15,
-            decoration: BoxDecoration(
-                color: AppColor.primary, borderRadius: BorderRadius.circular(2)),
-          ),
-          const SizedBox(width: 8),
-          Text('评论 ${_comments.length}',
-              style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
-        ],
-      );
+  Widget _commentHeader() =>
+      const SectionHeader(title: '评论', accent: C.brand);
 
-  Widget _commentTile(Map<String, dynamic> c, bool isDark) {
+  Widget _commentTile(Map<String, dynamic> c) {
     final avatar = (c['avatar'] ?? '').toString();
-    return Container(
+    return KitCard(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColor.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(13),
-      ),
+      radius: R.sm,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -338,8 +304,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 : Container(
                     width: 32,
                     height: 32,
-                    color: AppColor.primary.withAlpha(26),
-                    child: Icon(Icons.person, size: 17, color: AppColor.primary)),
+                    color: C.brand.withAlpha(26),
+                    child: const Icon(Icons.person, size: 17, color: C.brand)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -347,11 +313,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('${c['nickname'] ?? '匿名用户'}',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700)),
+                    style: Ty.small.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: context.t1)),
                 const SizedBox(height: 4),
                 Text('${c['content'] ?? ''}',
-                    style: const TextStyle(fontSize: 14, height: 1.5)),
+                    style: Ty.body.copyWith(fontSize: 14, height: 1.5)),
                 if (c['images'] is List && (c['images'] as List).isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 7),
@@ -360,7 +328,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       runSpacing: 6,
                       children: (c['images'] as List)
                           .map((u) => ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(R.xs),
                                 child: CachedNetworkImage(
                                   imageUrl: '$u',
                                   width: 70,
@@ -383,14 +351,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
     );
   }
 
-  Widget _inputBar(bool isDark) {
+  Widget _inputBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       decoration: BoxDecoration(
-        color: isDark ? AppColor.cardDark : Colors.white,
+        color: context.cardBg,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 60 : 12),
+            color: Colors.black.withAlpha(context.isDark ? 60 : 12),
             blurRadius: 12,
             offset: const Offset(0, -2),
           ),
@@ -405,8 +373,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(_err,
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFFDC2626))),
+                    style: Ty.tiny.copyWith(fontSize: 12, color: C.danger)),
               ),
             // 已选图片预览
             if (_images.isNotEmpty)
@@ -421,7 +388,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     itemBuilder: (_, i) => Stack(
                       children: [
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(9),
+                          borderRadius: BorderRadius.circular(R.xs),
                           child: Image.file(File(_images[i]),
                               width: 62, height: 62, fit: BoxFit.cover),
                         ),
@@ -492,31 +459,19 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 11),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(22)),
+                          borderRadius: BorderRadius.circular(R.full)),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
                   height: 42,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(21)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                    ),
-                    onPressed: _sending ? null : _send,
-                    child: _sending
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Text('发送',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700)),
+                  child: PrimaryButton(
+                    label: '发送',
+                    height: 42,
+                    loading: _sending,
+                    enabled: !_sending,
+                    onPressed: _send,
                   ),
                 ),
               ],
@@ -543,8 +498,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         TextButton(
             onPressed: () => Get.back(result: false), child: const Text('取消')),
         FilledButton(
-            style:
-                FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            style: FilledButton.styleFrom(backgroundColor: C.danger),
             onPressed: () => Get.back(result: true),
             child: const Text('删除')),
       ],

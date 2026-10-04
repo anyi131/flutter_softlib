@@ -1,12 +1,13 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../api/admin_service.dart';
+import '../../../design/kit.dart';
+import '../../../design/ui.dart';
 import '../../../utils/toast_util.dart';
 
 /// 软件管理
@@ -45,7 +46,6 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Padding(
@@ -68,30 +68,24 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                       contentPadding:
                           const EdgeInsets.symmetric(vertical: 8),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(R.md)),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(
+              SoftButton(
+                label: '新增',
+                icon: Icons.add_rounded,
                 height: 40,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF465CFF),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
-                  onPressed: () => _edit(null),
-                  icon: const Icon(Icons.add, size: 17),
-                  label: const Text('新增', style: TextStyle(fontSize: 13)),
-                ),
+                onPressed: () => _edit(null),
               ),
             ],
           ),
         ),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(strokeWidth: 3))
+              ? const LoadingState(text: '加载软件列表…')
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView.builder(
@@ -100,32 +94,18 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                     itemBuilder: (context, i) {
                       final a = _list[i];
                       final isLocal = a['provider'] == 'local';
-                      return Container(
+                      return KitCard(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF1C1C1E)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
                         child: Row(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: (a['icon'] ?? '').toString().isEmpty
-                                  ? Container(
-                                      width: 44,
-                                      height: 44,
-                                      color: const Color(0xFF465CFF)
-                                          .withAlpha(28),
-                                      child: const Icon(Icons.android,
-                                          color: Color(0xFF465CFF), size: 22))
-                                  : CachedNetworkImage(
-                                      imageUrl: '${a['icon']}',
-                                      width: 44,
-                                      height: 44,
-                                      fit: BoxFit.cover),
+                            AppImage(
+                              url: '${a['icon']}',
+                              width: 44,
+                              height: 44,
+                              radius: R.sm,
+                              placeholderIcon: Icons.android,
+                              errorIcon: Icons.android,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -135,38 +115,25 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                                   Text('${a['title']}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 14.5,
-                                          fontWeight: FontWeight.w700)),
+                                      style: Ty.h3.copyWith(
+                                          fontSize: 14.5, color: context.t1)),
                                   const SizedBox(height: 3),
                                   Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 6, vertical: 1),
-                                        decoration: BoxDecoration(
-                                          color: isLocal
-                                              ? const Color(0xFFDBEAFE)
-                                              : const Color(0xFFFEF3C7),
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          isLocal ? '服务器' : '蓝奏云',
-                                          style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              color: isLocal
-                                                  ? const Color(0xFF1D4ED8)
-                                                  : const Color(0xFFB45309)),
-                                        ),
+                                      Pill(
+                                        isLocal ? '服务器' : '蓝奏云',
+                                        color: isLocal ? C.cyan : C.gold,
+                                        small: true,
                                       ),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        '${a['size_str'] ?? ''} ${a['version_name'] ?? ''}',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[500]),
+                                      Flexible(
+                                        child: Text(
+                                          '${a['size_str'] ?? ''} ${a['version_name'] ?? ''}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Ty.tiny
+                                              .copyWith(color: context.t3),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -174,12 +141,13 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.edit_outlined, size: 19),
+                              icon: const Icon(Icons.edit_outlined,
+                                  size: 19, color: C.brand),
                               onPressed: () => _edit(a),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline,
-                                  size: 19, color: Color(0xFFDC2626)),
+                                  size: 19, color: C.danger),
                               onPressed: () => _del(a),
                             ),
                           ],
@@ -288,9 +256,9 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
           height: MediaQuery.of(ctx).size.height * 0.9,
           decoration: BoxDecoration(
             color: Theme.of(ctx).brightness == Brightness.dark
-                ? const Color(0xFF1C1C1E)
+                ? C.bg1
                 : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(R.xl)),
           ),
           padding: EdgeInsets.only(
             left: 16,
@@ -303,8 +271,11 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
               Row(
                 children: [
                   Text(a == null ? '新增软件' : '编辑软件',
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w800)),
+                      style: Ty.h2.copyWith(
+                          fontSize: 17,
+                          color: Theme.of(ctx).brightness == Brightness.dark
+                              ? C.t1
+                              : C.lt1)),
                   const Spacer(),
                   IconButton(
                       icon: const Icon(Icons.close, size: 20),
@@ -425,8 +396,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                         Padding(
                           padding: const EdgeInsets.only(top: 6),
                           child: Text('文件路径：$filePath',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[500])),
+                              style: Ty.tiny.copyWith(color: context.t3)),
                         ),
                     ],
 
@@ -438,21 +408,19 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 9),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE7F9EE),
-                            borderRadius: BorderRadius.circular(9),
+                            color: C.success
+                                .withAlpha(context.isDark ? 40 : 22),
+                            borderRadius: BorderRadius.circular(R.sm),
                           ),
                           child: Text(okTip,
-                              style: const TextStyle(
-                                  fontSize: 12.5, color: Color(0xFF0E9F6E))),
+                              style: Ty.small.copyWith(color: C.success)),
                         ),
                       ),
 
                     const SizedBox(height: 14),
-                    const Text('基础信息',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF6B7280))),
+                    Text('基础信息',
+                        style: Ty.h3.copyWith(
+                            fontSize: 13, color: context.t3)),
                     const SizedBox(height: 8),
                     _field('软件名称 *', title),
                     // 图标：URL + 上传
@@ -530,27 +498,25 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF8E6),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFFFE082)),
+                        color: C.gold.withAlpha(context.isDark ? 34 : 20),
+                        borderRadius: BorderRadius.circular(R.sm),
+                        border: Border.all(color: C.gold.withAlpha(90)),
                       ),
                       child: Column(
                         children: [
                           Row(
                             children: [
                               const Icon(Icons.workspace_premium_rounded,
-                                  size: 18, color: Color(0xFFC9A227)),
+                                  size: 18, color: C.gold),
                               const SizedBox(width: 8),
-                              const Expanded(
+                              Expanded(
                                 child: Text('会员专享资源',
-                                    style: TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF8A6A16))),
+                                    style: Ty.h3.copyWith(
+                                        fontSize: 13.5, color: C.gold)),
                               ),
                               Switch(
                                 value: isVip,
-                                activeThumbColor: const Color(0xFFC9A227),
+                                activeThumbColor: C.gold,
                                 onChanged: (v) => setS(() => isVip = v),
                               ),
                             ],
@@ -558,8 +524,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                           if (isVip)
                             _field('会员价（如 ¥9.9）', vipPrice),
                           Text('开启后，非会员下载时会提示开通会员',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[600])),
+                              style: Ty.tiny.copyWith(color: context.t3)),
                         ],
                       ),
                     ),
@@ -587,79 +552,62 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Text(err,
-                            style: const TextStyle(
-                                fontSize: 12.5, color: Color(0xFFDC2626))),
+                            style: Ty.small.copyWith(color: C.danger)),
                       ),
                   ],
                 ),
               ),
-              SizedBox(
-                width: double.infinity,
+              PrimaryButton(
+                label: '保存',
+                loading: saving,
                 height: 46,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF465CFF),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(23)),
-                  ),
-                  onPressed: saving
-                      ? null
-                      : () async {
-                          if (title.text.trim().isEmpty) {
-                            setS(() => err = '软件名称不能为空');
-                            return;
-                          }
-                          if (provider == 'lzy' && url.text.trim().isEmpty) {
-                            setS(() => err = '请填写蓝奏云链接');
-                            return;
-                          }
-                          if (provider == 'local' && filePath.isEmpty) {
-                            setS(() => err = '请先上传安装包');
-                            return;
-                          }
-                          setS(() {
-                            saving = true;
-                            err = '';
+                onPressed: saving
+                    ? null
+                    : () async {
+                        if (title.text.trim().isEmpty) {
+                          setS(() => err = '软件名称不能为空');
+                          return;
+                        }
+                        if (provider == 'lzy' && url.text.trim().isEmpty) {
+                          setS(() => err = '请填写蓝奏云链接');
+                          return;
+                        }
+                        if (provider == 'local' && filePath.isEmpty) {
+                          setS(() => err = '请先上传安装包');
+                          return;
+                        }
+                        setS(() {
+                          saving = true;
+                          err = '';
+                        });
+                        try {
+                          await _svc.saveApp({
+                            'id': a?['id'] ?? 0,
+                            'title': title.text.trim(),
+                            'provider': provider,
+                            'url': url.text.trim(),
+                            'icon': icon.text.trim(),
+                            'size_str': size.text.trim(),
+                            'version_name': ver.text.trim(),
+                            'description': desc.text.trim(),
+                            'screenshots': shots.text.trim(),
+                            'cat_id': catId,
+                            'weigh': int.tryParse(weigh.text) ?? 0,
+                            'enable_switch': 1,
+                            'file_path': filePath,
+                            'is_vip': isVip ? 1 : 0,
+                            'vip_price': vipPrice.text.trim(),
                           });
-                          try {
-                            await _svc.saveApp({
-                              'id': a?['id'] ?? 0,
-                              'title': title.text.trim(),
-                              'provider': provider,
-                              'url': url.text.trim(),
-                              'icon': icon.text.trim(),
-                              'size_str': size.text.trim(),
-                              'version_name': ver.text.trim(),
-                              'description': desc.text.trim(),
-                              'screenshots': shots.text.trim(),
-                              'cat_id': catId,
-                              'weigh': int.tryParse(weigh.text) ?? 0,
-                              'enable_switch': 1,
-                              'file_path': filePath,
-                              'is_vip': isVip ? 1 : 0,
-                              'vip_price': vipPrice.text.trim(),
-                            });
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            ToastUtil.success('保存成功');
-                            _load();
-                          } catch (e) {
-                            setS(() {
-                              saving = false;
-                              err = e.toString().replaceFirst('Exception: ', '');
-                            });
-                          }
-                        },
-                  child: saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('保存',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700)),
-                ),
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          ToastUtil.success('保存成功');
+                          _load();
+                        } catch (e) {
+                          setS(() {
+                            saving = false;
+                            err = e.toString().replaceFirst('Exception: ', '');
+                          });
+                        }
+                      },
               ),
             ],
           ),
@@ -680,7 +628,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
           isDense: true,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(R.md)),
         ),
       ),
     );
