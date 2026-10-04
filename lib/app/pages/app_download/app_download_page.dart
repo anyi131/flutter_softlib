@@ -110,7 +110,7 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            dowInfo.appName ?? '未知文件',
+                            _displayName(dowInfo),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -177,8 +177,11 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
                           ),
                         ),
                         Text(
-                          '${calculateDownloadedSize(dowInfo.appSize ?? '', dowInfo.progress ?? 0)} '
-                          '/ ${dowInfo.appSize ?? '未知大小'}',
+                          // 没有文件大小时不显示「0B / 未知大小」这种无意义内容
+                          (dowInfo.appSize ?? '').trim().isEmpty
+                              ? ''
+                              : '${calculateDownloadedSize(dowInfo.appSize!, dowInfo.progress ?? 0)}'
+                                  ' / ${dowInfo.appSize}',
                           style: Get.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w500,
                             color:
@@ -197,6 +200,22 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
         );
       },
     );
+  }
+
+  /// 列表显示名：优先用数据库里的应用名；
+  /// 没有则退回任务真实文件名（去掉 .apk 后缀和自动追加的时间戳），
+  /// 绝不显示「未知文件」这种无信息量的占位。
+  String _displayName(DownInfo d) {
+    final name = (d.appName ?? '').trim();
+    if (name.isNotEmpty && name != '未知文件') return name;
+    var fn = (d.fileName ?? '').trim();
+    if (fn.isEmpty) return '下载文件';
+    fn = fn.replaceAll('_', ' ');
+    final apk = fn.toLowerCase().lastIndexOf('.apk');
+    if (apk > 0) fn = fn.substring(0, apk);
+    // 去掉结尾的 13 位时间戳
+    fn = fn.replaceFirst(RegExp(r'\s*\d{13}$'), '');
+    return fn.trim().isEmpty ? '下载文件' : fn.trim();
   }
 
   String _getStatusText(DownloadTaskStatus? status) {

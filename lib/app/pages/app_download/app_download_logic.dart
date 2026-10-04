@@ -21,6 +21,9 @@ class DownInfo {
   String? appIcon;
   DownloadTaskStatus? status;
   String? createTime;
+
+  /// 任务实际文件名（DB 无记录时的显示兜底，避免出现「未知文件」）
+  String? fileName;
 }
 
 class AppDownloadLogic extends GetxController {
@@ -69,6 +72,7 @@ class AppDownloadLogic extends GetxController {
             ..appName = downloadTaskDb?.appName
             ..appSize = downloadTaskDb?.appSize
             ..appIcon = downloadTaskDb?.appIcon
+            ..fileName = task.filename
             ..createTime = downloadTaskDb?.createTime.toString(),
         );
       }

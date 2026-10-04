@@ -249,8 +249,6 @@ class AppDetailsLogic extends GetxController {
 
     // 解析真实下载地址
     String? parseUrl;
-    String originalUrl = '';
-    bool useFallback = false;
     if (item != null && item!.canDirectDownload) {
       parseUrl = item!.file; // 服务器直传：无需解析
     } else {
@@ -261,26 +259,30 @@ class AppDetailsLogic extends GetxController {
         ToastUtil.error('下载地址为空');
         return;
       }
-      originalUrl = target;
-      try {
-        // 方案一/二：自建 API → 后端解析
-        parseUrl = await service.resolveLzy(target);
-      } catch (e) {
-        logger.e(e.toString());
+      // 解析真实直链（先自建 API，再后端解析）
+      // ★ 重试一次：解析偶发失败多半是临时网络抖动
+      for (var attempt = 0; attempt < 2; attempt++) {
+        try {
+          parseUrl = await service.resolveLzy(target);
+        } catch (e) {
+          logger.e(e.toString());
+        }
+        if (parseUrl != null && parseUrl.isNotEmpty) break;
+        if (attempt == 0) {
+          await Future.delayed(const Duration(milliseconds: 600));
+        }
       }
-      // 方案三：两种解析都失败 → 用原链接直接下载
+      // ★ 解析失败不再「用原链接硬下」
+      //   （那样只会下到一个 0 字节的网页文件，进下载列表变成「未知文件」）
       if (parseUrl == null || parseUrl.isEmpty) {
-        parseUrl = target;
-        useFallback = true;
+        ToastUtil.error('直链解析失败，请稍后重试或换个网络');
+        return;
       }
     }
 
     if (parseUrl.isEmpty) {
       ToastUtil.error('下载地址无效');
       return;
-    }
-    if (useFallback) {
-      ToastUtil.error('直链解析失败，已改用原链接下载');
     }
 
     fileName = fileName.trim().replaceAll(' ', '_');
