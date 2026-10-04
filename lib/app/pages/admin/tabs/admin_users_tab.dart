@@ -337,28 +337,28 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                     label: '送30天VIP',
                     icon: Icons.workspace_premium_outlined,
                     color: C.gold,
-                    onTap: n == 0 ? null : () => _batch('vip', 30),
+                    onTap: n == 0 ? () {} : () => _batch('vip', 30),
                   ),
                   const SizedBox(width: 7),
                   MiniAction(
                     label: '解禁',
                     icon: Icons.lock_open_rounded,
                     color: C.mint,
-                    onTap: n == 0 ? null : () => _batch('unban'),
+                    onTap: n == 0 ? () {} : () => _batch('unban'),
                   ),
                   const SizedBox(width: 7),
                   MiniAction(
                     label: '封禁',
                     icon: Icons.block_rounded,
                     color: C.warning,
-                    onTap: n == 0 ? null : () => _batch('ban'),
+                    onTap: n == 0 ? () {} : () => _batch('ban'),
                   ),
                   const SizedBox(width: 7),
                   MiniAction(
                     label: '删除',
                     icon: Icons.delete_outline_rounded,
                     color: C.danger,
-                    onTap: n == 0 ? null : () => _batch('delete'),
+                    onTap: n == 0 ? () {} : () => _batch('delete'),
                   ),
                 ],
               ),
@@ -460,7 +460,7 @@ class _AdminUsersTabState extends State<AdminUsersTab>
     return KitCard(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
-      border: sel ? Border.all(color: C.brand, width: 1.5) : null,
+      border: sel,
       onTap: _selectMode ? () => setState(() {
         if (sel) {
           _selected.remove(id);

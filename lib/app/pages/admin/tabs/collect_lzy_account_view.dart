@@ -152,7 +152,7 @@ class _CollectLzyAccountViewState extends State<CollectLzyAccountView>
                     label: '清空',
                     icon: Icons.delete_outline_rounded,
                     color: C.danger,
-                    onTap: _busy ? null : _clear,
+                    onTap: _busy ? () {} : _clear,
                   ),
               ],
             ),
