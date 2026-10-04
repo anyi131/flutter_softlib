@@ -13,13 +13,16 @@ import 'package:flutter/material.dart';
 /// ═══════════════════════════════════════════════════════════════
 
 /// ─────────── 配色 ───────────
+/// ★ 唯一配色真源（Single Source of Truth）
+///   全项目所有色值必须从这里取；其它文件（如 app_theme.dart 的 AppColor）
+///   只是本类的转发别名，禁止再定义独立的色值。
 class C {
   C._();
 
-  // 品牌色（极光蓝紫）
-  static const brand = Color(0xFF5B6CFF);
-  static const brandBright = Color(0xFF7B8CFF);
-  static const brandDeep = Color(0xFF3D4FE0);
+  // 品牌色（极光蓝紫）★ 与主题、旧 AppColor.primary 对齐
+  static const brand = Color(0xFF4B5EF5);
+  static const brandBright = Color(0xFF6E7DFF);
+  static const brandDeep = Color(0xFF3A4BD8);
 
   // 强调色
   static const cyan = Color(0xFF22D3EE);
@@ -28,7 +31,13 @@ class C {
   static const amber = Color(0xFFFBBF24);
   static const mint = Color(0xFF34D399);
   static const rose = Color(0xFFFB7185);
-  static const accentOrange = Color(0xFFFB923C);
+  static const accentOrange = Color(0xFFFF6B35);
+
+  // 语义色（成功/警告/危险/会员金）
+  static const success = Color(0xFF10B981);
+  static const warning = Color(0xFFF59E0B);
+  static const danger = Color(0xFFEF4444);
+  static const gold = Color(0xFFC9A227);
 
   // 深色底（三层景深）—— 仅深色模式用
   static const bg0 = Color(0xFF0E1016);
