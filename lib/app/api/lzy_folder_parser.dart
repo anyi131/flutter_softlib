@@ -59,7 +59,10 @@ class LzyFolderParser {
 
     final t = _tplVar(html, "'t'");
     final k = _tplVar(html, "'k'");
-    final fid = _match(html, RegExp(r"'fid'\s*:\s*([^,\n]+)"))?.replaceAll(RegExp(r"['\"" r" \t]"), '') ?? '';
+    final fidRaw = _match(html, RegExp(r"'fid'\s*:\s*([^,\n]+)"));
+    final fid = fidRaw == null
+        ? ''
+        : fidRaw.replaceAll(RegExp("[\\s'\"]"), '');
     final uid = _match(html, RegExp(r"'uid'\s*:\s*'([^']+)'")) ?? '';
     final puid = _match(html, RegExp(r"'puid'\s*:\s*'([^']+)'")) ?? '';
 
