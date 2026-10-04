@@ -32,6 +32,25 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
   final noticeContentCtrl = TextEditingController();
   final maintainCtrl = TextEditingController();
 
+  // ── 支付配置 ──
+  bool payEnable = false;
+  bool payAlipay = true;
+  bool payWxpay = true;
+  bool payQqpay = true;
+  bool payKeySet = false; // 密钥是否已设置（不回显）
+  final payApiCtrl = TextEditingController();
+  final payPidCtrl = TextEditingController();
+  final payKeyCtrl = TextEditingController(); // 留空 = 不修改
+  final payPlan1NameCtrl = TextEditingController(text: '一周会员');
+  final payPlan1MoneyCtrl = TextEditingController(text: '8');
+  final payPlan1DaysCtrl = TextEditingController(text: '7');
+  final payPlan2NameCtrl = TextEditingController(text: '三个月会员');
+  final payPlan2MoneyCtrl = TextEditingController(text: '28.88');
+  final payPlan2DaysCtrl = TextEditingController(text: '90');
+  final payPlan3NameCtrl = TextEditingController(text: '永久会员');
+  final payPlan3MoneyCtrl = TextEditingController(text: '45.99');
+  final payPlan3DaysCtrl = TextEditingController(text: '0');
+
   @override
   void initState() {
     super.initState();
@@ -48,12 +67,29 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
     noticeTitleCtrl.dispose();
     noticeContentCtrl.dispose();
     maintainCtrl.dispose();
+    payApiCtrl.dispose();
+    payPidCtrl.dispose();
+    payKeyCtrl.dispose();
+    payPlan1NameCtrl.dispose();
+    payPlan1MoneyCtrl.dispose();
+    payPlan1DaysCtrl.dispose();
+    payPlan2NameCtrl.dispose();
+    payPlan2MoneyCtrl.dispose();
+    payPlan2DaysCtrl.dispose();
+    payPlan3NameCtrl.dispose();
+    payPlan3MoneyCtrl.dispose();
+    payPlan3DaysCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     try {
       final d = await _svc.splash();
+      // 支付配置走 config 接口（与开屏配置分属不同接口）
+      Map<String, dynamic> cfg = {};
+      try {
+        cfg = await _svc.config();
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         splashEnable = '${d['splash_enable']}' == '1';
@@ -68,6 +104,23 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         noticeTitleCtrl.text = '${d['notice_title'] ?? '公告'}';
         noticeContentCtrl.text = '${d['notice_content'] ?? ''}';
         maintainCtrl.text = '${d['maintain_text'] ?? ''}';
+        // 支付
+        payEnable = '${cfg['pay_enabled']}' == '1';
+        payAlipay = '${cfg['pay_alipay']}' == '1';
+        payWxpay = '${cfg['pay_wxpay']}' == '1';
+        payQqpay = '${cfg['pay_qqpay']}' == '1';
+        payKeySet = '${cfg['pay_key_set']}' == '1';
+        payApiCtrl.text = '${cfg['pay_apiurl'] ?? ''}';
+        payPidCtrl.text = '${cfg['pay_pid'] ?? ''}';
+        payPlan1NameCtrl.text = '${cfg['pay_plan1_name'] ?? '一周会员'}';
+        payPlan1MoneyCtrl.text = '${cfg['pay_plan1_money'] ?? '8'}';
+        payPlan1DaysCtrl.text = '${cfg['pay_plan1_days'] ?? 7}';
+        payPlan2NameCtrl.text = '${cfg['pay_plan2_name'] ?? '三个月会员'}';
+        payPlan2MoneyCtrl.text = '${cfg['pay_plan2_money'] ?? '28.88'}';
+        payPlan2DaysCtrl.text = '${cfg['pay_plan2_days'] ?? 90}';
+        payPlan3NameCtrl.text = '${cfg['pay_plan3_name'] ?? '永久会员'}';
+        payPlan3MoneyCtrl.text = '${cfg['pay_plan3_money'] ?? '45.99'}';
+        payPlan3DaysCtrl.text = '${cfg['pay_plan3_days'] ?? 0}';
         _loading = false;
         _inited = true;
       });
@@ -93,6 +146,31 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'maintain_enable': maintainEnable ? 1 : 0,
         'maintain_text': maintainCtrl.text.trim(),
       });
+      // 支付配置（pay_key 留空表示不修改）
+      await _svc.saveConfig({
+        'pay_enabled': payEnable ? 1 : 0,
+        'pay_apiurl': payApiCtrl.text.trim(),
+        'pay_pid': payPidCtrl.text.trim(),
+        if (payKeyCtrl.text.trim().isNotEmpty) 'pay_key': payKeyCtrl.text.trim(),
+        'pay_alipay': payAlipay ? 1 : 0,
+        'pay_wxpay': payWxpay ? 1 : 0,
+        'pay_qqpay': payQqpay ? 1 : 0,
+        'pay_plan1_name': payPlan1NameCtrl.text.trim(),
+        'pay_plan1_money': payPlan1MoneyCtrl.text.trim(),
+        'pay_plan1_days': int.tryParse(payPlan1DaysCtrl.text) ?? 7,
+        'pay_plan2_name': payPlan2NameCtrl.text.trim(),
+        'pay_plan2_money': payPlan2MoneyCtrl.text.trim(),
+        'pay_plan2_days': int.tryParse(payPlan2DaysCtrl.text) ?? 90,
+        'pay_plan3_name': payPlan3NameCtrl.text.trim(),
+        'pay_plan3_money': payPlan3MoneyCtrl.text.trim(),
+        'pay_plan3_days': int.tryParse(payPlan3DaysCtrl.text) ?? 0,
+      });
+      if (mounted && payKeyCtrl.text.trim().isNotEmpty) {
+        setState(() {
+          payKeySet = true;
+          payKeyCtrl.clear();
+        });
+      }
       ToastUtil.success('保存成功，App 下次启动生效');
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
@@ -145,6 +223,91 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
             _switch('开启维护模式（App 显示维护页）', maintainEnable,
                 (v) => setState(() => maintainEnable = v)),
             _field('维护提示文案', maintainCtrl, lines: 2),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: '会员支付',
+          children: [
+            _switch('开启在线支付', payEnable,
+                (v) => setState(() => payEnable = v)),
+            _field('支付接口地址 apiurl', payApiCtrl),
+            _field('商户 PID', payPidCtrl),
+            _field('商户 KEY（留空表示不修改）', payKeyCtrl),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Icon(
+                    payKeySet
+                        ? Icons.verified_user_rounded
+                        : Icons.warning_amber_rounded,
+                    size: 14,
+                    color: payKeySet ? C.success : C.warning,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    payKeySet ? '密钥已设置' : '密钥尚未设置，支付无法使用',
+                    style: Ty.tiny.copyWith(
+                        color: payKeySet ? C.success : C.warning),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: _switch('支付宝', payAlipay,
+                      (v) => setState(() => payAlipay = v)),
+                ),
+                Expanded(
+                  child: _switch('微信', payWxpay,
+                      (v) => setState(() => payWxpay = v)),
+                ),
+                Expanded(
+                  child: _switch('QQ', payQqpay,
+                      (v) => setState(() => payQqpay = v)),
+                ),
+              ],
+            ),
+            if (!payEnable)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('未开启时 App 会员页会提示「支付暂未开放」',
+                    style: Ty.tiny.copyWith(color: context.t3)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: '会员套餐',
+          children: [
+            _field('套餐一 名称', payPlan1NameCtrl),
+            Row(
+              children: [
+                Expanded(child: _field('价格（元）', payPlan1MoneyCtrl)),
+                const SizedBox(width: 10),
+                Expanded(child: _field('天数', payPlan1DaysCtrl)),
+              ],
+            ),
+            const Divider(height: 20),
+            _field('套餐二 名称', payPlan2NameCtrl),
+            Row(
+              children: [
+                Expanded(child: _field('价格（元）', payPlan2MoneyCtrl)),
+                const SizedBox(width: 10),
+                Expanded(child: _field('天数', payPlan2DaysCtrl)),
+              ],
+            ),
+            const Divider(height: 20),
+            _field('套餐三 名称', payPlan3NameCtrl),
+            Row(
+              children: [
+                Expanded(child: _field('价格（元）', payPlan3MoneyCtrl)),
+                const SizedBox(width: 10),
+                Expanded(child: _field('天数（0=永久）', payPlan3DaysCtrl)),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 16),

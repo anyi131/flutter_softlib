@@ -8,6 +8,7 @@ import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import 'tabs/admin_apps_tab.dart';
 import 'tabs/admin_content_tab.dart';
+import 'tabs/admin_orders_tab.dart';
 import 'tabs/admin_splash_tab.dart';
 import 'tabs/admin_users_tab.dart';
 
@@ -21,7 +22,7 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage>
     with SingleTickerProviderStateMixin {
-  late final TabController _tab = TabController(length: 5, vsync: this);
+  late final TabController _tab = TabController(length: 6, vsync: this);
 
   bool _checking = true;
   bool _isAdmin = false;
@@ -100,6 +101,7 @@ class _AdminPageState extends State<AdminPage>
                       _OverviewTab(),
                       AdminAppsTab(),
                       AdminUsersTab(),
+                      AdminOrdersTab(),
                       AdminContentTab(),
                       AdminSplashTab(),
                     ],
@@ -177,6 +179,7 @@ class _AdminPageState extends State<AdminPage>
       (Icons.dashboard_rounded, '概览'),
       (Icons.apps_rounded, '软件'),
       (Icons.people_rounded, '用户'),
+      (Icons.receipt_long_rounded, '订单'),
       (Icons.article_rounded, '内容'),
       (Icons.settings_rounded, '配置'),
     ];
@@ -288,6 +291,17 @@ class _OverviewTabState extends State<_OverviewTab> {
       ('线报', _d['reports'], C.cyan, Icons.article_rounded),
       ('卡密', _d['cards'], C.rose, Icons.confirmation_number_rounded),
     ];
+    // 经营数据（收入 / 订单 / 浏览）
+    final biz = [
+      ('累计收入', '¥${_d['total_money'] ?? '0.00'}', C.gold,
+          Icons.account_balance_wallet_rounded),
+      ('今日收入', '¥${_d['today_money'] ?? '0.00'}', C.success,
+          Icons.trending_up_rounded),
+      ('已付订单', '${_d['paid_orders'] ?? 0}', C.brand, Icons.receipt_long_rounded),
+      ('待付订单', '${_d['unpaid_orders'] ?? 0}', C.warning,
+          Icons.pending_actions_rounded),
+    ];
+    final trend = (_d['trend'] as List?) ?? [];
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -330,7 +344,110 @@ class _OverviewTabState extends State<_OverviewTab> {
                     ))
                 .toList(),
           ),
+          const SizedBox(height: 20),
+          const SectionHeader(title: '经营数据', accent: C.gold),
+          GridView.count(
+            crossAxisCount: context.isWide ? 4 : 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.7,
+            children: biz
+                .map((it) => GlassCard(
+                      radius: R.lg,
+                      padding: const EdgeInsets.all(14),
+                      glow: it.$3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: it.$3.withAlpha(context.isDark ? 36 : 24),
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: Icon(it.$4, size: 16, color: it.$3),
+                          ),
+                          Text(it.$2,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.0,
+                                  color: it.$3)),
+                          Text(it.$1,
+                              style: Ty.tiny.copyWith(color: context.t3)),
+                        ],
+                      ),
+                    ))
+                .toList(),
+          ),
+          if (trend.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const SectionHeader(
+                title: '近 7 日趋势', subtitle: '新增用户 / 收入', accent: C.brand),
+            GlassCard(
+              radius: R.lg,
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
+              child: Column(
+                children: [
+                  for (final t in trend)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 42,
+                            child: Text('${t['date'] ?? ''}',
+                                style: Ty.tiny.copyWith(color: context.t3)),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _trendBar(
+                                double.tryParse('${t['users'] ?? 0}') ?? 0),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('+${t['users'] ?? 0}人',
+                              style: Ty.tiny.copyWith(color: C.mint)),
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            width: 58,
+                            child: Text('¥${t['money'] ?? '0.00'}',
+                                textAlign: TextAlign.right,
+                                style: Ty.tiny.copyWith(color: C.gold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  /// 趋势条（按 7 日内最大值归一化）
+  Widget _trendBar(double value) {
+    final trend = (_d['trend'] as List?) ?? [];
+    double maxV = 1;
+    for (final t in trend) {
+      final v = double.tryParse('${t['users'] ?? 0}') ?? 0;
+      if (v > maxV) maxV = v;
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(R.full),
+      child: LinearProgressIndicator(
+        value: (value / maxV).clamp(0.06, 1.0),
+        minHeight: 8,
+        backgroundColor: context.isDark
+            ? Colors.white.withAlpha(16)
+            : Colors.black.withAlpha(8),
+        valueColor: AlwaysStoppedAnimation<Color>(C.brand.withAlpha(200)),
       ),
     );
   }

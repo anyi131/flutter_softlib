@@ -224,4 +224,32 @@ class AdminService {
 
   Future<void> saveConfig(Map<String, dynamic> data) async =>
       _post('config_save', data);
+
+  // ───────── 订单 ─────────
+  Future<List<Map<String, dynamic>>> orders({
+    int? status,
+    String keyword = '',
+    int page = 1,
+  }) async {
+    final d = (await _post('orders', {
+      if (status != null) 'status': status,
+      if (keyword.isNotEmpty) 'keyword': keyword,
+      'page': page,
+    }))['data'];
+    if (d is Map && d['list'] is List) {
+      return (d['list'] as List)
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> orderStats() async =>
+      Map<String, dynamic>.from((await _post('order_stats'))['data'] ?? {});
+
+  /// 手动补单（确认收款后给用户加会员）
+  Future<void> deliverOrder(String outTradeNo) async =>
+      _post('order_deliver', {'out_trade_no': outTradeNo});
+
+  Future<void> deleteOrder(int id) async => _post('order_del', {'id': id});
 }

@@ -1,12 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../api/pay_service.dart';
+import '../../api/user_service.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
+import '../../utils/toast_util.dart';
 
 /// 开通会员 / VIP 中心页
-/// 复刻用户提供的截图：VIP PRO 头卡 + 三档套餐 + 支付方式 + 立即开通 + 会员权益
+/// VIP PRO 头卡 + 三档套餐 + 支付方式 + 立即开通 + 会员权益
+/// 套餐与价格由后台配置下发（pay/plans），支付走易支付收银台
 class VipPage extends StatefulWidget {
   const VipPage({super.key});
 
@@ -14,23 +21,54 @@ class VipPage extends StatefulWidget {
   State<VipPage> createState() => _VipPageState();
 }
 
-class _Plan {
-  final String name;
-  final String price;
-  final String tag;
-  final bool recommended;
-  const _Plan(this.name, this.price, this.tag, {this.recommended = false});
-}
-
 class _VipPageState extends State<VipPage> {
-  final List<_Plan> _plans = const [
-    _Plan('一周会员', '8', '体验'),
-    _Plan('三个月会员', '28.88', '推荐', recommended: true),
-    _Plan('永久', '45.99', '长期'),
+  /// 默认套餐（后端拉取失败时的兜底，保证页面可用）
+  List<PayPlan> _plans = const [
+    PayPlan(id: 'plan1', name: '一周会员', money: '8', days: 7),
+    PayPlan(id: 'plan2', name: '三个月会员', money: '28.88', days: 90),
+    PayPlan(id: 'plan3', name: '永久会员', money: '45.99', days: 0),
   ];
+  bool _payEnabled = false;
+  bool _loadingPlans = true;
+  bool _submitting = false;
+  Map<String, int> _methods = {'alipay': 1, 'wxpay': 1, 'qqpay': 1};
 
-  int _selectedPlan = 0;
+  int _selectedPlan = 1; // 默认选中「推荐」的三个月
   int _payMethod = 0; // 0 支付宝 1 微信 2 QQ
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlans();
+  }
+
+  Future<void> _loadPlans() async {
+    try {
+      final r = await PayService.instance.plans();
+      final list = (r['planList'] as List?)?.cast<PayPlan>() ?? [];
+      if (!mounted) return;
+      setState(() {
+        if (list.isNotEmpty) _plans = list;
+        _payEnabled = r['enabled'] == 1 || r['enabled'] == true;
+        final m = r['methods'];
+        if (m is Map) {
+          _methods = {
+            'alipay': (m['alipay'] ?? 1) as int,
+            'wxpay': (m['wxpay'] ?? 1) as int,
+            'qqpay': (m['qqpay'] ?? 1) as int,
+          };
+        }
+        _loadingPlans = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingPlans = false);
+    }
+  }
+
+  bool _methodOn(int i) {
+    final k = ['alipay', 'wxpay', 'qqpay'][i];
+    return (_methods[k] ?? 1) == 1;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -217,14 +255,16 @@ class _VipPageState extends State<VipPage> {
         child: Column(
           children: [
             Pill(
-              plan.tag,
-              color: plan.recommended ? C.gold : context.t3,
-              solid: plan.recommended,
+              _planTag(index),
+              color: index == 1 ? C.gold : context.t3,
+              solid: index == 1,
               small: true,
             ),
             const SizedBox(height: 10),
             Text(
               plan.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Ty.small.copyWith(
                   fontSize: 14, fontWeight: FontWeight.w700, color: context.t1),
             ),
@@ -240,10 +280,14 @@ class _VipPageState extends State<VipPage> {
                         fontWeight: FontWeight.w700,
                         color: C.accentOrange)),
                 const SizedBox(width: 2),
-                Text(
-                  plan.price,
-                  style: Ty.h1.copyWith(
-                      fontSize: 22, color: C.accentOrange),
+                Flexible(
+                  child: Text(
+                    plan.money,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Ty.h1.copyWith(
+                        fontSize: 22, color: C.accentOrange),
+                  ),
                 ),
               ],
             ),
@@ -255,41 +299,47 @@ class _VipPageState extends State<VipPage> {
 
   /// 支付方式项
   Widget _buildPayItem(int index, String label, IconData icon) {
-    final selected = _payMethod == index;
+    final on = _methodOn(index);
+    final selected = _payMethod == index && on;
     final accent = C.brand;
     return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _payMethod = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          height: 44,
-          decoration: BoxDecoration(
-            color: selected
-                ? accent.withAlpha(context.isDark ? 38 : 22)
-                : (context.isDark ? C.bg2 : Colors.white),
-            borderRadius: BorderRadius.circular(R.sm),
-            border: Border.all(
+      child: Opacity(
+        opacity: on ? 1 : 0.4,
+        child: GestureDetector(
+          onTap: on
+              ? () => setState(() => _payMethod = index)
+              : () => ToastUtil.info('该支付方式暂未开放'),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            height: 44,
+            decoration: BoxDecoration(
               color: selected
-                  ? accent.withAlpha(150)
-                  : (context.isDark
-                      ? Colors.white.withAlpha(22)
-                      : Colors.black.withAlpha(20)),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 17, color: selected ? accent : context.t3),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: Ty.small.copyWith(
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                  color: selected ? accent : context.t2,
-                ),
+                  ? accent.withAlpha(context.isDark ? 38 : 22)
+                  : (context.isDark ? C.bg2 : Colors.white),
+              borderRadius: BorderRadius.circular(R.sm),
+              border: Border.all(
+                color: selected
+                    ? accent.withAlpha(150)
+                    : (context.isDark
+                        ? Colors.white.withAlpha(22)
+                        : Colors.black.withAlpha(20)),
               ),
-            ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 17, color: selected ? accent : context.t3),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: Ty.small.copyWith(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    color: selected ? accent : context.t2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -311,15 +361,121 @@ class _VipPageState extends State<VipPage> {
     );
   }
 
-  void _onBuy() {
+  /// 套餐角标（按位置给语义化标签）
+  String _planTag(int index) {
+    switch (index) {
+      case 0:
+        return '体验';
+      case 1:
+        return '推荐';
+      default:
+        return _plans.length > 2 && _plans[index].days == 0 ? '长期' : '超值';
+    }
+  }
+
+  /// 下单 → 打开收银台 → 轮询支付结果 → 刷新会员状态
+  Future<void> _onBuy() async {
+    if (_submitting) return;
+    if (!UserService.instance.isLoggedIn) {
+      ToastUtil.info('请先登录后再开通会员');
+      Get.toNamed('/login');
+      return;
+    }
+    if (!_payEnabled) {
+      ToastUtil.info('支付功能暂未开启，请联系管理员');
+      return;
+    }
     final plan = _plans[_selectedPlan];
-    final pay = ['支付宝', '微信', 'QQ'][_payMethod];
-    Get.dialog(AlertDialog(
-      title: const Text('确认订单'),
-      content: Text('${plan.name} · ¥${plan.price}\n支付方式：$pay\n\n支付通道对接中，请联系管理员开通。'),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('我知道了')),
-      ],
-    ));
+    final payType = ['alipay', 'wxpay', 'qqpay'][_payMethod];
+
+    setState(() => _submitting = true);
+    try {
+      final order = await PayService.instance.create(
+        planId: plan.id,
+        payType: payType,
+      );
+      if (order.payUrl.isEmpty) {
+        ToastUtil.error('下单失败，请稍后重试');
+        return;
+      }
+      // 打开收银台（外部浏览器/系统 WebView）
+      final uri = Uri.tryParse(order.payUrl);
+      var opened = false;
+      if (uri != null) {
+        opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      if (!opened) {
+        ToastUtil.error('无法打开支付页面');
+        return;
+      }
+      if (!mounted) return;
+      _showWaiting(order);
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  /// 支付等待中：给用户明确反馈，并在到账后自动刷新
+  void _showWaiting(PayOrder order) {
+    final done = ValueNotifier<bool>(false);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(R.lg)),
+        title: const Text('等待支付结果'),
+        content: ValueListenableBuilder<bool>(
+          valueListenable: done,
+          builder: (_, ok, __) => Row(
+            children: [
+              if (!ok) ...[
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                ),
+                const SizedBox(width: 12),
+              ] else ...[
+                const Icon(Icons.check_circle_rounded,
+                    color: C.success, size: 20),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Text(
+                  ok
+                      ? '支付成功，会员已开通！'
+                      : '已调起支付页面，完成付款后会自动到账…\n订单号 ${order.outTradeNo}',
+                  style: const TextStyle(fontSize: 13.5, height: 1.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+
+    // 后台轮询（同时也会在 App 回到前台时立刻查一次）
+    PayService.instance
+        .waitPaid(order.outTradeNo, timeout: const Duration(minutes: 8))
+        .then((paid) async {
+      if (!mounted) return;
+      if (paid) {
+        done.value = true;
+        await UserService.instance.refreshProfile();
+        if (mounted) setState(() {});
+        await Future.delayed(const Duration(milliseconds: 1200));
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+        ToastUtil.success('会员已开通');
+      }
+    });
   }
 }
