@@ -85,13 +85,13 @@ class Deco {
       Theme.of(c).brightness == Brightness.dark;
 
   /// 主背景：浅色页面底 + 柔和彩色光晕（浅色为主）
+  /// ★ fit: expand 保证无论父级约束如何都铺满，避免转场/首帧露出底色
   static Widget pageBackground(BuildContext context, {Widget? child}) {
     final isDark = dark(context);
     return Stack(
+      fit: StackFit.expand,
       children: [
-        Positioned.fill(
-          child: Container(color: isDark ? C.bg0 : C.lbg0),
-        ),
+        Container(color: isDark ? C.bg0 : C.lbg0),
         // 顶部品牌光晕
         Positioned(
           top: -180,

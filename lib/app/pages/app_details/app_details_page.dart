@@ -54,8 +54,53 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           GetBuilder<AppDetailsLogic>(
             id: 'appInfo',
             builder: (logic) {
+              // ★ 骨架屏：内容框架先占位，数据到了就地填充
+              //   避免「空白转圈 → 内容」的突变闪烁
               if (logic.isLoadingInfo) {
-                return const LoadingState(text: '正在加载软件信息…');
+                final topInset = MediaQuery.of(context).padding.top;
+                return ListView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(context.pagePadding,
+                      topInset + 56, context.pagePadding, 30),
+                  children: [
+                    // 主卡（图标 + 标题 + 标签）
+                    KitCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          const Skeleton(width: 76, height: 76, radius: R.lg),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Skeleton(width: 160, height: 17),
+                                SizedBox(height: 10),
+                                Skeleton(width: 110, height: 12),
+                                SizedBox(height: 10),
+                                Skeleton(width: 200, height: 12),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Skeleton(height: 68, radius: R.lg),
+                    const SizedBox(height: 16),
+                    const Skeleton(height: 40, radius: R.lg),
+                    const SizedBox(height: 14),
+                    const Skeleton(width: 120, height: 16),
+                    const SizedBox(height: 12),
+                    ...List.generate(
+                      4,
+                      (_) => const Padding(
+                        padding: EdgeInsets.only(bottom: 10),
+                        child: Skeleton(height: 13),
+                      ),
+                    ),
+                  ],
+                );
               }
               if (logic.appInfo == null) {
                 return ErrorState(

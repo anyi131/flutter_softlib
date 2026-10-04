@@ -117,6 +117,25 @@ const Color kBrandCardDark = Color(0xFF1A1D23);
 ThemeData buildLightTheme() => buildNewTheme(dark: false);
 ThemeData buildDarkTheme() => buildNewTheme(dark: true);
 
+/// 状态栏／导航栏样式同步
+/// ★ 带缓存：只有真正变化时才调用平台通道，避免 build 里反复调用造成闪烁
+bool? _lastSystemBarDark;
+void _syncSystemBars(bool isDark) {
+  if (_lastSystemBarDark == isDark) return;
+  _lastSystemBarDark = isDark;
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor:
+          isDark ? const Color(0xFF0E1016) : const Color(0xFFF6F7FB),
+      systemNavigationBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
+    ),
+  );
+}
+
 /// 软件库应用主组件
 class SoftLibApp extends StatelessWidget {
   const SoftLibApp({super.key});
@@ -124,23 +143,12 @@ class SoftLibApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final isDark = ThemeController.instance.mode.value == ThemeMode.dark ||
-          (ThemeController.instance.mode.value == ThemeMode.system &&
+      final mode = ThemeController.instance.mode.value;
+      final isDark = mode == ThemeMode.dark ||
+          (mode == ThemeMode.system &&
               MediaQuery.of(Get.context ?? context).platformBrightness ==
                   Brightness.dark);
-      // 状态栏图标颜色随主题变化（避免反色看不清）
-      SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-          systemNavigationBarColor: isDark
-              ? const Color(0xFF0E1016)
-              : const Color(0xFFF6F7FB),
-          systemNavigationBarIconBrightness:
-              isDark ? Brightness.light : Brightness.dark,
-        ),
-      );
+      _syncSystemBars(isDark);
       return GetMaterialApp(
       title: '软件库App',
       debugShowCheckedModeBanner: false,
@@ -153,9 +161,13 @@ class SoftLibApp extends StatelessWidget {
         );
       },
       // 统一使用 iOS 风格右滑过渡（GetX 路由）
-      // ★ 关键：opaqueRoute 必须为 true（默认），否则上一页每帧重建 → 转场掉帧
+      // ★ 关键：opaqueRoute 必须为 false！
+      //   cupertino 是「平移」转场 —— 动画期间新旧两页同时可见。
+      //   若 opaque 为 true，Flutter 会认为新页已完全盖住旧页，从动画一开始
+      //   就跳过绘制旧页 → 露出底层黑/白 → 表现为「闪屏」。
       defaultTransition: Transition.cupertino,
-      transitionDuration: const Duration(milliseconds: 220),
+      transitionDuration: const Duration(milliseconds: 260),
+      opaqueRoute: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: ThemeController.instance.mode.value,
