@@ -100,8 +100,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                           _commentHeader(),
                           const SizedBox(height: 8),
                           if (_comments.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 20),
+                            const SizedBox(
+                              height: 240,
                               child: EmptyState(
                                 text: '还没有评论，快来抢沙发~',
                                 hint: '说说你的看法吧',

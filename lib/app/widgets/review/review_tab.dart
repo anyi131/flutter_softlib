@@ -53,8 +53,10 @@ class _ReviewTabState extends State<ReviewTab> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
+      // 本组件嵌在外层 ListView 中（高度无约束），给一个固定高度，
+      // 避免 Center 在无约束高度下失去居中效果。
+      return const SizedBox(
+        height: 180,
         child: LoadingState(text: '正在加载评价…'),
       );
     }
@@ -84,8 +86,8 @@ class _ReviewTabState extends State<ReviewTab> {
         _filterRow(),
         const SizedBox(height: 12),
         if (_list.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
+          const SizedBox(
+            height: 240,
             child: EmptyState(
               text: '还没有评价，来写第一条吧',
               hint: '你的评价会帮助更多人',
