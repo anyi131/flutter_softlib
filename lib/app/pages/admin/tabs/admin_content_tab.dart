@@ -249,6 +249,7 @@ class _AdminContentTabState extends State<AdminContentTab>
   }
 
   Widget _reviewList() {
+    if (_reviews.isEmpty) {
       return const EmptyState(
           text: '暂无评价', icon: Icons.rate_review_outlined);
     }

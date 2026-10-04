@@ -643,7 +643,7 @@ class MineLogic extends GetxController {
         await _userService.saveSplash(up);
       } catch (e) {
         // 上传失败也不影响本地生效
-        logger.e('开屏图上传失败: $e');
+        debugPrint('开屏图上传失败: $e');
       }
       await load();
       ToastUtil.success('开屏图已更新，下次启动生效');
