@@ -145,6 +145,7 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
                               spacing: 7,
                               runSpacing: 6,
                               children: [
+                                _btn('编辑', () => _editUser(u)),
                                 _btn('+30天VIP', () async {
                                   await _svc.grantVip(
                                       int.tryParse('${u['id']}') ?? 0, 30);
@@ -198,6 +199,84 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
         ),
       ],
     );
+  }
+
+  /// 编辑用户
+  Future<void> _editUser(Map u) async {
+    final nickCtrl = TextEditingController(text: '${u['nickname'] ?? ''}');
+    final emailCtrl = TextEditingController(text: '${u['email'] ?? ''}');
+    final qqCtrl = TextEditingController(text: '${u['qq'] ?? ''}');
+    final scoreCtrl = TextEditingController(text: '${u['score'] ?? 0}');
+    final titleCtrl = TextEditingController(text: '${u['title'] ?? ''}');
+    final pwdCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('编辑用户：${u['nickname']}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                    controller: nickCtrl,
+                    decoration: const InputDecoration(labelText: '昵称')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: emailCtrl,
+                    decoration: const InputDecoration(labelText: '邮箱')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: qqCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'QQ号')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: scoreCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: '积分')),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: titleCtrl,
+                    maxLength: 12,
+                    decoration: const InputDecoration(
+                        labelText: '自定义称号',
+                        helperText: '显示在广场动态旁，留空则清除')),
+                TextField(
+                    controller: pwdCtrl,
+                    decoration: const InputDecoration(
+                        labelText: '新密码（留空不修改）')),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(result: false), child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Get.back(result: true), child: const Text('保存')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await _svc.saveUser({
+        'id': u['id'],
+        'nickname': nickCtrl.text.trim(),
+        'email': emailCtrl.text.trim(),
+        'qq': qqCtrl.text.trim(),
+        'score': int.tryParse(scoreCtrl.text) ?? 0,
+        'title': titleCtrl.text.trim(),
+        if (pwdCtrl.text.trim().isNotEmpty) 'password': pwdCtrl.text.trim(),
+      });
+      ToastUtil.success('保存成功');
+      _load();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   Widget _tag(String t, Color fg, Color bg) => Container(

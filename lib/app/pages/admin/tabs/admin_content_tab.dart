@@ -848,6 +848,8 @@ class _AdminContentTabState extends State<AdminContentTab>
     final urlCtrl = TextEditingController(text: '${s?['url'] ?? ''}');
     final pwdCtrl = TextEditingController(text: '${s?['pwd'] ?? ''}');
     final weighCtrl = TextEditingController(text: '${s?['weigh'] ?? 0}');
+    final descCtrl = TextEditingController(text: '${s?['default_desc'] ?? ''}');
+    final shotsCtrl = TextEditingController(text: '${s?['default_shots'] ?? ''}');
     bool testing = false;
     String testMsg = '';
 
@@ -881,6 +883,47 @@ class _AdminContentTabState extends State<AdminContentTab>
                     controller: weighCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: '排序权重')),
+                const SizedBox(height: 10),
+                // 统一描述（文件夹内所有软件共用）
+                TextField(
+                    controller: descCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                        labelText: '统一软件介绍',
+                        helperText: '文件夹里的软件都会显示这段介绍',
+                        alignLabelWithHint: true)),
+                const SizedBox(height: 10),
+                // 统一截图
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                          controller: shotsCtrl,
+                          decoration: const InputDecoration(
+                              labelText: '统一截图 URL(逗号分隔)')),
+                    ),
+                    IconButton(
+                      tooltip: '上传截图',
+                      icon: const Icon(Icons.collections_outlined, size: 21),
+                      onPressed: () async {
+                        try {
+                          final picked = await ImagePicker()
+                              .pickMultiImage(imageQuality: 80);
+                          if (picked.isEmpty) return;
+                          final urls = <String>[];
+                          for (final f in picked) {
+                            urls.add(await _svc.uploadImage(File(f.path)));
+                          }
+                          final cur = shotsCtrl.text.trim();
+                          shotsCtrl.text = cur.isEmpty
+                              ? urls.join(',')
+                              : '$cur,${urls.join(',')}';
+                          setD(() {});
+                        } catch (_) {}
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
@@ -946,6 +989,8 @@ class _AdminContentTabState extends State<AdminContentTab>
         'weigh': int.tryParse(weighCtrl.text) ?? 0,
         'is_dir': 1,
         'enable_switch': 1,
+        'default_desc': descCtrl.text.trim(),
+        'default_shots': shotsCtrl.text.trim(),
       });
       ToastUtil.success('保存成功');
       _load();

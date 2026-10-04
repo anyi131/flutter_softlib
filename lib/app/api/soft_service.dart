@@ -112,9 +112,14 @@ class SoftService {
   }
 
   /// 拉取蓝奏云文件夹里的软件列表
-  Future<List<AppItem>> fetchFolder(String url, {String pwd = ''}) async {
+  Future<List<AppItem>> fetchFolder(String url,
+      {String pwd = '', int pgs = 1}) async {
     final resp = await _dio.get('/api/softlib/app/folder',
-        queryParameters: {'url': url, if (pwd.isNotEmpty) 'pwd': pwd},
+        queryParameters: {
+          'url': url,
+          'pgs': pgs,
+          if (pwd.isNotEmpty) 'pwd': pwd,
+        },
         options: Options(receiveTimeout: const Duration(seconds: 50)));
     final data = resp.data;
     if (data is Map && data['code'] == 1) return AppItem.listFrom(data['data']);

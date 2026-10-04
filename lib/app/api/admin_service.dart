@@ -188,6 +188,9 @@ class AdminService {
 
   Future<void> deleteUser(int id) async => _post('user_del', {'id': id});
 
+  Future<void> saveUser(Map<String, dynamic> data) async =>
+      _post('user_save', data);
+
   Future<List<Map<String, dynamic>>> posts() async {
     final d = (await _post('posts'))['data'];
     return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];

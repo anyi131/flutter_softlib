@@ -75,19 +75,24 @@ class _AppComponentState extends State<AppComponent> {
     }
     try {
       final cat = _currentCat;
-      // ★ 蓝奏云文件夹分类：直接解析文件夹内容
+      // ★ 蓝奏云文件夹分类：直接解析文件夹内容（支持翻页）
       final all = (cat != null && cat.isFolder)
-          ? await _svc.fetchFolder(cat.url, pwd: cat.pwd)
+          ? await _svc.fetchFolder(cat.url, pwd: cat.pwd, pgs: _page)
           : await _svc.fetchApps(
               catId: _cat,
               keyword: _kw,
               provider: _source == 'all' ? '' : _source,
               force: reset,
             );
+      final isFolderMode = cat != null && cat.isFolder;
+      // 文件夹模式：后端已分页，直接用返回结果
+      // 普通模式：后端一次返回全部，前端做切片
       final start = (_page - 1) * _size;
-      final slice = start >= all.length
-          ? <AppItem>[]
-          : all.sublist(start, (start + _size).clamp(0, all.length));
+      final slice = isFolderMode
+          ? all
+          : (start >= all.length
+              ? <AppItem>[]
+              : all.sublist(start, (start + _size).clamp(0, all.length)));
       if (!mounted) return;
       setState(() {
         if (reset) {
@@ -95,7 +100,7 @@ class _AppComponentState extends State<AppComponent> {
         } else {
           _apps.addAll(slice);
         }
-        _hasMore = slice.length >= _size;
+        _hasMore = isFolderMode ? (all.isNotEmpty && slice.length >= 10) : (slice.length >= _size);
         if (_hasMore) _page++;
         _loading = false;
       });
@@ -419,18 +424,55 @@ class _AppComponentState extends State<AppComponent> {
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(R.md),
-                child: a.icon.isEmpty
-                    ? _ph()
-                    : CachedNetworkImage(
-                        imageUrl: a.icon,
-                        width: 54,
-                        height: 54,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => _ph(),
-                        errorWidget: (_, __, ___) => _ph(),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(R.md),
+                    child: a.icon.isEmpty
+                        ? _ph()
+                        : CachedNetworkImage(
+                            imageUrl: a.icon,
+                            width: 54,
+                            height: 54,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => _ph(),
+                            errorWidget: (_, __, ___) => _ph(),
+                          ),
+                  ),
+                  // ★ NEW 角标（图标左上角）
+                  if (a.isNew)
+                    Positioned(
+                      left: -2,
+                      top: -2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                              colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(8),
+                            bottomRight: Radius.circular(8),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF6B35).withAlpha(120),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Text('NEW',
+                            style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 0.4,
+                                height: 1.1)),
                       ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(width: 12),
@@ -455,24 +497,6 @@ class _AppComponentState extends State<AppComponent> {
                           ),
                         ),
                       ),
-                      if (a.isNew) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 1),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('NEW',
-                              style: TextStyle(
-                                  fontSize: 8.5,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: 0.3)),
-                        ),
-                      ],
                       if (a.version.isNotEmpty) ...[
                         const SizedBox(width: 6),
                         Text(a.version,

@@ -189,18 +189,55 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                     ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(R.lg),
-                  child: icon.isEmpty
-                      ? _phIcon()
-                      : CachedNetworkImage(
-                          imageUrl: icon,
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => _phIcon(),
-                          errorWidget: (_, __, ___) => _phIcon(),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(R.lg),
+                      child: icon.isEmpty
+                          ? _phIcon()
+                          : CachedNetworkImage(
+                              imageUrl: icon,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => _phIcon(),
+                              errorWidget: (_, __, ___) => _phIcon(),
+                            ),
+                    ),
+                    // ★ NEW 角标（图标左上角）
+                    if (it?.isNew == true)
+                      Positioned(
+                        left: -3,
+                        top: -3,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(10),
+                              bottomRight: Radius.circular(10),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFF6B35).withAlpha(120),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Text('NEW',
+                              style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                  height: 1.1)),
                         ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 15),
@@ -778,7 +815,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-  /// 底部主按钮（渐变 + 光晕，更精致）
+  /// 底部主按钮（渐变胶囊 + 光晕 + 内高光）
   Widget _btn({
     required String label,
     required Color color,
@@ -786,49 +823,88 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     required VoidCallback onTap,
     bool gold = false,
   }) {
+    // 三种预设配色
+    final gradient = gold
+        ? Deco.goldGradient
+        : LinearGradient(
+            colors: [
+              Color.lerp(color, Colors.white, 0.22)!,
+              color,
+              Color.lerp(color, Colors.black, 0.14)!,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+    final fg = gold ? const Color(0xFF3A2E10) : Colors.white;
+
     return Container(
       width: double.infinity,
-      height: 52,
+      height: 54,
       decoration: BoxDecoration(
-        gradient: gold
-            ? Deco.goldGradient
-            : LinearGradient(
-                colors: [
-                  Color.lerp(color, Colors.white, 0.18)!,
-                  color,
-                  Color.lerp(color, Colors.black, 0.12)!,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+        gradient: gradient,
         borderRadius: BorderRadius.circular(R.full),
         boxShadow: [
+          // 主光晕
           BoxShadow(
-            color: color.withAlpha(context.isDark ? 90 : 70),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
+            color: color.withAlpha(context.isDark ? 90 : 72),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(R.full),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(R.full),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          splashColor: fg.withAlpha(30),
+          child: Stack(
             children: [
-              Icon(icon,
-                  size: 19,
-                  color: gold ? const Color(0xFF3A2E10) : Colors.white),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.4,
-                  color: gold ? const Color(0xFF3A2E10) : Colors.white,
+              // 顶部内高光（提升质感）
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 27,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(R.full)),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withAlpha(gold ? 60 : 45),
+                        Colors.white.withAlpha(0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: fg.withAlpha(38),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, size: 16, color: fg),
+                    ),
+                    const SizedBox(width: 9),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.6,
+                        color: fg,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
