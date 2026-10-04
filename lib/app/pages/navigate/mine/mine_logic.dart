@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../api/api_host.dart';
+import '../../../design/kit.dart';
 import '../../../design/theme_controller.dart';
 import '../../../api/soft_service.dart';
 import '../../../api/post_service.dart';
@@ -342,12 +344,7 @@ class MineLogic extends GetxController {
   }
 
   void about(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: '安逸软件库',
-      applicationVersion: '1.0.0',
-      applicationLegalese: 'Copyright © 安逸软件库',
-    );
+    Get.toNamed(Routes.about);
   }
 
   void showAgreement(String title, String content) {
@@ -360,102 +357,344 @@ class MineLogic extends GetxController {
     ));
   }
 
-  /// 用户协议（后台可配）
+  /// 用户协议 / 隐私政策（独立美化页面，内容来自后台）
   Future<void> showAgreementPage(String type) async {
-    final cfg = await SoftService.instance.fetchConfig();
-    final isPrivacy = type == 'privacy';
-    final title = isPrivacy ? '隐私政策' : '用户协议';
-    final content = isPrivacy
-        ? (cfg?.privacy ?? '')
-        : (cfg?.agreement ?? '');
-    Get.dialog(AlertDialog(
-      title: Text(title),
-      content: SingleChildScrollView(
-        child: Text(
-          content.isEmpty ? '$title 内容待管理员在后台配置。' : content,
-          style: const TextStyle(height: 1.7, fontSize: 14),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('我知道了')),
-      ],
-    ));
+    Get.toNamed(Routes.agreement, arguments: {'type': type});
   }
 
-  /// 赞助排行榜
+  /// 赞助排行榜（v40 重做：头像 / 称号 / 名次 / 金额明细）
   Future<void> sponsorRank() async {
-    final list = await _userService.donateRank();
+    // 打开前先请求一次，弹窗内显示加载态
+    List<Map<String, dynamic>> list = [];
+    bool loading = true;
+    String err = '';
+    try {
+      list = await _userService.donateRank();
+    } catch (e) {
+      err = e.toString().replaceFirst('Exception: ', '');
+    }
+    loading = false;
+
     Get.dialog(
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        insetPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
           width: double.maxFinite,
-          padding: const EdgeInsets.all(18),
+          constraints: BoxConstraints(
+              maxHeight: Get.height * 0.78),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF1B1D2B), Color(0xFF12131C)],
+            ),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.emoji_events_rounded,
-                      color: Color(0xFFFBBF24), size: 22),
-                  const SizedBox(width: 9),
-                  const Text('赞助排行榜',
-                      style: TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w800)),
-                  const Spacer(),
-                  IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: Get.back),
-                ],
+              // ── 头部 ──
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 18, 14, 16),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF3A2E10), Color(0xFF1B1D2B)],
+                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFD54F), Color(0xFFF59E0B)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFF59E0B).withAlpha(90),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.emoji_events_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('赞助排行榜',
+                            style: TextStyle(
+                                fontSize: 17.5,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white)),
+                        const SizedBox(height: 2),
+                        Text('感谢每一位支持者 ❤',
+                            style: TextStyle(
+                                fontSize: 11.5,
+                                color: Colors.white.withAlpha(150))),
+                      ],
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          size: 20, color: Colors.white.withAlpha(180)),
+                      onPressed: Get.back,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 6),
-              if (list.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 30),
-                  child: Text('还没有赞助记录，欢迎成为第一位支持者',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-                )
-              else
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 380),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: list.length,
-                    itemBuilder: (c, i) {
-                      final r = list[i];
-                      final rank = int.tryParse('${r['rank']}') ?? (i + 1);
-                      final medal = rank == 1
-                          ? '🥇'
-                          : (rank == 2 ? '🥈' : (rank == 3 ? '🥉' : '$rank'));
-                      return ListTile(
-                        dense: true,
-                        leading: SizedBox(
-                          width: 28,
-                          child: Center(
-                            child: Text('$medal',
-                                style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800)),
+              // ── 内容 ──
+              Flexible(
+                child: loading
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 50),
+                        child: Center(
+                          child: SizedBox(
+                            width: 26,
+                            height: 26,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2.4),
                           ),
                         ),
-                        title: Text('${r['nickname']}',
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w700)),
-                        trailing: Text('¥${r['amount']}',
-                            style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFFFBBF24))),
-                      );
-                    },
-                  ),
-                ),
+                      )
+                    : (err.isNotEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            child: Text(err,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white.withAlpha(170))),
+                          )
+                        : (list.isEmpty
+                            ? Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 40),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.volunteer_activism_rounded,
+                                        size: 40,
+                                        color: Colors.white.withAlpha(80)),
+                                    const SizedBox(height: 12),
+                                    Text('还没有赞助记录',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white.withAlpha(160))),
+                                    const SizedBox(height: 6),
+                                    Text('欢迎成为第一位支持者',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.white.withAlpha(110))),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+                                itemCount: list.length,
+                                itemBuilder: (c, i) => _rankRow(list[i], i),
+                              ))),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
+  /// 排行榜单行：名次奖牌 + 头像 + 昵称/称号 + 金额
+  Widget _rankRow(Map<String, dynamic> r, int i) {
+    final rank = int.tryParse('${r['rank']}') ?? (i + 1);
+    final nick = '${r['nickname'] ?? '匿名'}';
+    final avatar = '${r['avatar'] ?? ''}';
+    final amount = '${r['amount'] ?? '0'}';
+    final vipAmt = '${r['vip_amount'] ?? '0'}';
+    final reAmt = '${r['recharge_amount'] ?? '0'}';
+    final title = '${r['title'] ?? ''}';
+    final isAdmin = '${r['is_admin']}' == '1';
+    final isVip = '${r['is_vip']}' == '1';
+
+    // 前三名特殊徽章
+    final bool top3 = rank <= 3;
+    final List<Color> medalColors = rank == 1
+        ? [const Color(0xFFFFD54F), const Color(0xFFF59E0B)]
+        : rank == 2
+            ? [const Color(0xFFE0E0E0), const Color(0xFF9E9E9E)]
+            : [const Color(0xFFD7A06A), const Color(0xFFB07B4F)];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: top3
+            ? medalColors[1].withAlpha(26)
+            : Colors.white.withAlpha(8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: top3
+              ? medalColors[1].withAlpha(110)
+              : Colors.white.withAlpha(18),
+          width: top3 ? 1.2 : 0.8,
+        ),
+      ),
+      child: Row(
+        children: [
+          // 名次
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: top3
+                ? BoxDecoration(
+                    gradient: LinearGradient(colors: medalColors),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: medalColors[1].withAlpha(110),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  )
+                : null,
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                fontSize: top3 ? 14 : 13,
+                fontWeight: FontWeight.w900,
+                color: top3 ? Colors.white : Colors.white.withAlpha(150),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // 头像
+          ClipOval(
+            child: avatar.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: avatar,
+                    width: 38,
+                    height: 38,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 96,
+                    placeholder: (_, __) => _rankAvatarFallback(nick),
+                    errorWidget: (_, __, ___) => _rankAvatarFallback(nick),
+                  )
+                : _rankAvatarFallback(nick),
+          ),
+          const SizedBox(width: 10),
+          // 昵称 + 称号
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nick,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    if (title.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: C.violet.withAlpha(60),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(title,
+                            style: const TextStyle(
+                                fontSize: 9.5,
+                                color: Color(0xFFC9BEFF),
+                                fontWeight: FontWeight.w700)),
+                      ),
+                      const SizedBox(width: 5),
+                    ],
+                    if (isAdmin)
+                      _miniTag('管理', const Color(0xFFEF4444)),
+                    if (isVip) ...[
+                      const SizedBox(width: 4),
+                      _miniTag('会员', const Color(0xFFF59E0B)),
+                    ],
+                    if (title.isEmpty && !isAdmin && !isVip)
+                      Text('赞助者',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white.withAlpha(110))),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 金额
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '¥$amount',
+                style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFFFFD54F)),
+              ),
+              if ((double.tryParse(vipAmt) ?? 0) > 0 ||
+                  (double.tryParse(reAmt) ?? 0) > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    (double.tryParse(vipAmt) ?? 0) > 0
+                        ? '会员 ¥$vipAmt'
+                        : '充值 ¥$reAmt',
+                    style: TextStyle(
+                        fontSize: 9.5, color: Colors.white.withAlpha(120)),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniTag(String t, Color c) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+        decoration: BoxDecoration(
+          color: c.withAlpha(60),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(t,
+            style: TextStyle(
+                fontSize: 9.5, color: c, fontWeight: FontWeight.w800)),
+      );
+
+  Widget _rankAvatarFallback(String nick) => Container(
+        width: 38,
+        height: 38,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [C.brand.withAlpha(180), C.violet.withAlpha(160)],
+          ),
+        ),
+        child: Text(
+          nick.isNotEmpty ? nick.characters.first : '?',
+          style: const TextStyle(
+              fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
+        ),
+      );
 
   /// 积分兑换
   Future<void> pointsExchange() async {

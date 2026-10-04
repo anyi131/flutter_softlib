@@ -217,8 +217,11 @@ class _SquareComponentState extends State<SquareComponent> {
         padding: EdgeInsets.only(top: 4, bottom: tabBottomPadding(context) + 60),
         itemCount: _posts.length,
         // ★ RepaintBoundary：每张卡片独立图层，滚动时不会整列重绘
-        //   （信息流掉帧最常见的成因）
+        // ★ ValueKey：必须给每项唯一 key！否则刷新后 Flutter 会复用旧的
+        //   StatefulWidget 元素 —— 视频播放器会残留上一条视频的内容
+        //   （用户反馈的「新视频显示旧数据」就是这个原因）
         itemBuilder: (context, i) => RepaintBoundary(
+          key: ValueKey('post_${_posts[i].id}'),
           child: _postCard(_posts[i], isDark),
         ),
       ),

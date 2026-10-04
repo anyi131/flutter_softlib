@@ -67,6 +67,22 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
   final feedGroupCtrl = TextEditingController();
   final feedUserCtrl = TextEditingController();
 
+  // ── 关于软件（后台可配）──
+  bool aboutEnable = true;
+  final aboutNameCtrl = TextEditingController();
+  final aboutVersionCtrl = TextEditingController();
+  final aboutLogCtrl = TextEditingController();
+  final aboutSloganCtrl = TextEditingController();
+  final aboutDescCtrl = TextEditingController();
+  final aboutCopyrightCtrl = TextEditingController();
+  final aboutContactCtrl = TextEditingController();
+  final aboutWebsiteCtrl = TextEditingController();
+  final aboutUpdateCtrl = TextEditingController();
+
+  // ── 用户协议 / 隐私政策 ──
+  final agreementCtrl = TextEditingController();
+  final privacyCtrl = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -97,6 +113,17 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
     payPlan3DaysCtrl.dispose();
     feedGroupCtrl.dispose();
     feedUserCtrl.dispose();
+    aboutNameCtrl.dispose();
+    aboutVersionCtrl.dispose();
+    aboutLogCtrl.dispose();
+    aboutSloganCtrl.dispose();
+    aboutDescCtrl.dispose();
+    aboutCopyrightCtrl.dispose();
+    aboutContactCtrl.dispose();
+    aboutWebsiteCtrl.dispose();
+    aboutUpdateCtrl.dispose();
+    agreementCtrl.dispose();
+    privacyCtrl.dispose();
     super.dispose();
   }
 
@@ -154,6 +181,20 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         feedUserOn = '${cfg['feedback_user_on']}' != '0';
         feedGroupCtrl.text = '${cfg['feedback_group'] ?? ''}';
         feedUserCtrl.text = '${cfg['feedback_user'] ?? ''}';
+        // 关于软件
+        aboutEnable = '${cfg['about_enable']}' != '0';
+        aboutNameCtrl.text = '${cfg['about_name'] ?? '安逸软件库'}';
+        aboutVersionCtrl.text = '${cfg['about_version'] ?? '1.0.0'}';
+        aboutLogCtrl.text = '${cfg['about_logo'] ?? ''}';
+        aboutSloganCtrl.text = '${cfg['about_slogan'] ?? ''}';
+        aboutDescCtrl.text = '${cfg['about_desc'] ?? ''}';
+        aboutCopyrightCtrl.text = '${cfg['about_copyright'] ?? ''}';
+        aboutContactCtrl.text = '${cfg['about_contact'] ?? ''}';
+        aboutWebsiteCtrl.text = '${cfg['about_website'] ?? ''}';
+        aboutUpdateCtrl.text = '${cfg['about_update_url'] ?? ''}';
+        // 协议（在 splash 接口里）
+        agreementCtrl.text = '${d['agreement'] ?? ''}';
+        privacyCtrl.text = '${d['privacy'] ?? ''}';
         _loading = false;
         _inited = true;
       });
@@ -178,6 +219,9 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'notice_force': noticeForce ? 1 : 0,
         'maintain_enable': maintainEnable ? 1 : 0,
         'maintain_text': maintainCtrl.text.trim(),
+        // 用户协议 / 隐私政策
+        'agreement': agreementCtrl.text,
+        'privacy': privacyCtrl.text,
       });
       // 支付配置（pay_key 留空表示不修改）
       await _svc.saveConfig({
@@ -215,6 +259,17 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'feedback_user_on': feedUserOn ? 1 : 0,
         'feedback_group': feedGroupCtrl.text.trim(),
         'feedback_user': feedUserCtrl.text.trim(),
+        // 关于软件
+        'about_enable': aboutEnable ? 1 : 0,
+        'about_name': aboutNameCtrl.text.trim(),
+        'about_version': aboutVersionCtrl.text.trim(),
+        'about_logo': aboutLogCtrl.text.trim(),
+        'about_slogan': aboutSloganCtrl.text.trim(),
+        'about_desc': aboutDescCtrl.text.trim(),
+        'about_copyright': aboutCopyrightCtrl.text.trim(),
+        'about_contact': aboutContactCtrl.text.trim(),
+        'about_website': aboutWebsiteCtrl.text.trim(),
+        'about_update_url': aboutUpdateCtrl.text.trim(),
       });
       if (mounted) {
         setState(() {
@@ -273,6 +328,34 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                 (v) => setState(() => feedUserOn = v)),
             _field('客服图片 URL / 链接', feedUserCtrl),
             Text('用户点击后弹窗展示对应图片（留空会提示「暂未配置」）',
+                style: Ty.tiny.copyWith(color: context.t3)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: '关于软件',
+          children: [
+            _switch('启用「关于软件」页', aboutEnable,
+                (v) => setState(() => aboutEnable = v)),
+            _field('应用名称', aboutNameCtrl),
+            _field('版本号（展示用）', aboutVersionCtrl),
+            _field('Logo 图片 URL', aboutLogCtrl),
+            _field('一句话简介', aboutSloganCtrl),
+            _field('详细介绍', aboutDescCtrl, lines: 4),
+            _field('版权信息', aboutCopyrightCtrl),
+            _field('联系方式（邮箱/QQ）', aboutContactCtrl),
+            _field('官方网站', aboutWebsiteCtrl),
+            _field('检查更新地址（App 内跳转）', aboutUpdateCtrl),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: '用户协议 / 隐私政策',
+          children: [
+            _field('用户协议内容（支持 HTML）', agreementCtrl, lines: 6),
+            const SizedBox(height: 8),
+            _field('隐私政策内容（支持 HTML）', privacyCtrl, lines: 6),
+            Text('App 端「我的 → 用户协议/隐私政策」会以美化页面展示这些内容',
                 style: Ty.tiny.copyWith(color: context.t3)),
           ],
         ),

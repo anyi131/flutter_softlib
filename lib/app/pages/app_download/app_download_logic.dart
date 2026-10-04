@@ -7,6 +7,7 @@ import 'package:flutter_softlib/app/database/tables/download_task_table.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../utils/apk_installer.dart';
 import '../../utils/toast_util.dart';
@@ -167,7 +168,50 @@ class AppDownloadLogic extends GetxController {
     update(['downInfos']);
   }
 
-  /// 安装已下载的软件（原生安装器）
+  /// 删除下载（记录 + 本地文件）—— 需求 #7
+  Future<void> deleteDownload(DownInfo? dowInfo) async {
+    final taskId = dowInfo?.taskId;
+    final appId = dowInfo?.appId;
+    // 先删本地文件
+    if (taskId != null && taskId.isNotEmpty) {
+      try {
+        await FlutterDownloader.remove(taskId: taskId, shouldDeleteContent: true);
+      } catch (_) {}
+    }
+    // 删数据库记录
+    if (appId != null && appId.isNotEmpty) {
+      try {
+        await downloadTaskDao.deleteDownloadTask(appId);
+      } catch (_) {}
+    }
+    downInfos?.removeWhere((e) => e.taskId == taskId);
+    update(['downInfos']);
+    ToastUtil.success('已删除');
+  }
+
+  /// 分享下载的文件（调用系统分享面板）—— 需求 #7
+  Future<void> shareDownload(DownInfo? dowInfo) async {
+    final taskId = dowInfo?.taskId;
+    if (taskId == null || taskId.isEmpty) {
+      ToastUtil.error('任务无效');
+      return;
+    }
+    final path = await _findPath(taskId);
+    if (path == null) {
+      ToastUtil.error('找不到文件，可能已被删除');
+      return;
+    }
+    try {
+      await Share.shareXFiles(
+        [XFile(path)],
+        text: dowInfo?.appName ?? '分享一个安装包',
+      );
+    } catch (e) {
+      ToastUtil.error('分享失败：$e');
+    }
+  }
+
+  ///安装已下载的软件（原生安装器）
   Future<void> openDownloadFile(DownInfo? dowInfo) async {
     final taskId = dowInfo?.taskId;
     if (taskId == null || taskId.isEmpty) {

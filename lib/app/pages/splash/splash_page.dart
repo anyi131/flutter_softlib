@@ -43,13 +43,16 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _boot() async {
-    // ★ 先读本地开屏图（用户选过的图优先，秒开且不依赖网络）
-    _localSplash = await LocalSplash.get();
+    // ★ 本地开屏图 与 服务器配置 并行拉取（避免串行等待导致启动变慢）
+    final localFuture = LocalSplash.get();
+    final cfgFuture = SoftService.instance.fetchConfig();
+
+    _localSplash = await localFuture;
     if (mounted && _localSplash.isNotEmpty) {
       setState(() {});
     }
 
-    final cfg = await SoftService.instance.fetchConfig();
+    final cfg = await cfgFuture;
     if (!mounted) return;
 
     // 维护模式：直接显示维护页，不进入主界面

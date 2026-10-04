@@ -13,11 +13,13 @@ import 'package:photo_view/photo_view.dart';
 import '../../config.dart';
 import '../../database/database.dart' as db;
 import '../../database/tables/download_task_table.dart';
+import '../../design/ui.dart';
 import '../../models/app_item.dart';
 import '../../models/http/results/lzy_file_info_model.dart';
 import '../../api/api_host.dart';
 import '../../api/soft_service.dart';
 import '../../utils/apk_installer.dart';
+import '../../utils/jump_util.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/posters/posters_widget.dart';
 
@@ -193,6 +195,77 @@ class AppDetailsLogic extends GetxController {
     }
   }
 
+  /// 解析失败弹窗：引导用浏览器打开原链接下载（需求 #2）
+  Future<void> _showParseFailedDialog(String originUrl) async {
+    final ctx = Get.context;
+    if (ctx == null) {
+      ToastUtil.error('直链解析失败，请稍后重试');
+      return;
+    }
+    final go = await showDialog<bool>(
+      context: ctx,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.link_off_rounded, color: C.danger, size: 22),
+            SizedBox(width: 8),
+            Text('直链解析失败',
+                style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '暂时无法解析出下载直链（可能是网盘临时限制或网络抖动）。\n\n'
+              '你可以用浏览器打开原链接，在网页里手动下载。',
+              style: TextStyle(fontSize: 13, height: 1.6),
+            ),
+            if (originUrl.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: C.brand.withAlpha(20),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  originUrl,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: C.brand),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('重试'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(c, true),
+            icon: const Icon(Icons.open_in_browser_rounded, size: 17),
+            label: const Text('浏览器下载'),
+          ),
+        ],
+      ),
+    );
+    if (go == true && originUrl.isNotEmpty) {
+      JumpUtil.openUrl(originUrl);
+    } else if (go == false) {
+      // 用户选「重试」
+      if (mounted) addDownload(appInfo?.fileName ?? '未知文件名');
+    }
+  }
+
   /// 下载完成：弹窗确认是否安装
   bool _askedInstall = false;
   Future<void> _onDownloadComplete() async {
@@ -273,6 +346,9 @@ class AppDetailsLogic extends GetxController {
   }
 
   /// 添加下载（双来源统一入口）
+  ///
+  /// ★ 需求 #2：直链解析失败时，不只是 Toast 提示，
+  ///   要弹窗让用户选择「用浏览器打开原链接下载」。
   Future<void> addDownload(String fileName, [String? lzyUrl]) async {
     if (await Permission.notification.isDenied) {
       await Permission.notification.request();
@@ -280,12 +356,14 @@ class AppDetailsLogic extends GetxController {
 
     // 解析真实下载地址
     String? parseUrl;
+    String originUrl = '';
     if (item != null && item!.canDirectDownload) {
       parseUrl = item!.file; // 服务器直传：无需解析
     } else {
       final target = (lzyUrl != null && lzyUrl.isNotEmpty)
           ? lzyUrl
           : (item?.url ?? dowUrl);
+      originUrl = target;
       if (target.isEmpty) {
         ToastUtil.error('下载地址为空');
         return;
@@ -303,10 +381,10 @@ class AppDetailsLogic extends GetxController {
           await Future.delayed(const Duration(milliseconds: 600));
         }
       }
-      // ★ 解析失败不再「用原链接硬下」
-      //   （那样只会下到一个 0 字节的网页文件，进下载列表变成「未知文件」）
+      // ★ 解析失败不再「用原链接硬下」（会下到 0 字节网页文件），
+      //   改为弹窗让用户选择用浏览器打开原链接（需求 #2）
       if (parseUrl == null || parseUrl.isEmpty) {
-        ToastUtil.error('直链解析失败，请稍后重试或换个网络');
+        await _showParseFailedDialog(originUrl);
         return;
       }
     }

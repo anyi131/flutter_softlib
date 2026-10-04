@@ -2,13 +2,23 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../api/user_service.dart';
-import '../navigate/mine/mine_logic.dart';
-import 'widgets/form_tip.dart';
+import '../../design/adaptive.dart';
+import '../../design/kit.dart';
+import '../../design/ui.dart';
+import '../../utils/toast_util.dart';
+import 'widgets/auth_widgets.dart';
 
-/// 注册页：QQ邮箱验证码 + QQ头像自动获取
+/// 注册页（v40 重构）
+///
+/// 逻辑优化：
+///   · 填 QQ 号 → 自动预览 QQ 头像（qlogo 接口，稳定可用）
+///   · 昵称智能默认：未填时用「QQ用户+尾号」/ 邮箱前缀，可自行修改
+///   · 邮箱后缀快捷按钮（@qq.com / @163.com / @gmail.com）
+///   · 注册成功 → pop 回传账号，登录页自动回填（需求 #5）
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -17,75 +27,82 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final _qq = TextEditingController();
   final _email = TextEditingController();
   final _code = TextEditingController();
+  final _nick = TextEditingController();
   final _pwd = TextEditingController();
   final _pwd2 = TextEditingController();
-  final _nickname = TextEditingController();
-  final _qq = TextEditingController();
 
   bool _obscure = true;
+  bool _obscure2 = true;
   bool _loading = false;
   bool _sending = false;
-  bool _qqAutoFilled = false;
   int _countdown = 0;
   Timer? _timer;
-  String _qqAvatar = '';
-  bool _loadingAvatar = false;
 
-  String _error = '';
+  /// 用户手动改过昵称后，不再用 QQ/邮箱自动覆盖
+  bool _nickTouched = false;
+
+  String _errNick = '';
+  String _errEmail = '';
+  String _errCode = '';
+  String _errPwd = '';
+  String _errServer = '';
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _qq.dispose();
     _email.dispose();
     _code.dispose();
+    _nick.dispose();
     _pwd.dispose();
     _pwd2.dispose();
-    _nickname.dispose();
-    _qq.dispose();
     super.dispose();
   }
 
-  /// 输入 QQ 号：自动获取头像 + 自动填充邮箱
-  Future<void> _onQqChanged(String v) async {
-    final qq = v.trim();
-    final valid = RegExp(r'^\d{5,12}$').hasMatch(qq);
+  /// QQ 头像地址（腾讯 qlogo，稳定）
+  String get _qqAvatar {
+    final q = _qq.text.trim();
+    if (!RegExp(r'^\d{5,12}$').hasMatch(q)) return '';
+    return 'https://q1.qlogo.cn/g?b=qq&nk=$q&s=640';
+  }
 
-    // 邮箱为空或此前是自动填充的 → 跟随 QQ 号变化
-    if (valid && (_email.text.trim().isEmpty || _qqAutoFilled)) {
-      _email.text = '$qq@qq.com';
-      _qqAutoFilled = true;
-    } else if (!valid && _qqAutoFilled) {
-      _email.text = '';
-      _qqAutoFilled = false;
-    }
-
-    if (!valid) {
-      if (mounted) setState(() => _qqAvatar = '');
+  /// 根据 QQ / 邮箱生成建议昵称（仅在用户没手动改过时生效）
+  void _autoNick() {
+    if (_nickTouched) return;
+    final q = _qq.text.trim();
+    if (RegExp(r'^\d{5,12}$').hasMatch(q)) {
+      // 用 QQ 尾号，避免重名又保留辨识度
+      _nick.text = 'QQ用户${q.length >= 4 ? q.substring(q.length - 4) : q}';
       return;
     }
-    if (mounted) setState(() => _loadingAvatar = true);
-    final url = await UserService.instance.fetchQqAvatar(qq);
-    if (mounted) {
-      setState(() {
-        _qqAvatar = url ?? '';
-        _loadingAvatar = false;
-      });
-    }
+    final e = _email.text.trim();
+    final at = e.indexOf('@');
+    if (at > 0) _nick.text = e.substring(0, at);
   }
 
   Future<void> _sendCode() async {
     final email = _email.text.trim();
     if (!RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$').hasMatch(email)) {
-      return setState(() => _error = '请输入正确的邮箱（如 123456@qq.com）');
+      setState(() => _errEmail = '请先填写正确的邮箱');
+      return;
     }
     setState(() {
-      _error = '';
       _sending = true;
+      _errEmail = '';
+      _errServer = '';
     });
     try {
-      await UserService.instance.sendCode(email);
+      await UserService.instance.sendCode(email, 'register');
+      if (!mounted) return;
+      ToastUtil.success('验证码已发送，请查收邮箱');
       setState(() => _countdown = 60);
       _timer?.cancel();
       _timer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -93,47 +110,55 @@ class _RegisterPageState extends State<RegisterPage> {
         setState(() => _countdown--);
         if (_countdown <= 0) t.cancel();
       });
-      if (mounted) {
-        setState(() => _error = '验证码已发送至 $email，5 分钟内有效');
-      }
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      if (!mounted) return;
+      setState(
+          () => _errServer = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
   }
 
   Future<void> _register() async {
+    final qq = _qq.text.trim();
     final email = _email.text.trim();
     final code = _code.text.trim();
+    final nick = _nick.text.trim();
     final pwd = _pwd.text;
-    if (!RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$').hasMatch(email)) {
-      return setState(() => _error = '请输入正确的邮箱');
-    }
-    if (code.isEmpty) return setState(() => _error = '请输入邮箱验证码');
-    if (pwd.length < 6) return setState(() => _error = '密码至少 6 位');
-    if (pwd != _pwd2.text) return setState(() => _error = '两次输入的密码不一致');
 
     setState(() {
-      _error = '';
-      _loading = true;
+      _errEmail = '';
+      _errCode = '';
+      _errPwd = '';
+      _errServer = '';
+      if (email.isEmpty || !email.contains('@')) _errEmail = '请输入正确的邮箱';
+      if (code.isEmpty) _errCode = '请输入验证码';
+      if (pwd.length < 6) _errPwd = '密码至少 6 位';
+      else if (pwd != _pwd2.text) _errPwd = '两次输入的密码不一致';
     });
+    if (_errEmail.isNotEmpty ||
+        _errCode.isNotEmpty ||
+        _errPwd.isNotEmpty) {
+      return;
+    }
+
+    setState(() => _loading = true);
     try {
       await UserService.instance.register(
         email: email,
         code: code,
         password: pwd,
-        nickname: _nickname.text.trim(),
-        qq: _qq.text.trim(),
+        nickname: nick,
+        qq: qq,
       );
       if (!mounted) return;
-      try {
-        final mine = Get.find<MineLogic>(tag: 'mine');
-        await mine.load();
-      } catch (_) {}
-      Navigator.of(context).pop(true);
+      ToastUtil.success('注册成功，请登录');
+      // ★ 回传账号给登录页，自动填充（需求 #5）
+      Navigator.of(context).pop(email);
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      if (!mounted) return;
+      setState(
+          () => _errServer = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -141,200 +166,212 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('注册'), elevation: 0),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
+    final avatar = _qqAvatar;
+    return AuthScaffold(
+      title: '创建账号',
+      subtitle: '填写邮箱即可注册，QQ 号可选（用于获取头像）',
+      icon: Icons.person_add_alt_1_rounded,
+      children: [
+        AuthCard(
           children: [
-            // ===== QQ 头像 =====
-            Center(
-              child: Column(
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 78,
-                        height: 78,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: scheme.surfaceContainerHighest,
-                          border: Border.all(color: scheme.primary, width: 2),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: _qqAvatar.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: _qqAvatar,
-                                fit: BoxFit.cover,
-                                placeholder: (_, __) => Icon(Icons.person,
-                                    size: 40,
-                                    color: scheme.primary.withAlpha(150)),
-                                errorWidget: (_, __, ___) => Icon(Icons.person,
-                                    size: 40,
-                                    color: scheme.primary.withAlpha(150)),
-                              )
-                            : Icon(Icons.person,
-                                size: 40, color: scheme.primary.withAlpha(150)),
-                      ),
-                      if (_loadingAvatar)
-                        const SizedBox(
-                          width: 78,
-                          height: 78,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _qqAvatar.isEmpty ? '填写 QQ 号自动获取头像' : '已获取 QQ 头像',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-
-            TextField(
-              controller: _qq,
-              keyboardType: TextInputType.number,
-              onChanged: _onQqChanged,
-              decoration: InputDecoration(
-                labelText: 'QQ 号（选填，自动获取头像）',
-                prefixIcon: const Icon(Icons.chat_bubble_outline),
-                helperText: '填写后自动同步 QQ 头像，并自动填写 QQ 邮箱',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            FormTip(
-              message: _error,
-              isError: !_error.contains('已发送'),
-              child: TextField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                onChanged: (v) {
-                  // 用户手动改动后不再自动覆盖
-                  if (!v.trim().startsWith(_qq.text.trim())) {
-                    _qqAutoFilled = false;
-                  }
-                },
-                decoration: InputDecoration(
-                  labelText: '邮箱（推荐 QQ 邮箱）',
-                  prefixIcon: const Icon(Icons.mail_outline),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-
+            // ── QQ 号 + 头像预览 ──
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _code,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: '邮箱验证码',
-                      prefixIcon: const Icon(Icons.verified_outlined),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
+                  child: AuthField(
+                    controller: _qq,
+                    label: 'QQ 号（选填）',
+                    hint: '填写后自动获取 QQ 头像',
+                    icon: Icons.pets_rounded,
+                    keyboard: TextInputType.number,
+                    maxLength: 12,
+                    formatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (_) {
+                      setState(() {});
+                      _autoNick();
+                    },
                   ),
                 ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: (_sending || _countdown > 0) ? null : _sendCode,
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text(
-                      _sending
-                          ? '发送中'
-                          : (_countdown > 0 ? '${_countdown}s' : '获取验证码'),
-                      style: const TextStyle(fontSize: 13),
+                const SizedBox(width: 12),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: avatar.isEmpty
+                          ? Container(
+                              color: context.isDark
+                                  ? Colors.white.withAlpha(12)
+                                  : Colors.black.withAlpha(6),
+                              child: Icon(Icons.person_outline_rounded,
+                                  color: context.t3, size: 24),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: avatar,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 160,
+                              placeholder: (_, __) => Container(
+                                  color: Colors.black12,
+                                  child: const Center(
+                                      child: SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2)))),
+                              errorWidget: (_, __, ___) => Container(
+                                color: context.isDark
+                                    ? Colors.white.withAlpha(12)
+                                    : Colors.black.withAlpha(6),
+                                child: Icon(Icons.person_outline_rounded,
+                                    color: context.t3, size: 24),
+                              ),
+                            ),
                     ),
                   ),
                 ),
               ],
             ),
+            if (avatar.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text('已自动获取 QQ 头像，注册后即为账号头像',
+                    style: Ty.tiny.copyWith(color: C.mint)),
+              ),
+
+            // ── 邮箱 ──
+            AuthField(
+              controller: _email,
+              label: '邮箱',
+              hint: '用于接收验证码',
+              icon: Icons.mail_outline_rounded,
+              keyboard: TextInputType.emailAddress,
+              error: _errEmail.isEmpty ? null : _errEmail,
+              onChanged: (_) {
+                if (_errEmail.isNotEmpty) setState(() => _errEmail = '');
+                _autoNick();
+              },
+            ),
+            // 邮箱后缀快捷
+            Wrap(
+              spacing: 7,
+              children: ['@qq.com', '@163.com', '@gmail.com']
+                  .map((s) => GestureDetector(
+                        onTap: () {
+                          final cur = _email.text;
+                          final at = cur.indexOf('@');
+                          _email.text =
+                              (at > 0 ? cur.substring(0, at) : cur) + s;
+                          setState(() {});
+                          _autoNick();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: C.brand.withAlpha(context.isDark ? 30 : 20),
+                            borderRadius: BorderRadius.circular(R.full),
+                          ),
+                          child: Text(s,
+                              style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: C.brand,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ))
+                  .toList(),
+            ),
             const SizedBox(height: 14),
 
-            TextField(
-              controller: _nickname,
-              maxLength: 20,
-              decoration: InputDecoration(
-                labelText: '昵称（选填）',
-                prefixIcon: const Icon(Icons.badge_outlined),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-
-            TextField(
-              controller: _pwd,
-              obscureText: _obscure,
-              decoration: InputDecoration(
-                labelText: '设置密码（至少 6 位）',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _pwd2,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: '再次确认密码',
-                prefixIcon: const Icon(Icons.lock_reset),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 22),
-
-            SizedBox(
-              height: 50,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _loading ? null : _register,
-                child: _loading
+            // ── 验证码 ──
+            AuthField(
+              controller: _code,
+              label: '邮箱验证码',
+              icon: Icons.verified_outlined,
+              keyboard: TextInputType.number,
+              maxLength: 6,
+              error: _errCode.isEmpty ? null : _errCode,
+              suffix: Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: _sending
                     ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('注册并登录',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : TextButton(
+                        onPressed: _countdown > 0 ? null : _sendCode,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: const Size(0, 32),
+                        ),
+                        child: Text(
+                          _countdown > 0 ? '${_countdown}s' : '获取验证码',
+                          style: const TextStyle(
+                              fontSize: 12.5, fontWeight: FontWeight.w700),
+                        ),
+                      ),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              '验证码有效期 5 分钟。若未收到，请检查垃圾邮件箱。',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11.5, color: Colors.grey[400]),
+
+            // ── 昵称 ──
+            AuthField(
+              controller: _nick,
+              label: '昵称',
+              hint: '可自定义，留空自动生成',
+              icon: Icons.badge_outlined,
+              error: _errNick.isEmpty ? null : _errNick,
+              onChanged: (v) {
+                _nickTouched = v.trim().isNotEmpty;
+                if (_errNick.isNotEmpty) setState(() => _errNick = '');
+              },
             ),
+
+            // ── 密码 ──
+            AuthField(
+              controller: _pwd,
+              label: '密码',
+              hint: '至少 6 位',
+              icon: Icons.lock_outline_rounded,
+              obscure: _obscure,
+              onToggleObscure: () => setState(() => _obscure = !_obscure),
+              error: _errPwd.isEmpty ? null : _errPwd,
+            ),
+            AuthField(
+              controller: _pwd2,
+              label: '确认密码',
+              icon: Icons.lock_person_outlined,
+              obscure: _obscure2,
+              onToggleObscure: () =>
+                  setState(() => _obscure2 = !_obscure2),
+              action: TextInputAction.done,
+              onSubmitted: _register,
+            ),
+
+            AuthError(message: _errServer),
+            AuthButton(
+              label: '注 册',
+              loading: _loading,
+              onPressed: _register,
+            ),
+            const SizedBox(height: 10),
           ],
         ),
-      ),
+        const SizedBox(height: 18),
+        Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('已有账号？', style: Ty.small.copyWith(color: context.t3)),
+              TextButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: const Text('去登录'),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

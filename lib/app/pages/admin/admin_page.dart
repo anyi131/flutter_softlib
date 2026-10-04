@@ -9,6 +9,7 @@ import '../../utils/toast_util.dart';
 import 'tabs/admin_apps_tab.dart';
 import 'tabs/admin_collect_tab.dart';
 import 'tabs/admin_content_tab.dart';
+import 'tabs/admin_logs_tab.dart';
 import 'tabs/admin_orders_tab.dart';
 import 'tabs/admin_splash_tab.dart';
 import 'tabs/admin_users_tab.dart';
@@ -23,7 +24,7 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage>
     with SingleTickerProviderStateMixin {
-  late final TabController _tab = TabController(length: 7, vsync: this);
+  late final TabController _tab = TabController(length: 8, vsync: this);
 
   bool _checking = true;
   bool _isAdmin = false;
@@ -105,6 +106,7 @@ class _AdminPageState extends State<AdminPage>
                       AdminOrdersTab(),
                       AdminCollectTab(),
                       AdminContentTab(),
+                      AdminLogsTab(),
                       AdminSplashTab(),
                     ],
                   ),
@@ -184,6 +186,7 @@ class _AdminPageState extends State<AdminPage>
       (Icons.receipt_long_rounded, '订单'),
       (Icons.cloud_download_rounded, '采集'),
       (Icons.article_rounded, '内容'),
+      (Icons.history_rounded, '日志'),
       (Icons.settings_rounded, '配置'),
     ];
     return SizedBox(

@@ -289,6 +289,46 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
                   _actionBtn(d, logic),
                 ],
               ),
+              // 已完成：显示「分享 / 删除」操作条
+              if (isDone) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _miniBtn(
+                        icon: Icons.ios_share_rounded,
+                        label: '分享',
+                        color: C.cyan,
+                        onTap: () => logic.shareDownload(d),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _miniBtn(
+                        icon: Icons.delete_outline_rounded,
+                        label: '删除',
+                        color: C.danger,
+                        onTap: () async {
+                          final ok = await Get.dialog<bool>(AlertDialog(
+                            title: const Text('删除下载'),
+                            content: Text(
+                                '将删除「${_displayName(d)}」的记录和已下载的文件，确定吗？'),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Get.back(result: false),
+                                  child: const Text('取消')),
+                              FilledButton(
+                                  onPressed: () => Get.back(result: true),
+                                  child: const Text('删除')),
+                            ],
+                          ));
+                          if (ok == true) logic.deleteDownload(d);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               // 进度（已完成不显示进度条）
               if (!isDone) ...[
                 const SizedBox(height: 12),
@@ -330,6 +370,39 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
         color: C.brand.withAlpha(context.isDark ? 34 : 22),
         child: Icon(Icons.android, color: C.brand, size: 26),
       );
+
+  /// 小操作按钮（分享 / 删除）
+  Widget _miniBtn({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: color.withAlpha(context.isDark ? 34 : 22),
+      borderRadius: BorderRadius.circular(R.full),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(R.full),
+        child: Container(
+          height: 36,
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: color),
+              const SizedBox(width: 5),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: color)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   /// 右侧主操作按钮
   Widget _actionBtn(DownInfo d, AppDownloadLogic logic) {

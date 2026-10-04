@@ -18,6 +18,7 @@ import 'app/design/theme_controller.dart';
 import 'app/design/ui.dart';
 import 'app/widgets/pro_motion.dart';
 import 'app/api/user_service.dart';
+import 'app/utils/device_info_util.dart';
 
 /// 应用程序主入口
 Future<void> main() async {
@@ -58,6 +59,8 @@ void _logError(String tag, Object error, StackTrace? stack) {
 Future<void> _initializeServices() async {
   // 初始化下载器
   await FlutterDownloader.initialize(debug: true, ignoreSsl: true);
+  // 设备信息（供后台操作日志记录型号/系统版本，需求 #10）
+  await DeviceInfo.init();
   // 初始化数据库
   Get.put<AppDatabase>(AppDatabase(), permanent: true);
   // 初始化HTTP服务

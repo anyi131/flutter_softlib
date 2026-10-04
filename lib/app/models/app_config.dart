@@ -30,6 +30,19 @@ class AppConfig {
   /// 软件列表数据源: all / local / lzy
   final String appSource;
 
+  // ===== 关于软件（后台可配）=====
+  final bool aboutEnable;
+  final String aboutName;
+  final String aboutVersion;
+  final String aboutLogo;
+  final String aboutSlogan;
+  final String aboutDesc;
+  final String aboutCopyright;
+  final String aboutContact;
+  final String aboutWebsite;
+  final String aboutUpdateUrl;
+  final String aboutExtra;
+
   AppConfig({
     this.placard = '',
     this.feedbackGroup = '',
@@ -53,6 +66,17 @@ class AppConfig {
     this.groupBtnOn = true,
     this.userBtnOn = true,
     this.appSource = 'all',
+    this.aboutEnable = true,
+    this.aboutName = '安逸软件库',
+    this.aboutVersion = '1.0.0',
+    this.aboutLogo = '',
+    this.aboutSlogan = '优质软件 · 持续更新',
+    this.aboutDesc = '',
+    this.aboutCopyright = '',
+    this.aboutContact = '',
+    this.aboutWebsite = '',
+    this.aboutUpdateUrl = '',
+    this.aboutExtra = '',
   });
 
   static bool _b(dynamic v) =>
@@ -95,5 +119,22 @@ class AppConfig {
         appSource: _s(json['app_source']).isEmpty
             ? 'all'
             : _s(json['app_source']),
+        aboutEnable: json.containsKey('about_enable')
+            ? _b(json['about_enable'])
+            : true,
+        aboutName: _s(json['about_name']).isEmpty
+            ? '安逸软件库'
+            : _s(json['about_name']),
+        aboutVersion: _s(json['about_version']).isEmpty
+            ? '1.0.0'
+            : _s(json['about_version']),
+        aboutLogo: _s(json['about_logo']),
+        aboutSlogan: _s(json['about_slogan']),
+        aboutDesc: _s(json['about_desc']),
+        aboutCopyright: _s(json['about_copyright']),
+        aboutContact: _s(json['about_contact']),
+        aboutWebsite: _s(json['about_website']),
+        aboutUpdateUrl: _s(json['about_update_url']),
+        aboutExtra: _s(json['about_extra']),
       );
 }

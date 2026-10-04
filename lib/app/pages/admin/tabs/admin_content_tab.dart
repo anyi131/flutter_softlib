@@ -204,47 +204,123 @@ class _AdminContentTabState extends State<AdminContentTab>
     );
   }
 
-  /// 编辑帖子内容（App 内后台，对应「网页端功能 App 也要有」）
+  /// 编辑帖子（正文 / 图片 / 视频）—— 对应需求 #11
   Future<void> _editPost(Map p) async {
     final content = TextEditingController(text: '${p['content'] ?? ''}');
+    final videoUrl = TextEditingController(text: '${p['video_url'] ?? ''}');
+    final videoCover =
+        TextEditingController(text: '${p['video_cover'] ?? ''}');
+    // 图片：可能是 List 或逗号串
+    final rawImgs = p['images'];
+    final imgList = rawImgs is List
+        ? rawImgs.map((e) => '$e').toList()
+        : '${rawImgs ?? ''}'
+            .split(',')
+            .where((s) => s.trim().isNotEmpty)
+            .toList();
+    final images = TextEditingController(text: imgList.join('\n'));
+    String videoType = '${p['video_type'] ?? 'file'}';
+
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('编辑动态'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: content,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                  labelText: '正文内容', border: OutlineInputBorder()),
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
+        return AlertDialog(
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
+          title: const Text('编辑动态'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: content,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                        labelText: '正文内容',
+                        border: OutlineInputBorder(),
+                        isDense: true),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: images,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                        labelText: '图片地址（每行一个，可留空）',
+                        border: OutlineInputBorder(),
+                        isDense: true),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: videoType,
+                    decoration: const InputDecoration(
+                        labelText: '视频类型',
+                        border: OutlineInputBorder(),
+                        isDense: true),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'file', child: Text('直链视频 (mp4)')),
+                      DropdownMenuItem(
+                          value: 'iframe', child: Text('网页嵌入 (iframe)')),
+                    ],
+                    onChanged: (v) => setD(() => videoType = v ?? 'file'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: videoUrl,
+                    decoration: const InputDecoration(
+                        labelText: '视频地址（留空=无视频）',
+                        border: OutlineInputBorder(),
+                        isDense: true),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: videoCover,
+                    decoration: const InputDecoration(
+                        labelText: '视频封面（选填）',
+                        border: OutlineInputBorder(),
+                        isDense: true),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            FilledButton(
+              onPressed: () async {
+                if (content.text.trim().isEmpty) return;
+                Navigator.pop(ctx);
+                final imgs = images.text
+                    .split('\n')
+                    .map((s) => s.trim())
+                    .where((s) => s.isNotEmpty)
+                    .join(',');
+                try {
+                  await _svc.savePost({
+                    'id': p['id'],
+                    'content': content.text.trim(),
+                    'cat_id': p['cat_id'] ?? 0,
+                    'images': imgs,
+                    'video_url': videoUrl.text.trim(),
+                    'video_type': videoType,
+                    'video_cover': videoCover.text.trim(),
+                  });
+                  ToastUtil.success('已保存');
+                  _load();
+                } catch (e) {
+                  ToastUtil.error(
+                      e.toString().replaceFirst('Exception: ', ''));
+                }
+              },
+              child: const Text('保存'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          FilledButton(
-            onPressed: () async {
-              if (content.text.trim().isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                await _svc.savePost({
-                  'id': p['id'],
-                  'content': content.text.trim(),
-                  'cat_id': p['cat_id'] ?? 0,
-                });
-                ToastUtil.success('已保存');
-                _load();
-              } catch (e) {
-                ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
-              }
-            },
-            child: const Text('保存'),
-          ),
-        ],
-      ),
+        );
+      }),
     );
   }
 

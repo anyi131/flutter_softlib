@@ -3,6 +3,8 @@ import 'api_host.dart';
 
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/device_info_util.dart';
+
 
 /// 用户信息模型
 class UserInfo {
@@ -106,6 +108,7 @@ class UserService {
   static const String _kUser = 'user_info';
 
   final Dio _dio = Dio(BaseOptions(
+    headers: DeviceInfo.headers,
     baseUrl: baseUrl,
     connectTimeout: const Duration(seconds: 12),
     receiveTimeout: const Duration(seconds: 20),

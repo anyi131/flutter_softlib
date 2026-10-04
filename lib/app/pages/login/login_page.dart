@@ -1,18 +1,23 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../api/api_host.dart';
-import '../../api/user_service.dart';
+import '../../design/adaptive.dart';
+import '../../design/kit.dart';
+import '../../design/ui.dart';
+import '../../routes/app_pages.dart';
 import '../../utils/toast_util.dart';
-import 'qq_login_page.dart';
+import '../../api/user_service.dart';
 import '../navigate/mine/mine_logic.dart';
-import 'register_page.dart';
-import 'reset_page.dart';
-import 'widgets/form_tip.dart';
+import 'qq_login_page.dart';
+import 'widgets/auth_widgets.dart';
 
-/// 登录页
+/// 登录页（v40 重构）
+///
+/// 视觉：光晕背景 + 玻璃卡片 + 大圆角输入框（与全站设计语言一致）
+/// 逻辑优化：
+///   · 注册成功后自动回填账号并聚焦密码框（由 RegisterPage pop 结果回传）
+///   · 字段级内联错误，不用遮挡式弹窗
+///   · 登录成功后通知「我的」页刷新
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -23,17 +28,38 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _account = TextEditingController();
   final _pwd = TextEditingController();
+  final _pwdFocus = FocusNode();
+
   bool _obscure = true;
   bool _loading = false;
   bool _qqOn = false;
+
+  String _errAccount = '';
+  String _errServer = '';
 
   @override
   void initState() {
     super.initState();
     _checkQq();
+    // ★ 注册成功后回填账号（需求 #5：省去自己输入）
+    final args = Get.arguments;
+    if (args is Map && (args['account'] ?? '').toString().isNotEmpty) {
+      _account.text = args['account'].toString();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ToastUtil.success('注册成功，请输入密码登录');
+        _pwdFocus.requestFocus();
+      });
+    }
   }
 
-  /// 后台开关打开时才显示 QQ 登录入口
+  @override
+  void dispose() {
+    _account.dispose();
+    _pwd.dispose();
+    _pwdFocus.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkQq() async {
     try {
       final r = await UserService.instance.fetchConfig();
@@ -52,41 +78,31 @@ class _LoginPageState extends State<LoginPage> {
       );
       if (!mounted) return;
       ToastUtil.success('QQ 登录成功');
-      Get.back(result: true);
+      Navigator.of(context).pop(true);
     }
   }
-
-  @override
-  void dispose() {
-    _account.dispose();
-    _pwd.dispose();
-    super.dispose();
-  }
-
-  /// 输入框下方的内联错误提示（替代遮挡式弹窗）
-  String _errAccount = '';
-  String _errPwd = '';
-  String _errServer = '';
 
   Future<void> _login() async {
     final account = _account.text.trim();
     final pwd = _pwd.text;
     setState(() {
       _errAccount = account.isEmpty ? '请输入邮箱或用户名' : '';
-      _errPwd = pwd.isEmpty ? '请输入密码' : '';
       _errServer = '';
     });
-    if (account.isEmpty || pwd.isEmpty) return;
+    if (account.isEmpty || pwd.isEmpty) {
+      if (pwd.isEmpty) _errServer = '请输入密码';
+      return;
+    }
 
     setState(() => _loading = true);
     try {
       await UserService.instance.login(account, pwd);
       if (!mounted) return;
-      // 通知"我的"页刷新登录态
       try {
         final mine = Get.find<MineLogic>(tag: 'mine');
         await mine.load();
       } catch (_) {}
+      ToastUtil.success('登录成功');
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -98,160 +114,121 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('登录'), elevation: 0),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 28),
+    return AuthScaffold(
+      title: '欢迎回来',
+      subtitle: '登录后可下载资源、参与社区互动',
+      icon: Icons.person_rounded,
+      children: [
+        AuthCard(
           children: [
-            Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [scheme.primary, scheme.primary.withAlpha(170)],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child:
-                  const Icon(Icons.person_rounded, color: Colors.white, size: 36),
+            AuthField(
+              controller: _account,
+              label: '邮箱 / 用户名',
+              hint: '请输入注册邮箱或用户名',
+              icon: Icons.alternate_email_rounded,
+              keyboard: TextInputType.emailAddress,
+              action: TextInputAction.next,
+              error: _errAccount.isEmpty ? null : _errAccount,
+              onChanged: (_) {
+                if (_errAccount.isNotEmpty) {
+                  setState(() => _errAccount = '');
+                }
+              },
             ),
-            const SizedBox(height: 16),
-            const Text('欢迎回来',
-                style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 5),
-            Text('登录后可下载资源、参与社区互动',
-                style: TextStyle(fontSize: 13.5, color: Colors.grey[500])),
-            const SizedBox(height: 26),
-            FormTip(
-              message: _errAccount,
-              child: TextField(
-                controller: _account,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: '邮箱 / 用户名',
-                  prefixIcon: const Icon(Icons.alternate_email),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  errorText: _errAccount.isEmpty ? null : _errAccount,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
+            AuthField(
               controller: _pwd,
-              obscureText: _obscure,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _login(),
-              decoration: InputDecoration(
-                labelText: '密码',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                errorText: _errPwd.isEmpty ? null : _errPwd,
-              ),
+              label: '密码',
+              icon: Icons.lock_outline_rounded,
+              obscure: _obscure,
+              onToggleObscure: () => setState(() => _obscure = !_obscure),
+              action: TextInputAction.done,
+              onSubmitted: _login,
             ),
-            const SizedBox(height: 4),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () => Get.to(() => const ResetPage()),
-                child: const Text('忘记密码？'),
+                onPressed: () => Get.toNamed(Routes.reset),
+                child: Text('忘记密码？',
+                    style: TextStyle(fontSize: 13, color: context.t3)),
               ),
             ),
-            if (_errServer.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              FormTip(
-                message: _errServer,
-                isError: true,
-                child: const SizedBox.shrink(),
-              ),
-            ],
+            AuthError(message: _errServer),
+            AuthButton(
+              label: '登 录',
+              loading: _loading,
+              onPressed: _login,
+            ),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 50,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _loading ? null : _login,
-                child: _loading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('登 录',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: 20),
+        if (_qqOn) ...[
+          Row(
+            children: [
+              Expanded(
+                  child: Divider(color: context.t3.withAlpha(50), height: 1)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text('其他方式登录',
+                    style: Ty.tiny.copyWith(color: context.t3)),
               ),
-            ),
-            if (_qqOn) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Colors.grey.withAlpha(60))),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text('其他方式登录',
-                        style:
-                            TextStyle(fontSize: 11.5, color: Colors.grey[400])),
-                  ),
-                  Expanded(child: Divider(color: Colors.grey.withAlpha(60))),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: GestureDetector(
+              Expanded(
+                  child: Divider(color: context.t3.withAlpha(50), height: 1)),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Center(
+            child: Column(
+              children: [
+                GestureDetector(
                   onTap: _qqLogin,
                   child: Container(
-                    width: 52,
-                    height: 52,
+                    width: 54,
+                    height: 54,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF12B7F5).withAlpha(24),
+                      color: const Color(0xFF12B7F5).withAlpha(26),
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: const Color(0xFF12B7F5).withAlpha(80)),
+                          color: const Color(0xFF12B7F5).withAlpha(90),
+                          width: 1.2),
                     ),
                     child: const Icon(Icons.pets_rounded,
                         color: Color(0xFF12B7F5), size: 26),
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Center(
-                child: Text('QQ 快捷登录',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('还没有账号？',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13.5)),
-                TextButton(
-                  onPressed: () => Get.to(() => const RegisterPage()),
-                  child: const Text('立即注册'),
-                ),
+                const SizedBox(height: 7),
+                Text('QQ 快捷登录',
+                    style: Ty.tiny.copyWith(color: context.t3)),
               ],
             ),
-            Text(
-              '注册即表示同意《用户协议》与《隐私政策》',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11.5, color: Colors.grey[400]),
+          ),
+        ],
+        const SizedBox(height: 22),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('还没有账号？',
+                style: Ty.small.copyWith(color: context.t3)),
+            TextButton(
+              onPressed: () async {
+                // 注册成功会带回账号，自动回填到输入框
+                final acc = await Get.toNamed(Routes.register);
+                if (acc is String && acc.isNotEmpty && mounted) {
+                  setState(() => _account.text = acc);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _pwdFocus.requestFocus();
+                  });
+                }
+              },
+              child: const Text('立即注册'),
             ),
           ],
         ),
-      ),
+        Center(
+          child: Text('注册即表示同意《用户协议》与《隐私政策》',
+              style: Ty.tiny.copyWith(fontSize: 11, color: context.t3)),
+        ),
+      ],
     );
   }
 }

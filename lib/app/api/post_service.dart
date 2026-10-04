@@ -4,6 +4,7 @@ import 'api_host.dart';
 
 import 'package:dio/dio.dart';
 
+import '../utils/device_info_util.dart';
 import '../models/post_item.dart';
 import 'user_service.dart';
 
@@ -14,6 +15,7 @@ class PostService {
 
   static const String baseUrl = ApiHost.base;
   final Dio _dio = Dio(BaseOptions(
+    headers: DeviceInfo.headers,
     baseUrl: baseUrl,
     connectTimeout: const Duration(seconds: 12),
     receiveTimeout: const Duration(seconds: 20),
@@ -33,11 +35,18 @@ class PostService {
   }
 
   /// 动态列表
+  ///
+  /// ★ 加时间戳参数：绕过任何中间层(CDN/代理)的 HTTP 缓存，
+  ///   避免「发了新动态刷新还是旧内容」（用户反馈 #3）
   Future<List<PostItem>> fetchPosts({int page = 1, int catId = 0}) async {
     final r = await _dio.get('/api/softlib/post/index', queryParameters: {
       'pages': page,
       if (catId > 0) 'cat_id': catId,
-    });
+      '_t': DateTime.now().millisecondsSinceEpoch,
+    }, options: Options(headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+    }));
     if (r.data is Map && r.data['code'] == 1) {
       return PostItem.listFrom(r.data['data']);
     }

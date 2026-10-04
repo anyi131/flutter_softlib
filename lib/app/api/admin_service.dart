@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 
 import 'api_host.dart';
 import 'user_service.dart';
+import '../utils/device_info_util.dart';
+
 
 /// 内嵌管理系统服务（需管理员账号登录）
 class AdminService {
@@ -12,6 +14,7 @@ class AdminService {
   static final AdminService instance = AdminService._();
 
   final Dio _dio = Dio(BaseOptions(
+    headers: DeviceInfo.headers,
     baseUrl: ApiHost.base,
     connectTimeout: const Duration(seconds: 12),
     receiveTimeout: const Duration(seconds: 25),
@@ -283,6 +286,31 @@ class AdminService {
   }
 
   Future<void> deleteComment(int id) async => _post('comment_del', {'id': id});
+
+  // ───────── 操作日志 ─────────
+  /// 操作日志列表（可按用户/动作/关键词筛选）
+  Future<Map<String, dynamic>> opLogs({
+    int userId = 0,
+    String action = '',
+    String keyword = '',
+    int page = 1,
+  }) async {
+    final d = (await _post('op_logs', {
+      if (userId > 0) 'user_id': userId,
+      if (action.isNotEmpty) 'action': action,
+      if (keyword.isNotEmpty) 'keyword': keyword,
+      'page': page,
+    }))['data'];
+    return d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{};
+  }
+
+  /// 某用户的详细日志（含设备/IP 汇总）
+  Future<Map<String, dynamic>> userLogs(int id) async =>
+      Map<String, dynamic>.from((await _post('user_logs', {'id': id}))['data'] ?? {});
+
+  /// 清理 N 天前的日志
+  Future<void> clearOpLogs({int days = 30}) async =>
+      _post('op_log_clear', {'days': days});
 
   Future<List<Map<String, dynamic>>> reviews() async {
     final d = (await _post('reviews'))['data'];

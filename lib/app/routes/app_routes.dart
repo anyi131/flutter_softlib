@@ -19,6 +19,8 @@ abstract class Routes {
   static const splash = _Paths.splash;
   static const postDetail = _Paths.postDetail;
   static const admin = _Paths.admin;
+  static const about = _Paths.about;
+  static const agreement = _Paths.agreement;
 }
 
 abstract class _Paths {
@@ -39,4 +41,6 @@ abstract class _Paths {
   static const splash = '/splash';
   static const postDetail = '/postDetail';
   static const admin = '/admin';
+  static const about = '/about';
+  static const agreement = '/agreement';
 }
