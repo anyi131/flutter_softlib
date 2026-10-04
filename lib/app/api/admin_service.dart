@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -252,4 +253,46 @@ class AdminService {
       _post('order_deliver', {'out_trade_no': outTradeNo});
 
   Future<void> deleteOrder(int id) async => _post('order_del', {'id': id});
+
+  // ───────── 版权梦采集 ─────────
+  Future<Map<String, dynamic>> collectConfig() async =>
+      Map<String, dynamic>.from((await _post('collect_config'))['data'] ?? {});
+
+  Future<bool> saveCollectConfig(Map<String, dynamic> data) async {
+    final r = await _post('collect_save', data);
+    final d = r['data'];
+    return d is Map && (d['logged_in'] == true || d['logged_in'] == 1);
+  }
+
+  /// 保存采集平台的登录 Cookie 并验证
+  Future<bool> saveCollectCookie(String cookie) async {
+    final r = await _post('collect_cookie', {'cookie': cookie});
+    final d = r['data'];
+    return d is Map && (d['logged_in'] == true || d['logged_in'] == 1);
+  }
+
+  /// 采集平台的软件列表
+  Future<Map<String, dynamic>> collectList({int page = 1, String keyword = ''}) async {
+    final r = await _post('collect_list', {'page': page, 'keyword': keyword});
+    final d = r['data'];
+    return d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{};
+  }
+
+  /// 发起采集（上传到自己的蓝奏云）
+  Future<String> collectStart(List<Map<String, dynamic>> apps) async {
+    final r = await _post('collect_start', {'apps': jsonEncode(apps)});
+    final d = r['data'];
+    return d is Map ? (d['task_id'] ?? '').toString() : '';
+  }
+
+  /// 查询采集进度（含结果链接）
+  Future<Map<String, dynamic>> collectStatus(String taskId) async =>
+      Map<String, dynamic>.from(
+          (await _post('collect_status', {'task_id': taskId}))['data'] ?? {});
+
+  /// 把采集结果导入软件库
+  Future<Map<String, dynamic>> collectImport(List<Map<String, dynamic>> items,
+          {int catId = 0}) async =>
+      Map<String, dynamic>.from((await _post('collect_import',
+          {'items': jsonEncode(items), 'cat_id': catId}))['data'] ?? {});
 }
