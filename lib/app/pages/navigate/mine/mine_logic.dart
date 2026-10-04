@@ -13,6 +13,7 @@ import '../../../api/post_service.dart';
 import '../../../api/message_service.dart';
 import '../../../api/user_service.dart';
 import '../../../utils/jump_util.dart';
+import '../../../utils/local_splash.dart';
 import '../../../routes/app_pages.dart';
 import '../../../utils/toast_util.dart';
 
@@ -617,6 +618,8 @@ class MineLogic extends GetxController {
     if (action == null) return;
     if (action == 'reset') {
       try {
+        // ★ 同时清除本地自定义开屏图（否则本地优先还会显示旧图）
+        await LocalSplash.clear();
         await _userService.saveSplash('');
         await load();
         ToastUtil.success('已恢复默认开屏');
@@ -629,8 +632,19 @@ class MineLogic extends GetxController {
       final picked = await ImagePicker()
           .pickImage(source: ImageSource.gallery, imageQuality: 88);
       if (picked == null) return;
-      final up = await PostService.instance.uploadImage(File(picked.path));
-      await _userService.saveSplash(up);
+      // ★ 先存本地（启动时优先用本地图，秒开且不依赖网络）——用户 #9 的要求
+      final localPath = await LocalSplash.save(picked.path);
+      if (localPath.isEmpty) {
+        ToastUtil.error('本地保存失败，请检查存储权限');
+      }
+      // 再上传服务器（换机/重装后仍能恢复）
+      try {
+        final up = await PostService.instance.uploadImage(File(picked.path));
+        await _userService.saveSplash(up);
+      } catch (e) {
+        // 上传失败也不影响本地生效
+        logger.e('开屏图上传失败: $e');
+      }
       await load();
       ToastUtil.success('开屏图已更新，下次启动生效');
     } catch (e) {

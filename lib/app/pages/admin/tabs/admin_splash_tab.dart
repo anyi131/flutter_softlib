@@ -61,6 +61,12 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
   final payPlan3MoneyCtrl = TextEditingController(text: '45.99');
   final payPlan3DaysCtrl = TextEditingController(text: '0');
 
+  // ── 主页右上角两个圆形按钮（加群 / 客服）──
+  bool feedGroupOn = true;
+  bool feedUserOn = true;
+  final feedGroupCtrl = TextEditingController();
+  final feedUserCtrl = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -89,6 +95,8 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
     payPlan3NameCtrl.dispose();
     payPlan3MoneyCtrl.dispose();
     payPlan3DaysCtrl.dispose();
+    feedGroupCtrl.dispose();
+    feedUserCtrl.dispose();
     super.dispose();
   }
 
@@ -141,6 +149,11 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         payPlan3NameCtrl.text = '${cfg['pay_plan3_name'] ?? '永久会员'}';
         payPlan3MoneyCtrl.text = '${cfg['pay_plan3_money'] ?? '45.99'}';
         payPlan3DaysCtrl.text = '${cfg['pay_plan3_days'] ?? 0}';
+        // 主页右上角两个按钮（对应需求 #14）
+        feedGroupOn = '${cfg['feedback_group_on']}' != '0';
+        feedUserOn = '${cfg['feedback_user_on']}' != '0';
+        feedGroupCtrl.text = '${cfg['feedback_group'] ?? ''}';
+        feedUserCtrl.text = '${cfg['feedback_user'] ?? ''}';
         _loading = false;
         _inited = true;
       });
@@ -197,6 +210,11 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'recharge_money3': recharge3Ctrl.text.trim(),
         // 功能开关
         'register_on': registerOn ? 1 : 0,
+        // 主页右上角两个按钮（对应需求 #14）
+        'feedback_group_on': feedGroupOn ? 1 : 0,
+        'feedback_user_on': feedUserOn ? 1 : 0,
+        'feedback_group': feedGroupCtrl.text.trim(),
+        'feedback_user': feedUserCtrl.text.trim(),
       });
       if (mounted) {
         setState(() {
@@ -241,6 +259,21 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
             _field('点击跳转网址（选填）', urlCtrl),
             _field('标题（选填）', titleCtrl),
             _field('副标题（选填）', descCtrl),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: '主页右上角按钮',
+          children: [
+            _switch('显示「加群」按钮', feedGroupOn,
+                (v) => setState(() => feedGroupOn = v)),
+            _field('加群图片 URL / 链接', feedGroupCtrl),
+            const SizedBox(height: 6),
+            _switch('显示「客服」按钮', feedUserOn,
+                (v) => setState(() => feedUserOn = v)),
+            _field('客服图片 URL / 链接', feedUserCtrl),
+            Text('用户点击后弹窗展示对应图片（留空会提示「暂未配置」）',
+                style: Ty.tiny.copyWith(color: context.t3)),
           ],
         ),
         const SizedBox(height: 12),

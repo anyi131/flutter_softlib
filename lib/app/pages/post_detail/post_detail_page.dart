@@ -276,7 +276,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
           // 视频（与列表页一致）
           if (p.videoUrl.isNotEmpty) ...[
             const SizedBox(height: 12),
-            PostVideoPlayer(url: p.videoUrl, type: p.videoType),
+            PostVideoPlayer(
+              url: p.videoUrl,
+              type: p.videoType,
+              cover: p.videoCover,
+              maxHeight: 420,
+            ),
           ],
           if (p.images.isNotEmpty) ...[
             const SizedBox(height: 12),

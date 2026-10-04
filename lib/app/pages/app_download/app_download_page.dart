@@ -4,8 +4,18 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
 
 import '../../config.dart';
+import '../../design/adaptive.dart';
+import '../../design/kit.dart';
+import '../../design/ui.dart';
 import 'app_download_logic.dart';
 
+/// 软件下载列表（v40 重做）
+///
+/// 设计要点：
+///   · 沿用全项目「沉浸式玻璃拟态」语言，与其它页面统一
+///   · 分两组：进行中 / 已完成，一眼看清
+///   · 每条卡片：图标 + 名称 + 状态胶囊 + 进度环/条 + 大小 + 操作按钮
+///   · 空状态有插画级提示，不再是干巴巴的一行字
 class AppDownloadPage extends StatefulWidget {
   const AppDownloadPage({super.key});
 
@@ -19,182 +29,296 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('软件下载列表')),
-      body: GetBuilder<AppDownloadLogic>(
-        id: 'downInfos',
-        builder: (logic) {
-          List<DownInfo>? downInfos = logic.downInfos;
-          if (downInfos == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (downInfos.isEmpty) {
-            return const Center(child: Text('暂无下载任务'));
-          }
-          return Padding(
-            padding: const EdgeInsets.all(3.0),
-            child: ListView.builder(
-              itemCount: downInfos.length,
-              itemBuilder: (context, index) {
-                final dowInfo = logic.downInfos?[index];
-                if (dowInfo == null) return const SizedBox.shrink();
-                return buildItem(dowInfo);
-              },
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Deco.pageBackground(context),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _header(),
+                Expanded(
+                  child: GetBuilder<AppDownloadLogic>(
+                    id: 'downInfos',
+                    builder: (logic) {
+                      final list = logic.downInfos;
+                      if (list == null) {
+                        return const Center(
+                          child: SizedBox(
+                            width: 26,
+                            height: 26,
+                            child: CircularProgressIndicator(strokeWidth: 2.4),
+                          ),
+                        );
+                      }
+                      if (list.isEmpty) return _empty();
+
+                      final running = list
+                          .where((d) => d.status != DownloadTaskStatus.complete)
+                          .toList();
+                      final done = list
+                          .where((d) => d.status == DownloadTaskStatus.complete)
+                          .toList();
+
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          await logic.getAllDownInfos();
+                          await Future.delayed(
+                              const Duration(milliseconds: 300));
+                        },
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics()),
+                          padding: EdgeInsets.fromLTRB(
+                              context.pagePadding, 4, context.pagePadding,
+                              context.tabSpace + 30),
+                          children: [
+                            if (running.isNotEmpty) ...[
+                              _groupTitle('进行中', running.length, C.brand),
+                              const SizedBox(height: 10),
+                              ...running.map((d) => _card(d)),
+                              const SizedBox(height: 18),
+                            ],
+                            if (done.isNotEmpty) ...[
+                              _groupTitle('已完成', done.length, C.success),
+                              const SizedBox(height: 10),
+                              ...done.map((d) => _card(d)),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 
-  Widget buildItem(DownInfo dowInfo) {
-    return GetBuilder<AppDownloadLogic>(
-      id: '${dowInfo.appId}',
-      builder: (logic) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          decoration: BoxDecoration(
-            color:
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white12
-                    : Theme.of(context).primaryColor.withAlpha(10),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 1,
-                blurRadius: 3,
-                offset: const Offset(0, 1),
+  // ───── 顶栏 ─────
+  Widget _header() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 10, context.pagePadding, 10),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Get.back(),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: context.isDark
+                    ? Colors.white.withAlpha(14)
+                    : Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: context.isDark
+                      ? Colors.white.withAlpha(20)
+                      : Colors.black.withAlpha(8),
+                ),
               ),
-            ],
+              child: Icon(Icons.arrow_back_ios_new_rounded,
+                  size: 16, color: context.t1),
+            ),
           ),
+          const SizedBox(width: 12),
+          ShaderMask(
+            shaderCallback: (r) => Deco.aurora().createShader(r),
+            child: Text('下载管理',
+                style: Ty.h2.copyWith(color: Colors.white, fontSize: 21)),
+          ),
+          const Spacer(),
+          GetBuilder<AppDownloadLogic>(
+            id: 'downInfos',
+            builder: (logic) {
+              final n = logic.downInfos?.length ?? 0;
+              if (n == 0) return const SizedBox.shrink();
+              return Pill('$n 个任务', color: C.brand, small: true);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _groupTitle(String title, int count, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 3.5,
+          height: 15,
+          decoration: BoxDecoration(
+              color: color, borderRadius: BorderRadius.circular(2)),
+        ),
+        const SizedBox(width: 8),
+        Text(title,
+            style: Ty.h3.copyWith(fontSize: 15, color: context.t1)),
+        const SizedBox(width: 6),
+        Text('$count', style: Ty.tiny.copyWith(color: context.t3)),
+      ],
+    );
+  }
+
+  // ───── 空状态 ─────
+  Widget _empty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  C.brand.withAlpha(40),
+                  C.cyan.withAlpha(24),
+                ],
+              ),
+            ),
+            child: Icon(Icons.download_done_rounded,
+                size: 44, color: C.brand.withAlpha(200)),
+          ),
+          const SizedBox(height: 18),
+          Text('暂无下载任务',
+              style: Ty.h3.copyWith(fontSize: 15.5, color: context.t1)),
+          const SizedBox(height: 8),
+          Text('去软件库里挑一个喜欢的吧',
+              style: Ty.small.copyWith(color: context.t3)),
+          const SizedBox(height: 20),
+          SoftButton(
+            label: '去逛逛',
+            icon: Icons.explore_rounded,
+            onPressed: () => Get.back(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───── 单条卡片 ─────
+  Widget _card(DownInfo d) {
+    final status = d.status;
+    final color = _statusColor(status);
+    final isDone = status == DownloadTaskStatus.complete;
+    final progress = (d.progress ?? 0) / 100.0;
+
+    return GetBuilder<AppDownloadLogic>(
+      id: '${d.appId}',
+      builder: (logic) {
+        return KitCard(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(13),
           child: Column(
             children: [
-              // 上半部分：图标、名称、操作按钮
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    // 应用图标
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8.0),
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: CachedNetworkImage(
-                          imageUrl: dowInfo.appIcon ?? '',
-                          fit: BoxFit.cover,
-                          placeholder:
-                              (context, url) => Container(
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.apps,
-                                  color: Colors.grey,
+              Row(
+                children: [
+                  // 图标（带状态角标）
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(R.md),
+                        child: SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: (d.appIcon ?? '').isEmpty
+                              ? _iconFallback()
+                              : CachedNetworkImage(
+                                  imageUrl: d.appIcon!,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: 120,
+                                  placeholder: (_, __) => _iconFallback(),
+                                  errorWidget: (_, __, ___) => _iconFallback(),
                                 ),
-                              ),
-                          errorWidget:
-                              (context, url, error) => Container(
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.error,
-                                  color: Colors.grey,
-                                ),
-                              ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-
-                    // 应用名称
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _displayName(dowInfo),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16.0,
+                      if (isDone)
+                        Positioned(
+                          right: -3,
+                          bottom: -3,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _getStatusText(dowInfo.status),
-                            style: TextStyle(
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.w500,
-                              color: _getStatusColor(dowInfo.status),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // 操作按钮组
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildStatusButton(dowInfo, logic),
-                        const SizedBox(width: 8),
-                        _buildCancelButton(dowInfo, logic),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // 下半部分：进度条和大小信息
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                child: Column(
-                  children: [
-                    // 进度条
-                    LinearProgressIndicator(
-                      value:
-                          dowInfo.progress != null
-                              ? dowInfo.progress! / 100.0
-                              : 0.0,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _getStatusColor(dowInfo.status),
-                      ),
-                      minHeight: 4,
-                    ),
-                    const SizedBox(height: 8),
-
-                    // 进度信息
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${dowInfo.progress ?? 0}%',
-                          style: Get.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade500
-                                    : Colors.black87,
+                            child: const Icon(Icons.check_circle_rounded,
+                                size: 16, color: C.success),
                           ),
                         ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          // 没有文件大小时不显示「0B / 未知大小」这种无意义内容
-                          (dowInfo.appSize ?? '').trim().isEmpty
-                              ? ''
-                              : '${calculateDownloadedSize(dowInfo.appSize!, dowInfo.progress ?? 0)}'
-                                  ' / ${dowInfo.appSize}',
-                          style: Get.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade500
-                                    : Colors.black87,
-                          ),
+                          _displayName(d),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Ty.h3
+                              .copyWith(fontSize: 14.5, color: context.t1),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Pill(_statusText(status), color: color, small: true),
+                            const SizedBox(width: 7),
+                            Flexible(
+                              child: Text(
+                                _sizeText(d),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Ty.tiny.copyWith(color: context.t3),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  _actionBtn(d, logic),
+                ],
+              ),
+              // 进度（已完成不显示进度条）
+              if (!isDone) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(R.full),
+                  child: LinearProgressIndicator(
+                    value: progress.isNaN ? 0 : progress.clamp(0.0, 1.0),
+                    backgroundColor: context.isDark
+                        ? Colors.white.withAlpha(16)
+                        : Colors.black.withAlpha(10),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                    minHeight: 5,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Row(
+                  children: [
+                    Text('${d.progress ?? 0}%',
+                        style: Ty.tiny.copyWith(
+                            color: color, fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    Text(
+                      (d.appSize ?? '').trim().isEmpty
+                          ? ''
+                          : '${calculateDownloadedSize(d.appSize!, d.progress ?? 0)} / ${d.appSize}',
+                      style: Ty.tiny.copyWith(color: context.t3),
+                    ),
                   ],
                 ),
-              ),
+              ],
             ],
           ),
         );
@@ -202,7 +326,80 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
     );
   }
 
-  /// 列表显示名：优先用数据库里的应用名；
+  Widget _iconFallback() => Container(
+        color: C.brand.withAlpha(context.isDark ? 34 : 22),
+        child: Icon(Icons.android, color: C.brand, size: 26),
+      );
+
+  /// 右侧主操作按钮
+  Widget _actionBtn(DownInfo d, AppDownloadLogic logic) {
+    IconData icon;
+    Color color;
+    VoidCallback onTap;
+    String tip;
+    switch (d.status) {
+      case DownloadTaskStatus.enqueued:
+        icon = Icons.hourglass_top_rounded;
+        color = C.warning;
+        tip = '等待中';
+        onTap = () {};
+        break;
+      case DownloadTaskStatus.running:
+        icon = Icons.pause_rounded;
+        color = C.brand;
+        tip = '暂停';
+        onTap = () => logic.pauseDownload(d);
+        break;
+      case DownloadTaskStatus.paused:
+        icon = Icons.play_arrow_rounded;
+        color = C.warning;
+        tip = '继续';
+        onTap = () => logic.resumeDownload(d);
+        break;
+      case DownloadTaskStatus.failed:
+        icon = Icons.refresh_rounded;
+        color = C.danger;
+        tip = '重试';
+        onTap = () => logic.retryDownload(d);
+        break;
+      case DownloadTaskStatus.complete:
+        icon = Icons.install_mobile_rounded;
+        color = C.success;
+        tip = '安装';
+        onTap = () => logic.openDownloadFile(d);
+        break;
+      default:
+        icon = Icons.more_horiz_rounded;
+        color = context.t3;
+        tip = '';
+        onTap = () {};
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withAlpha(context.isDark ? 40 : 26),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withAlpha(90), width: 0.8),
+            ),
+            child: Icon(icon, size: 19, color: color),
+          ),
+        ),
+        if (tip.isNotEmpty) ...[
+          const SizedBox(height: 3),
+          Text(tip,
+              style: Ty.tiny.copyWith(fontSize: 9.5, color: color)),
+        ],
+      ],
+    );
+  }
+
+  /// 列表显示名：优先数据库里的应用名；
   /// 没有则退回任务真实文件名（去掉 .apk 后缀和自动追加的时间戳），
   /// 绝不显示「未知文件」这种无信息量的占位。
   String _displayName(DownInfo d) {
@@ -213,12 +410,16 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
     fn = fn.replaceAll('_', ' ');
     final apk = fn.toLowerCase().lastIndexOf('.apk');
     if (apk > 0) fn = fn.substring(0, apk);
-    // 去掉结尾的 13 位时间戳
     fn = fn.replaceFirst(RegExp(r'\s*\d{13}$'), '');
     return fn.trim().isEmpty ? '下载文件' : fn.trim();
   }
 
-  String _getStatusText(DownloadTaskStatus? status) {
+  String _sizeText(DownInfo d) {
+    final s = (d.appSize ?? '').trim();
+    return s.isEmpty ? '大小未知' : s;
+  }
+
+  String _statusText(DownloadTaskStatus? status) {
     switch (status) {
       case DownloadTaskStatus.enqueued:
         return '等待中';
@@ -229,142 +430,26 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
       case DownloadTaskStatus.failed:
         return '下载失败';
       case DownloadTaskStatus.complete:
-        return '下载完成';
+        return '已完成';
       default:
-        return '未知状态';
+        return '未知';
     }
   }
 
-  Color _getStatusColor(DownloadTaskStatus? status) {
+  Color _statusColor(DownloadTaskStatus? status) {
     switch (status) {
       case DownloadTaskStatus.enqueued:
-        return Colors.grey;
+        return C.warning;
       case DownloadTaskStatus.running:
-        return Theme.of(context).primaryColor;
+        return C.brand;
       case DownloadTaskStatus.paused:
-        return Colors.orange;
+        return C.warning;
       case DownloadTaskStatus.failed:
-        return Colors.red;
+        return C.danger;
       case DownloadTaskStatus.complete:
-        return Theme.of(context).primaryColor;
+        return C.success;
       default:
-        return Colors.grey;
+        return context.t3;
     }
-  }
-
-  Widget _buildStatusButton(DownInfo dowInfo, AppDownloadLogic logic) {
-    switch (dowInfo.status) {
-      case DownloadTaskStatus.enqueued:
-        return Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color:
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade900
-                    : Colors.black12,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Icons.hourglass_empty,
-            size: 18,
-            color: Colors.grey,
-          ),
-        );
-
-      case DownloadTaskStatus.running:
-        return InkWell(
-          onTap: () => logic.pauseDownload(dowInfo),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color:
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade900
-                      : Colors.black12,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(Icons.pause, size: 18),
-          ),
-        );
-
-      case DownloadTaskStatus.paused:
-        return InkWell(
-          onTap: () => logic.resumeDownload(dowInfo),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color:
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade900
-                      : Colors.black12,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(Icons.play_arrow, size: 18),
-          ),
-        );
-
-      case DownloadTaskStatus.failed:
-        return InkWell(
-          onTap: () => logic.retryDownload(dowInfo),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color:
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade900
-                      : Colors.black12,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(Icons.refresh, size: 18, color: Colors.red),
-          ),
-        );
-
-      case DownloadTaskStatus.complete:
-        return InkWell(
-          onTap: () => logic.openDownloadFile(dowInfo),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color:
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade900
-                      : Colors.black12,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(Icons.install_mobile, size: 18),
-          ),
-        );
-
-      default:
-        return const SizedBox(width: 32, height: 32);
-    }
-  }
-
-  Widget _buildCancelButton(DownInfo dowInfo, AppDownloadLogic logic) {
-    return InkWell(
-      onTap: () => logic.cancelDownload(dowInfo),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color:
-              Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade900
-                  : Colors.black12,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Icon(Icons.close, size: 18),
-      ),
-    );
   }
 }

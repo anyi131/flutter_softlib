@@ -279,6 +279,7 @@ class _HomeComponentState extends State<HomeComponent> {
                             CachedNetworkImage(
                               imageUrl: item.image ?? '',
                               fit: BoxFit.cover,
+                              memCacheWidth: 900,
                               placeholder: (_, __) => Container(
                                 color: context.cardBg,
                                 child: const Center(
@@ -480,6 +481,7 @@ class _HomeComponentState extends State<HomeComponent> {
             CachedNetworkImage(
               imageUrl: d.image ?? '',
               fit: BoxFit.cover,
+              memCacheWidth: 600,
               placeholder: (_, __) => Container(
                 color: context.isDark ? C.bg2 : C.lbg2,
               ),

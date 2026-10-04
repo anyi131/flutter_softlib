@@ -272,6 +272,18 @@ class AdminService {
 
   Future<void> deletePost(int id) async => _post('post_del', {'id': id});
 
+  /// 编辑帖子（正文 / 分类）
+  Future<void> savePost(Map<String, dynamic> data) async =>
+      _post('post_save', data);
+
+  /// 评论列表（后台管理）
+  Future<List<Map<String, dynamic>>> comments() async {
+    final d = (await _post('comments'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> deleteComment(int id) async => _post('comment_del', {'id': id});
+
   Future<List<Map<String, dynamic>>> reviews() async {
     final d = (await _post('reviews'))['data'];
     return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];

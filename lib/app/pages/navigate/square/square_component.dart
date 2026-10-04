@@ -252,7 +252,11 @@ class _SquareComponentState extends State<SquareComponent> {
                   ClipOval(
                     child: p.avatar.isNotEmpty
                         ? CachedNetworkImage(
-                            imageUrl: p.avatar, width: 38, height: 38, fit: BoxFit.cover)
+                            imageUrl: p.avatar,
+                            width: 38,
+                            height: 38,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 96)
                         : _avatar(),
                   ),
                   const SizedBox(width: 10),
@@ -328,9 +332,15 @@ class _SquareComponentState extends State<SquareComponent> {
                         color: context.t1)),
               ],
               // 视频（本地直链 或 分享链接解析后的播放页）
+              // ★ 列表态用 lazy：只显示封面+播放按钮，点了才加载（避免滚动卡顿）
               if (p.videoUrl.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                PostVideoPlayer(url: p.videoUrl, type: p.videoType),
+                PostVideoPlayer(
+                  url: p.videoUrl,
+                  type: p.videoType,
+                  cover: p.videoCover,
+                  lazy: true,
+                ),
               ],
               // 图片九宫格
               if (p.images.isNotEmpty) ...[
@@ -403,7 +413,10 @@ class _SquareComponentState extends State<SquareComponent> {
       return ClipRRect(
         borderRadius: BorderRadius.circular(R.sm),
         child: CachedNetworkImage(
-            imageUrl: images[0], height: 180, fit: BoxFit.cover),
+            imageUrl: images[0],
+            height: 180,
+            fit: BoxFit.cover,
+            memCacheWidth: 900),
       );
     }
     return GridView.builder(
@@ -420,6 +433,7 @@ class _SquareComponentState extends State<SquareComponent> {
         child: CachedNetworkImage(
           imageUrl: images[i],
           fit: BoxFit.cover,
+          memCacheWidth: 360,
           placeholder: (_, __) => Container(color: Colors.black12),
           errorWidget: (_, __, ___) => Container(
               color: Colors.black12,
@@ -750,7 +764,9 @@ class _SquareComponentState extends State<SquareComponent> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: PostVideoPlayer(
-                          url: videoPreviewUrl, type: videoPreviewType),
+                          url: videoPreviewUrl,
+                          type: videoPreviewType,
+                          maxHeight: 240),
                     ),
                 ],
                 // 表情面板

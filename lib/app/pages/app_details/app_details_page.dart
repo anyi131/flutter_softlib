@@ -200,6 +200,18 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     final it = item;
     final info = logic.appInfo;
     final isVipItem = it?.isVipItem ?? false;
+    final hasP = it?.hasPrice ?? false;
+    final priceTxt = it?.vipPrice ?? '';
+    // ★ 标签反映真实付费状态：有价格 → 「¥xx 购买」，会员专享 → 「会员专享」，否则「免费下载」
+    final String topLabel = hasP
+        ? '¥$priceTxt 购买'
+        : (isVipItem ? '会员专享' : '免费下载');
+    final Color topColor = hasP
+        ? C.mint
+        : (isVipItem ? C.amber : C.mint);
+    final IconData topIcon = hasP
+        ? Icons.paid_rounded
+        : (isVipItem ? Icons.workspace_premium_rounded : Icons.download_done_rounded);
     final icon = info?.fileIcon ?? '';
     return Deco.glass(
       context,
@@ -292,11 +304,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       spacing: 6,
                       runSpacing: 5,
                       children: [
-                        _chip(isVipItem ? '会员专享' : '免费下载',
-                            isVipItem ? C.amber : C.mint,
-                            isVipItem
-                                ? Icons.workspace_premium_rounded
-                                : Icons.download_done_rounded),
+                        _chip(topLabel, topColor, topIcon),
                         _chip('人工亲测', C.brandBright, Icons.verified_rounded),
                       ],
                     ),
@@ -741,11 +749,27 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             final IconData icon;
             final Color color;
             final String sub;
-            if (isVipItem) {
-              label = isVipUser ? '会员下载' : '开通会员下载';
-              icon = Icons.workspace_premium_rounded;
-              color = C.gold;
-              sub = isVipUser ? '会员专享 · 高速下载' : '该资源仅会员可下载';
+            final needUnlock = item?.needUnlock ?? false;
+            final priceTxt = item?.vipPrice ?? '';
+            final hasP = (double.tryParse(priceTxt.trim()) ?? 0) > 0;
+            if (needUnlock) {
+              // ★ 只要涉及付费/会员，都必须校验（不再只看 isVipItem）
+              if (hasP && !isVipUser) {
+                label = '购买下载 ¥$priceTxt';
+                icon = Icons.paid_rounded;
+                color = C.mint;
+                sub = '余额支付 · 购买后永久可下载';
+              } else if (hasP && isVipUser) {
+                label = '会员免费下载';
+                icon = Icons.workspace_premium_rounded;
+                color = C.gold;
+                sub = '会员专享 · 高速下载';
+              } else {
+                label = isVipUser ? '会员下载' : '开通会员下载';
+                icon = Icons.workspace_premium_rounded;
+                color = C.gold;
+                sub = isVipUser ? '会员专享 · 高速下载' : '该资源仅会员可下载';
+              }
             } else if (item?.isLocal == true) {
               label = '下载安装';
               icon = Icons.download_rounded;
@@ -766,8 +790,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   label: label,
                   color: color,
                   icon: icon,
-                  gold: isVipItem,
-                  onPressed: () async => await _onDownload(isVipItem, loggedIn, isVipUser),
+                  gold: needUnlock && !hasP,
+                  onPressed: () async => await _onDownload(needUnlock, loggedIn, isVipUser),
                 ),
               ],
             );
@@ -890,12 +914,20 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   ///   · 会员 / 管理员 / 已购买过 → 直接下载
   ///   · 普通用户 + 有价格       → 可用「余额」购买（不足则引导充值）
   ///   · 未设价格               → 免费下载
+  ///
+  /// ★ 关键修复：以前这里只判断 `isVipItem`（后台的「会员专享」开关），
+  ///   完全没看 vip_price → 一个设了价格但没勾会员专享的软件，
+  ///   任何用户点了就直接下载，不扣钱也不用买（用户反馈的 #2）。
+  ///   现在只要「会员专享 或 有价格」都必须走服务端校验。
   Future<void> _onDownload(bool isVipItem, bool loggedIn, bool isVipUser) async {
     // appInfo 是解析后的文件信息，没有 id；id 在 item 上
     final appId = logic.item?.id ?? 0;
     final fileName = logic.appInfo?.fileName ?? '未知文件名';
 
-    if (!isVipItem) {
+    // 是否涉及付费/会员校验：会员专享 或 设置了会员价
+    final needPay = isVipItem || (logic.item?.hasPrice ?? false);
+
+    if (!needPay) {
       logic.addDownload(fileName);
       return;
     }
@@ -921,6 +953,29 @@ class _AppDetailsPageState extends State<AppDetailsPage>
 
     // 需要购买
     final price = st.price;
+    // ★ 服务端说价格是 0 且已判定可下载 → 上面 canDownload 已处理；
+    //   这里若价格为空或为 0，说明是「会员专享但未设价」，只引导开会员
+    final hasPrice = price.isNotEmpty && (double.tryParse(price) ?? 0) > 0;
+    if (!hasPrice) {
+      await Get.dialog(AlertDialog(
+        title: const Text('会员专享资源',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        content: const Text('该资源需要开通会员后才能下载。',
+            style: TextStyle(fontSize: 13, height: 1.5)),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+          FilledButton(
+            onPressed: () {
+              Get.back();
+              Get.toNamed(Routes.vip);
+            },
+            child: const Text('开通会员'),
+          ),
+        ],
+      ));
+      return;
+    }
+
     final balance = st.balance;
     final enough = (double.tryParse(balance) ?? 0) >= (double.tryParse(price) ?? 0);
     final title = isVipUser ? '会员专享资源' : '付费资源';

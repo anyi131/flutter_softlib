@@ -80,6 +80,12 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                 height: 40,
                 onPressed: () => _edit(null),
               ),
+              const SizedBox(width: 6),
+              IconButton(
+                tooltip: '分类管理',
+                icon: const Icon(Icons.category_rounded, size: 21, color: C.violet),
+                onPressed: _manageCats,
+              ),
             ],
           ),
         ),
@@ -159,6 +165,179 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
         ),
       ],
     );
+  }
+
+  /// 分类管理：增 / 改 / 删
+  Future<void> _manageCats() async {
+    List<Map<String, dynamic>> cats = [];
+    try {
+      cats = await _svc.appCats();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      return;
+    }
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
+        Future<void> reload() async {
+          final l = await _svc.appCats();
+          setS(() => cats = l);
+        }
+
+        Future<void> editCat(Map? c) async {
+          final t = TextEditingController(text: '${c?['title'] ?? ''}');
+          final w = TextEditingController(text: '${c?['weigh'] ?? 0}');
+          await showDialog(
+            context: ctx,
+            builder: (dctx) => AlertDialog(
+              title: Text(c == null ? '新增分类' : '编辑分类'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: t,
+                    decoration: const InputDecoration(
+                        labelText: '分类名称', isDense: true),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: w,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: '权重（越大越靠前）', isDense: true),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(dctx),
+                    child: const Text('取消')),
+                FilledButton(
+                  onPressed: () async {
+                    if (t.text.trim().isEmpty) return;
+                    Navigator.pop(dctx);
+                    try {
+                      await _svc.saveCat({
+                        'id': c?['id'] ?? 0,
+                        'title': t.text.trim(),
+                        'weigh': int.tryParse(w.text) ?? 0,
+                      });
+                      ToastUtil.success('已保存');
+                      await reload();
+                    } catch (e) {
+                      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+                    }
+                  },
+                  child: const Text('保存'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        Future<void> delCat(Map c) async {
+          final ok = await Get.dialog<bool>(AlertDialog(
+            title: const Text('删除分类'),
+            content: Text('确定删除「${c['title']}」吗？该分类下的软件会变成未分类。'),
+            actions: [
+              TextButton(
+                  onPressed: () => Get.back(result: false),
+                  child: const Text('取消')),
+              FilledButton(
+                  onPressed: () => Get.back(result: true),
+                  child: const Text('删除')),
+            ],
+          ));
+          if (ok != true) return;
+          try {
+            await _svc.deleteCat(int.tryParse('${c['id']}') ?? 0);
+            ToastUtil.success('已删除');
+            await reload();
+          } catch (e) {
+            ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+          }
+        }
+
+        return Container(
+          height: MediaQuery.of(ctx).size.height * 0.72,
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).brightness == Brightness.dark
+                ? C.bg1
+                : Colors.white,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(R.xl)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.category_rounded, color: C.violet, size: 21),
+                  const SizedBox(width: 8),
+                  Text('分类管理',
+                      style: Ty.h2.copyWith(fontSize: 17, color: ctx.t1)),
+                  const Spacer(),
+                  SoftButton(
+                    label: '新增分类',
+                    icon: Icons.add_rounded,
+                    height: 36,
+                    onPressed: () => editCat(null),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: cats.isEmpty
+                    ? const Center(child: Text('暂无分类，点击右上角新增'))
+                    : ListView.separated(
+                        itemCount: cats.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (_, i) {
+                          final c = cats[i];
+                          return KitCard(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${c['title']}',
+                                          style: Ty.h3.copyWith(
+                                              fontSize: 14.5,
+                                              color: ctx.t1)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                          '权重 ${c['weigh'] ?? 0} · ${c['count'] ?? 0} 款软件',
+                                          style: Ty.tiny.copyWith(color: ctx.t3)),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined,
+                                      size: 19, color: C.brand),
+                                  onPressed: () => editCat(c),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline,
+                                      size: 19, color: C.danger),
+                                  onPressed: () => delCat(c),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+    _load();
   }
 
   Future<void> _del(Map a) async {
@@ -493,7 +672,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                       ],
                     ),
 
-                    // ===== 会员专享设置 =====
+                    // ===== 会员专享 + 付费设置 =====
                     Container(
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 12),
@@ -521,9 +700,15 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                               ),
                             ],
                           ),
-                          if (isVip)
-                            _field('会员价（如 ¥9.9）', vipPrice),
                           Text('开启后，非会员下载时会提示开通会员',
+                              style: Ty.tiny.copyWith(color: context.t3)),
+                          const SizedBox(height: 10),
+                          // ★ 会员价独立于「会员专享」开关：
+                          //   只要填了价格（>0），非会员就必须「余额购买」才能下载。
+                          //   （以前只勾会员专享才显示价格框，导致设了价也白设）
+                          _field('会员价 / 购买价（¥，填了即需付费，留空=免费）',
+                              vipPrice),
+                          Text('填了价格后：会员可免费下，非会员需用余额购买',
                               style: Ty.tiny.copyWith(color: context.t3)),
                         ],
                       ),

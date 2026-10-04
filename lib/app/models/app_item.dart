@@ -68,6 +68,15 @@ class AppItem {
   /// 是否为会员专享资源（后台开关优先，兼容旧的"会员专区"分类）
   bool get isVipItem => isVipOnly || catId == 5;
 
+  /// 是否设置了有效价格（>0）—— 用于判断是否必须走付费校验
+  bool get hasPrice {
+    final v = double.tryParse(vipPrice.trim());
+    return v != null && v > 0;
+  }
+
+  /// 是否属于「需要校验才能下载」的资源（会员专享 或 有价格）
+  bool get needUnlock => isVipItem || hasPrice;
+
   /// 下载是否可直接进行（无需解析）
   bool get canDirectDownload => isLocal && file.isNotEmpty;
 

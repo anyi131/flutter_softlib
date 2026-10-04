@@ -153,6 +153,12 @@ class _AdminContentTabState extends State<AdminContentTab>
                           Ty.tiny.copyWith(color: context.t3)),
                   const Spacer(),
                   IconButton(
+                    tooltip: '编辑内容',
+                    icon: const Icon(Icons.edit_outlined,
+                        size: 18, color: C.brand),
+                    onPressed: () => _editPost(p),
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.delete_outline,
                         size: 18, color: C.danger),
                     onPressed: () async {
@@ -198,8 +204,51 @@ class _AdminContentTabState extends State<AdminContentTab>
     );
   }
 
+  /// 编辑帖子内容（App 内后台，对应「网页端功能 App 也要有」）
+  Future<void> _editPost(Map p) async {
+    final content = TextEditingController(text: '${p['content'] ?? ''}');
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('编辑动态'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: content,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                  labelText: '正文内容', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          FilledButton(
+            onPressed: () async {
+              if (content.text.trim().isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await _svc.savePost({
+                  'id': p['id'],
+                  'content': content.text.trim(),
+                  'cat_id': p['cat_id'] ?? 0,
+                });
+                ToastUtil.success('已保存');
+                _load();
+              } catch (e) {
+                ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _reviewList() {
-    if (_reviews.isEmpty) {
       return const EmptyState(
           text: '暂无评价', icon: Icons.rate_review_outlined);
     }

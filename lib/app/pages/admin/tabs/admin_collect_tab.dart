@@ -920,7 +920,8 @@ class _AdminCollectTabState extends State<AdminCollectTab>
 
   Future<void> _import(List<Map<String, dynamic>> results) async {
     // ★ 把站点给的完整信息都带上：之前只传 name/url/desc/category，
-    //   导致导入后 图标/大小/版本 全为空、描述带脏字符
+    //   导致导入后 图标/大小/版本 全为空、描述带脏字符。
+    //   ★ 现在再补上 preview（应用截图）——这也是用户反馈「截图没导入」的原因。
     final items = results
         .map((r) => {
               'name': r['name'],
@@ -930,12 +931,15 @@ class _AdminCollectTabState extends State<AdminCollectTab>
               'logo': r['logo'] ?? '',
               'size': r['size'] ?? '',
               'version': r['version'] ?? '',
-              'preview': r['preview'] ?? '',
+              'preview': r['preview'] ?? r['screenshots'] ?? '',
             })
         .toList();
     if (items.isEmpty) return;
+    // 导入前让用户确认/修改数据（对应需求 #10）
+    final edited = await _editBeforeImport(items);
+    if (edited == null || edited.isEmpty) return;
     try {
-      final r = await _svc.collectImport(items);
+      final r = await _svc.collectImport(edited);
       ToastUtil.success(
           '已导入 ${r['added']} 条，跳过重复 ${r['skipped']} 条');
       setState(() {
@@ -945,5 +949,174 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
     }
+  }
+
+  /// 导入前编辑：逐条可修改名称/大小/版本/分类/截图，避免脏数据入库
+  /// 返回 null 表示用户取消
+  Future<List<Map<String, dynamic>>?> _editBeforeImport(
+      List<Map<String, dynamic>> items) async {
+    final List<Map<String, dynamic>> draft =
+        items.map((e) => Map<String, dynamic>.from(e)).toList();
+    return await Get.dialog<List<Map<String, dynamic>>>(
+      Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 40),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: double.maxFinite,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: StatefulBuilder(
+            builder: (ctx, setD) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.edit_note_rounded,
+                          color: C.brand, size: 22),
+                      const SizedBox(width: 8),
+                      const Text('导入前确认',
+                          style: TextStyle(
+                              fontSize: 17, fontWeight: FontWeight.w800)),
+                      const Spacer(),
+                      Text('共 ${draft.length} 条',
+                          style: Ty.tiny.copyWith(color: ctx.t3)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text('可直接修改名称/大小/版本/截图，确认后写入软件库',
+                      style: Ty.tiny.copyWith(color: ctx.t3)),
+                  const SizedBox(height: 10),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: draft.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (_, i) => _importRow(draft, i, setD),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx, null),
+                          child: const Text('取消'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            // 过滤掉名称为空的
+                            final ok = draft
+                                .where((e) =>
+                                    (e['name'] ?? '').toString().trim().isNotEmpty)
+                                .toList();
+                            Navigator.pop(ctx, ok);
+                          },
+                          child: const Text('确认导入'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _importRow(List<Map<String, dynamic>> draft, int i, void Function(void Function()) setD) {
+    final it = draft[i];
+    final shots = (it['preview'] ?? '').toString();
+    final shotCount =
+        shots.trim().isEmpty ? 0 : shots.split(',').where((s) => s.trim().isNotEmpty).length;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: context.isDark ? Colors.white.withAlpha(8) : C.bg2,
+        borderRadius: BorderRadius.circular(R.md),
+        border: Border.all(color: C.stroke.withAlpha(60), width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _miniField('名称', (it['name'] ?? '').toString(),
+                    (v) => setD(() => it['name'] = v)),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 95,
+                child: _miniField('分类', (it['category'] ?? '').toString(),
+                    (v) => setD(() => it['category'] = v)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              SizedBox(
+                width: 110,
+                child: _miniField('大小', (it['size'] ?? '').toString(),
+                    (v) => setD(() => it['size'] = v)),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 100,
+                child: _miniField('版本', (it['version'] ?? '').toString(),
+                    (v) => setD(() => it['version'] = v)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('应用截图', style: Ty.tiny.copyWith(fontSize: 10, color: context.t3)),
+                    const SizedBox(height: 4),
+                    Text(shotCount > 0 ? '已带 $shotCount 张' : '无',
+                        style: Ty.tiny.copyWith(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: shotCount > 0 ? C.mint : C.warning)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 弹窗内的小输入框（内联保存）
+  Widget _miniField(String label, String value, ValueChanged<String> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Ty.tiny.copyWith(fontSize: 10, color: context.t3)),
+        const SizedBox(height: 3),
+        SizedBox(
+          height: 34,
+          child: TextFormField(
+            initialValue: value,
+            onChanged: onChanged,
+            style: const TextStyle(fontSize: 12.5),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

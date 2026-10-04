@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../../api/user_service.dart';
 import '../../models/app_config.dart';
 import '../../routes/app_pages.dart';
 import '../../utils/jump_util.dart';
+import '../../utils/local_splash.dart';
 
 /// 启动页：远程开屏图 + 倒计时 + 公告弹窗（后台可下发，无需发版）
 class SplashPage extends StatefulWidget {
@@ -25,6 +27,8 @@ class _SplashPageState extends State<SplashPage> {
   int _left = 2;
   Timer? _timer;
   bool _entered = false;
+  /// 本地自定义开屏图路径（用户「替换开屏」选过才有）
+  String _localSplash = '';
 
   @override
   void initState() {
@@ -39,6 +43,12 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _boot() async {
+    // ★ 先读本地开屏图（用户选过的图优先，秒开且不依赖网络）
+    _localSplash = await LocalSplash.get();
+    if (mounted && _localSplash.isNotEmpty) {
+      setState(() {});
+    }
+
     final cfg = await SoftService.instance.fetchConfig();
     if (!mounted) return;
 
@@ -174,9 +184,13 @@ class _SplashPageState extends State<SplashPage> {
     }
 
     final cfg = _config;
-    // 优先使用用户自定义开屏图（我的→替换开屏）
+    // ★ 开屏图优先级（用户 #9 的要求）：
+    //   ① 用户「替换开屏」选的本地图（本地文件，秒开）
+    //   ② 用户存在服务器上的自定义图（老数据兼容 / 换机后）
+    //   ③ 后台下发的全局开屏图
+    //   ④ 内置默认开屏
     final userSplash = UserService.instance.user?.splashImage ?? '';
-    final img = userSplash.isNotEmpty
+    final netImg = userSplash.isNotEmpty
         ? userSplash
         : (cfg?.splashImage ?? '');
     return Scaffold(
@@ -184,16 +198,15 @@ class _SplashPageState extends State<SplashPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 开屏图（远程下发）
-          if (img.isNotEmpty)
-            CachedNetworkImage(
-              imageUrl: img,
+          // 开屏图：本地优先，其次远程
+          if (_localSplash.isNotEmpty)
+            Image.file(
+              File(_localSplash),
               fit: BoxFit.cover,
-              placeholder: (_, __) => const SizedBox.shrink(),
-              errorWidget: (_, __, ___) => _defaultSplash(),
+              errorBuilder: (_, __, ___) => _remoteOrDefault(netImg),
             )
           else
-            _defaultSplash(),
+            _remoteOrDefault(netImg),
 
           // 标题/副标题
           if ((cfg?.splashTitle ?? '').isNotEmpty)
@@ -274,6 +287,17 @@ class _SplashPageState extends State<SplashPage> {
             ),
         ],
       ),
+    );
+  }
+
+  /// 远程开屏图（无则用内置默认）
+  Widget _remoteOrDefault(String url) {
+    if (url.isEmpty) return _defaultSplash();
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (_, __) => const SizedBox.shrink(),
+      errorWidget: (_, __, ___) => _defaultSplash(),
     );
   }
 

@@ -341,6 +341,15 @@ ThemeData buildNewTheme({required bool dark}) {
     scaffoldBackgroundColor: dark ? C.bg0 : C.lbg0,
     canvasColor: dark ? C.bg1 : C.lbg1,
     cardColor: dark ? C.bg2 : Colors.white,
+    // ★ 全局页面过渡统一为 iOS 风格（与 GetX 的 cupertino 过渡保持一致）
+    //   否则直接调用 Navigator.push 的页面仍是 Android 默认缩放动画，观感割裂
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
     dividerColor: dark
         ? Colors.white.withAlpha(16)
         : Colors.black.withAlpha(10),
