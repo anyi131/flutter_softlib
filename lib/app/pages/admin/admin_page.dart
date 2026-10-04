@@ -302,7 +302,7 @@ class _OverviewTabState extends State<_OverviewTab> {
             crossAxisSpacing: 12,
             childAspectRatio: 1.7,
             children: items
-                .map((it) => KitCard(
+                .map((it) => GlassCard(
                       radius: R.lg,
                       padding: const EdgeInsets.all(14),
                       child: Column(

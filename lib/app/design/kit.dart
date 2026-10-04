@@ -313,6 +313,47 @@ class KitCard extends StatelessWidget {
   }
 }
 
+/// ─────────── 玻璃卡片 ───────────
+/// 半透明 + 背景模糊 + 细描边，用于需要「浮在光晕上」的高级质感场景
+/// （后台概览、会员页等）。普通内容卡用 [KitCard] 即可。
+class GlassCard extends StatelessWidget {
+  const GlassCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(14),
+    this.margin,
+    this.radius = R.lg,
+    this.blur = 18,
+    this.alpha = 0.06,
+    this.onTap,
+    this.glow,
+  });
+
+  final Widget child;
+  final EdgeInsets? padding;
+  final EdgeInsets? margin;
+  final double radius;
+  final double blur;
+  final double alpha;
+  final VoidCallback? onTap;
+  final Color? glow;
+
+  @override
+  Widget build(BuildContext context) {
+    return Deco.glass(
+      context,
+      radius: radius,
+      blur: blur,
+      alpha: alpha,
+      padding: padding,
+      margin: margin,
+      onTap: onTap,
+      glow: glow,
+      child: child,
+    );
+  }
+}
+
 /// ─────────── 标签 ───────────
 class Pill extends StatelessWidget {
   const Pill(
