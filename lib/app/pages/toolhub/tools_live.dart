@@ -9,6 +9,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../design/adaptive.dart';
+import '../../api/api_host.dart';
 import '../../api/soft_service.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
@@ -1205,7 +1206,7 @@ class _NewsToolState extends State<NewsTool> {
       _error = null;
     });
     try {
-      final json = await _httpJson('${SoftService.instance.baseUrl}/api/softlib/media/news_list');
+      final json = await _httpJson('${ApiHost.base}/api/softlib/media/news_list');
       dynamic arr;
       if (json is Map) {
         if (json['data'] is List) {

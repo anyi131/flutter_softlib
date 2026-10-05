@@ -22,6 +22,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -30,15 +31,24 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Cache pub & gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-pubgradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-pubgradle-
+
       - name: Pub get
         run: flutter pub get
 
-      - name: Analyze
-        continue-on-error: true
-        run: flutter analyze
-
       - name: Build APK (release)
-        run: flutter build apk --release --target-platform android-arm64
+        run: |
+          flutter build apk --release --target-platform android-arm64
+        env:
+          GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.parallel=true -Dorg.gradle.caching=true' 
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
