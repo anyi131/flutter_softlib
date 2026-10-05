@@ -12,7 +12,7 @@ import 'tabs/admin_content_tab.dart';
 import 'tabs/admin_logs_tab.dart';
 import 'tabs/admin_orders_tab.dart';
 import 'tabs/admin_splash_tab.dart';
-import 'tabs/admin_tool_tab.dart';
+import 'tabs/admin_tools_v2_tab.dart';
 import 'tabs/admin_users_tab.dart';
 
 /// 软件内嵌管理系统（管理员专用）
@@ -107,7 +107,7 @@ class _AdminPageState extends State<AdminPage>
                       AdminOrdersTab(),
                       AdminCollectTab(),
                       AdminContentTab(),
-                      AdminToolTab(),
+                      AdminToolsV2Tab(),
                       AdminLogsTab(),
                       AdminSplashTab(),
                     ],

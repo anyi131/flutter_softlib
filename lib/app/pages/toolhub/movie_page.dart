@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
+import 'player_v2_page.dart';
 
 import '../../api/soft_service.dart';
 import '../../design/kit.dart';
@@ -570,16 +571,39 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           ],
         ),
       ));
+      final eps0 = eps;
       out.add(Wrap(
         spacing: 8,
         runSpacing: 8,
         children: eps.map<Widget>((e) {
           final em = Map<String, dynamic>.from(e as Map);
           return GestureDetector(
-            onTap: () => Get.to(() => MoviePlayerPage(
-                  url: '${em['url'] ?? ''}',
-                  title: '${_d!['name'] ?? ''} - ${em['name'] ?? ''}',
-                )),
+            onTap: () {
+              final eps = <String>[];
+              final urls = <String>[];
+              for (final e in eps0) {
+                final em2 = Map<String, dynamic>.from(e as Map);
+                eps.add('${em2['name'] ?? '第${urls.length + 1}集'}');
+                urls.add('${em2['url'] ?? ''}');
+              }
+              Get.to(() => PlayerV2Page(
+                    url: '${em['url'] ?? ''}',
+                    title: '${_d!['name'] ?? ''}',
+                    episodes: eps,
+                    episodeIndex: urls.indexOf('${em['url'] ?? ''}') < 0
+                        ? 0
+                        : urls.indexOf('${em['url'] ?? ''}'),
+                    onEpisodeChange: (idx) {
+                      Get.off(() => PlayerV2Page(
+                            url: urls[idx],
+                            title: '${_d!['name'] ?? ''}',
+                            episodes: eps,
+                            episodeIndex: idx,
+                            onEpisodeChange: null,
+                          ));
+                    },
+                  ));
+            },
             child: Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 9),

@@ -7,6 +7,7 @@ import '../../design/adaptive.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
 import 'movie_page.dart';
+import 'player_v2_page.dart';
 
 /// 短剧（v47 —— 对接红牛短剧源，可播放）
 class DramaPage extends StatefulWidget {
@@ -365,16 +366,37 @@ class _DramaDetailPageState extends State<DramaDetailPage> {
           ],
         ),
       ));
+      final epsAll = eps;
       out.add(Wrap(
         spacing: 8,
         runSpacing: 8,
         children: eps.map<Widget>((e) {
           final em = Map<String, dynamic>.from(e as Map);
           return GestureDetector(
-            onTap: () => Get.to(() => MoviePlayerPage(
-                  url: '${em['url'] ?? ''}',
-                  title: '$_nameText - ${em['name'] ?? ''}',
-                )),
+            onTap: () {
+              final eps = <String>[];
+              final urls = <String>[];
+              for (final e2 in epsAll) {
+                final em2 = Map<String, dynamic>.from(e2 as Map);
+                eps.add('${em2['name'] ?? '第${urls.length + 1}集'}');
+                urls.add('${em2['url'] ?? ''}');
+              }
+              final idx = urls.indexOf('${em['url'] ?? ''}');
+              Get.to(() => PlayerV2Page(
+                    url: '${em['url'] ?? ''}',
+                    title: _nameText,
+                    episodes: eps,
+                    episodeIndex: idx < 0 ? 0 : idx,
+                    onEpisodeChange: (i2) {
+                      Get.off(() => PlayerV2Page(
+                            url: urls[i2],
+                            title: _nameText,
+                            episodes: eps,
+                            episodeIndex: i2,
+                          ));
+                    },
+                  ));
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: BoxDecoration(
