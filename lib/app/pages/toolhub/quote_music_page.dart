@@ -168,8 +168,22 @@ class MusicPage extends StatefulWidget {
 class _MusicPageState extends State<MusicPage> {
   final _kwCtrl = TextEditingController();
   List<Map<String, dynamic>> _list = [];
+  List<Map<String, dynamic>> _homeBlocks = [];
+  int _homeIdx = 0;
   bool _loading = false;
   bool _searched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHome();
+  }
+
+  Future<void> _loadHome() async {
+    final b = await SoftService.instance.mediaMusicHome();
+    if (!mounted || b.isEmpty) return;
+    setState(() => _homeBlocks = b);
+  }
 
   // 播放器
   VideoPlayerController? _player;
@@ -274,7 +288,10 @@ class _MusicPageState extends State<MusicPage> {
               children: [
                 _topBar(),
                 _searchBar(),
-                if (!_searched) _hotSection(),
+                if (!_searched) ...[
+                  if (_homeBlocks.isNotEmpty) _homeTabs(),
+                  _hotSection(),
+                ],
                 const SizedBox(height: 10),
                 Expanded(child: _body()),
               ],
@@ -343,6 +360,39 @@ class _MusicPageState extends State<MusicPage> {
     );
   }
 
+  Widget _homeTabs() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(context.pagePadding, 12, context.pagePadding, 0),
+      child: Row(
+        children: [
+          for (int i = 0; i < _homeBlocks.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => setState(() => _homeIdx = i),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _homeIdx == i
+                        ? C.brand
+                        : C.brand.withAlpha(context.isDark ? 30 : 18),
+                    borderRadius: BorderRadius.circular(R.full),
+                  ),
+                  child: Text('${_homeBlocks[i]['title'] ?? ''}',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: _homeIdx == i
+                              ? Colors.white
+                              : C.brand)),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _hotSection() {
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -383,10 +433,91 @@ class _MusicPageState extends State<MusicPage> {
   Widget _body() {
     if (_loading) return const LoadingState(text: '搜索中…');
     if (!_searched) {
-      return const EmptyState(
-        text: '搜索歌曲',
-        hint: '输入歌名或歌手，或点上面的热门',
-        icon: Icons.music_note_rounded,
+      if (_homeBlocks.isEmpty) {
+        return Center(
+          child: SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(strokeWidth: 2.4)),
+        );
+      }
+      final block = _homeBlocks[_homeIdx.clamp(0, _homeBlocks.length - 1)];
+      final items = ((block['list'] as List?) ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      return ListView.separated(
+        physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics()),
+        padding: EdgeInsets.fromLTRB(context.pagePadding, 0,
+            context.pagePadding, context.tabSpace + 84),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (_, i) {
+          final s2 = items[i];
+          final dur = (int.tryParse('${s2['duration']}') ?? 0) ~/ 1000;
+          final durTxt = dur > 0
+              ? '${(dur ~/ 60)}:${(dur % 60).toString().padLeft(2, '0')}'
+              : '';
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _list = items;
+                _playingIdx = -1;
+              });
+              _play(i);
+            },
+            child: KitCard(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(R.sm),
+                      color: C.brand.withAlpha(16),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: '${s2['pic']}'.isEmpty
+                        ? Icon(Icons.music_note_rounded,
+                            color: context.t3, size: 20)
+                        : CachedNetworkImage(
+                            imageUrl: '${s2['pic']}',
+                            fit: BoxFit.cover,
+                            memCacheWidth: 120,
+                            errorWidget: (_, __, ___) => Icon(
+                                Icons.music_note_rounded,
+                                color: context.t3,
+                                size: 20),
+                          ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${i + 1}. ${s2['name']}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Ty.h3.copyWith(
+                                fontSize: 13.5, color: context.t1)),
+                        const SizedBox(height: 3),
+                        Text('${s2['artist']}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Ty.tiny.copyWith(color: context.t3)),
+                      ],
+                    ),
+                  ),
+                  if (durTxt.isNotEmpty)
+                    Text(durTxt,
+                        style: Ty.tiny.copyWith(
+                            fontSize: 10.5, color: context.t3)),
+                ],
+              ),
+            ),
+          );
+        },
       );
     }
     if (_list.isEmpty) {

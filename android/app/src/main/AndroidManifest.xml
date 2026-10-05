@@ -19,6 +19,7 @@
             android:label="软件库App"
             android:name="${applicationName}"
             android:requestLegacyExternalStorage="true"
+            android:usesCleartextTraffic="true"
             android:enableOnBackInvokedCallback="true"
             android:icon="@mipmap/ic_launcher">
 

@@ -9,6 +9,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../design/adaptive.dart';
+import '../../api/soft_service.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
@@ -1204,7 +1205,7 @@ class _NewsToolState extends State<NewsTool> {
       _error = null;
     });
     try {
-      final json = await _httpJson('https://api.vvhan.com/api/hotlist/zhihuHot');
+      final json = await _httpJson('${SoftService.instance.baseUrl}/api/softlib/media/news_list');
       dynamic arr;
       if (json is Map) {
         if (json['data'] is List) {
@@ -1223,7 +1224,7 @@ class _NewsToolState extends State<NewsTool> {
           if (it is Map) {
             final t = _s(it['title'] ?? it['name'] ?? it['query']);
             final u = _s(it['url'] ?? it['link'] ?? it['mobilUrl']);
-            final d = _s(it['desc'] ?? it['description'] ?? it['excerpt']);
+            final d = _s(it['desc'] ?? it['description'] ?? it['excerpt'] ?? it['brief']);
             if (t.isNotEmpty) out.add({'title': t, 'url': u, 'desc': d});
           } else if ('$it'.isNotEmpty) {
             out.add({'title': '$it', 'url': '', 'desc': ''});

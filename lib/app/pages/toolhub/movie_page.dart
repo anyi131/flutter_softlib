@@ -21,8 +21,21 @@ class MoviePage extends StatefulWidget {
 class _MoviePageState extends State<MoviePage> {
   final TextEditingController _c = TextEditingController();
   List<Map<String, dynamic>> _list = [];
+  List<Map<String, dynamic>> _blocks = [];
   bool _loading = false;
   bool _searched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHome();
+  }
+
+  Future<void> _loadHome() async {
+    final b = await SoftService.instance.mediaMovieHome();
+    if (!mounted || b.isEmpty) return;
+    setState(() => _blocks = b);
+  }
 
   @override
   void dispose() {
@@ -141,19 +154,19 @@ class _MoviePageState extends State<MoviePage> {
               width: 26, height: 26, child: CircularProgressIndicator(strokeWidth: 2.4)));
     }
     if (!_searched) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.movie_filter_rounded, size: 54, color: context.t3),
-            const SizedBox(height: 12),
-            Text('搜索你想看的影视',
-                style: TextStyle(color: context.t3, fontSize: 14)),
-            const SizedBox(height: 6),
-            Text('聚合量子 / 极速 / 红牛 多个资源站',
-                style: TextStyle(color: context.t3, fontSize: 12)),
-          ],
-        ),
+      if (_blocks.isEmpty) {
+        return Center(
+          child: SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(strokeWidth: 2.4)),
+        );
+      }
+      return ListView(
+        padding: const EdgeInsets.only(top: 4, bottom: 40),
+        children: [
+          for (final b in _blocks) _block(b),
+        ],
       );
     }
     if (_list.isEmpty) {
@@ -178,6 +191,95 @@ class _MoviePageState extends State<MoviePage> {
       ),
       itemCount: _list.length,
       itemBuilder: (c, i) => _item(_list[i]),
+    );
+  }
+
+  Widget _block(Map<String, dynamic> b) {
+    final items = ((b['list'] as List?) ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          child: Text('${b['title'] ?? ''}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+        ),
+        SizedBox(
+          height: 178,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (c, i) {
+              final m = items[i];
+              return GestureDetector(
+                onTap: () => Get.to(() => MovieDetailPage(
+                      src: '${m['src'] ?? ''}',
+                      id: '${m['id'] ?? ''}',
+                      title: '${m['name'] ?? ''}',
+                      cover: '${m['pic'] ?? ''}',
+                    )),
+                child: SizedBox(
+                  width: 96,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 96,
+                        height: 134,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: '${m['pic'] ?? ''}'.isEmpty
+                                    ? Container(color: C.brand.withAlpha(20))
+                                    : CachedNetworkImage(
+                                        imageUrl: '${m['pic']}',
+                                        fit: BoxFit.cover,
+                                        placeholder: (_, __) =>
+                                            Container(color: C.brand.withAlpha(14)),
+                                        errorWidget: (_, __, ___) =>
+                                            Container(color: C.brand.withAlpha(14)),
+                                      ),
+                              ),
+                            ),
+                            if ('${m['remarks'] ?? ''}'.isNotEmpty)
+                              Positioned(
+                                right: 4,
+                                bottom: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withAlpha(170),
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: Text('${m['remarks']}',
+                                      style: const TextStyle(
+                                          fontSize: 9, color: Colors.white)),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text('${m['name'] ?? ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

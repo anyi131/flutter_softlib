@@ -443,6 +443,48 @@ class SoftService {
     return null;
   }
 
+  /// 央视新闻列表
+  Future<List<Map<String, dynamic>>> mediaNewsList() async {
+    try {
+      final r = await _dio.get('/api/softlib/media/news_list',
+          options: Options(receiveTimeout: const Duration(seconds: 30)));
+      if (r.data is Map && r.data['code'] == 1) {
+        return ((r.data['data']['list'] as List?) ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// 影视首页板块
+  Future<List<Map<String, dynamic>>> mediaMovieHome() async {
+    try {
+      final r = await _dio.get('/api/softlib/media/movie_home',
+          options: Options(receiveTimeout: const Duration(seconds: 30)));
+      if (r.data is Map && r.data['code'] == 1) {
+        return ((r.data['data']['blocks'] as List?) ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// 音乐首页板块
+  Future<List<Map<String, dynamic>>> mediaMusicHome() async {
+    try {
+      final r = await _dio.get('/api/softlib/media/music_home',
+          options: Options(receiveTimeout: const Duration(seconds: 30)));
+      if (r.data is Map && r.data['code'] == 1) {
+        return ((r.data['data']['blocks'] as List?) ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   /// 短剧列表
   Future<List<Map<String, dynamic>>> mediaDramaList({int page = 1}) async {
     try {
