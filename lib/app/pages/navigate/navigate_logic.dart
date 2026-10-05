@@ -8,6 +8,7 @@ import 'package:flutter_softlib/app/pages/navigate/app/app_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/home/home_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/tips/tips_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/toolbox/tools_component.dart';
+import 'package:flutter_softlib/app/pages/toolhub/tools_hub_page.dart';
 import 'package:flutter_softlib/app/pages/navigate/square/square_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/mine/mine_component.dart';
 import 'package:flutter_softlib/app/utils/jump_util.dart';
@@ -48,6 +49,11 @@ class NavigateLogic extends GetxController {
       selectedIcon: Icon(Icons.widgets_rounded),
     ),
     NavigationDestination(
+      icon: Icon(Icons.favorite_border_rounded),
+      label: '收藏',
+      selectedIcon: Icon(Icons.favorite_rounded),
+    ),
+    NavigationDestination(
       icon: Icon(Icons.person_outline),
       label: '我的',
       selectedIcon: Icon(Icons.person),
@@ -59,6 +65,7 @@ class NavigateLogic extends GetxController {
     SquareComponent(),
     TipsComponent(),
     ToolsComponent(),
+    ToolFavPage(),
     MineComponent(),
   ];
   PageController pageController = PageController();

@@ -10,6 +10,7 @@ import 'tools_ext.dart';
 import 'tools_live.dart';
 import 'tools_local.dart';
 import 'tools_missing.dart';
+import 'tools_sample.dart';
 import 'tools_text.dart';
 
 /// 工具调度中心（v45 —— 对齐样本「简助手」）
@@ -120,6 +121,34 @@ VoidCallback? _byRoute(String r) {
     case 'mdcolor': return () => Get.to(() => const MdColorTool());
     case 'appmanager': return () => Get.to(() => const AppManagerTool());
     case 'battery': return () => Get.to(() => const BatteryTool());
+    // ── v46 样本工具补齐 ──
+    case 'ruler': return () => Get.to(() => const RulerTool());
+    case 'scoreboard': return () => Get.to(() => const ScoreboardTool());
+    case 'calendar': return () => Get.to(() => const CalendarTool());
+    case 'motioncue': return () => Get.to(() => const MotionCueTool());
+    case 'call': return () => Get.to(() => const CallTool());
+    case 'camera': return () => Get.to(() => const CameraTool());
+    case 'jianshen': return () => Get.to(() => const JianshenTool());
+    case 'recipe': return () => Get.to(() => const RecipeTool());
+    case 'dayenglish': return () => Get.to(() => const DayEnglishTool());
+    case 'weatherrank': return () => Get.to(() => const WeatherRankTool());
+    case 'temperature': return () => Get.to(() => const TemperatureTool());
+    case 'earthquake': return () => Get.to(() => const EarthquakeTool());
+    case 'devicerank': return () => Get.to(() => const DeviceRankTool());
+    case 'exifedit': return () => Get.to(() => const ExifEditTool());
+    case 'imageurl': return () => Get.to(() => const ImageUrlTool());
+    case 'imagerotate': return () => Get.to(() => const ImageRotateTool());
+    case 'solidcolor': return () => Get.to(() => const SolidColorTool());
+    case 'gradientcolor': return () => Get.to(() => const GradientColorTool());
+    case 'apkscanner': return () => Get.to(() => const ApkScannerTool());
+    case 'appstore': return () => Get.to(() => const AppStoreTool());
+    case 'apkinstaller': return () => Get.to(() => const ApkInstallerTool());
+    case 'fontsize': return () => Get.to(() => const FontSizeTool());
+    case 'loudspeaker': return () => Get.to(() => const LoudspeakerTool());
+    case 'videowall': return () => Get.to(() => const VideoWallTool());
+    case 'fileclean': return () => Get.to(() => const FileCleanTool());
+    case 'extractaudio': return () => Get.to(() => const ExtractAudioTool());
+    case 'stepcounter': return () => Get.to(() => const StepCounterTool());
     default: return null;
   }
 }

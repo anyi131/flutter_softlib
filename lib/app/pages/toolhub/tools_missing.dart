@@ -707,16 +707,7 @@ class _TextImageToolState extends State<TextImageTool> {
 
 // ═══════════════ 系统工具 ═══════════════
 
-/// 应用管理（说明型）
-class AppManagerTool extends StatelessWidget {
-  const AppManagerTool({super.key});
-  @override
-  Widget build(BuildContext context) => _PlaceholderTool(
-      title: '应用管理',
-      subtitle: '查看与卸载应用',
-      icon: Icons.apps_rounded,
-      desc: '列出设备上已安装的应用，支持查看包名、版本、大小，并可快速卸载。');
-}
+
 
 // ═══════════════ 数据占位工具（由 tools_live.dart 提供真实实现时优先） ═══════════════
 
