@@ -285,15 +285,6 @@ class SoftService {
     if (item.url.isNotEmpty) return resolveLzy(item.url);
     return null;
   }
-}
-
-
-class _CacheEntry {
-  final dynamic data;
-  final DateTime at;
-  _CacheEntry(this.data) : at = DateTime.now();
-  bool get expired => DateTime.now().difference(at) > SoftService._cacheTtl;
-
   // ═══════════ 内置工具数据（真实界面工具，需求：工具要有实体界面）═══════════
 
   /// 通用工具接口请求
@@ -352,6 +343,15 @@ class _CacheEntry {
     final d = await tbGet('hitokoto');
     return d is Map ? Map<String, dynamic>.from(d) : {};
   }
+}
+
+
+class _CacheEntry {
+  final dynamic data;
+  final DateTime at;
+  _CacheEntry(this.data) : at = DateTime.now();
+  bool get expired => DateTime.now().difference(at) > SoftService._cacheTtl;
+
 }
 
 /// 自动重试拦截器
