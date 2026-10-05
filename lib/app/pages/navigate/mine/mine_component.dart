@@ -173,7 +173,7 @@ class MineComponent extends StatelessWidget {
                         color: C.brand.withAlpha(30),
                         borderRadius: BorderRadius.circular(R.xs),
                       ),
-                      child: const Text('v1.0.2',
+                      child: Text('v1.0.2',
                           style: TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w800,

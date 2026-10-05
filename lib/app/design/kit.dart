@@ -456,7 +456,7 @@ class SectionHeader extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [accent, accent.withAlpha(90)],
+                colors: [_c, _c.withAlpha(90)],
               ),
               borderRadius: BorderRadius.circular(R.full),
             ),
