@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../design/ui.dart';
+import '../../utils/toast_util.dart';
 import 'tools_common.dart';
 
 // ═══════════════════════════════════════════════════════════
@@ -3558,20 +3559,6 @@ class _PianoToolState extends State<PianoTool> {
   }
 
   static const bool _showHint = true;
-}
-
-// ═══════════════════════════════════════════════════════════
-//  16. 手持弹幕
-// ═══════════════════════════════════════════════════════════
-
-/// 手持弹幕：输入文字 → 进入全屏横向滚动（可调速度、字号与颜色）
-///
-/// ★ 全屏页由本文件内的私有组件 _DanmakuWindow 承载，
-///   用 AnimationController + Transform 自己做滚动（不依赖 marquee 包）。
-class DanmakuTool extends StatefulWidget {
-  const DanmakuTool({super.key});
-  @override
-  State<DanmakuTool> createState() => _DanmakuToolState();
 }
 
 class _DanmakuToolState extends State<DanmakuTool> {

@@ -9,6 +9,7 @@ import 'tools_common.dart';
 import 'tools_ext.dart';
 import 'tools_live.dart';
 import 'tools_local.dart';
+import 'tools_missing.dart';
 import 'tools_text.dart';
 
 /// 工具调度中心（v45 —— 对齐样本「简助手」）

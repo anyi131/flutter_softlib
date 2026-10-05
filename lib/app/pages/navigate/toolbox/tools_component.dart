@@ -176,7 +176,7 @@ class _ToolsComponentState extends State<ToolsComponent> {
     return GestureDetector(
       onTap: () async {
         final r = await Get.to(() => const ToolSearchPage());
-        if (r is Map) _open(r);
+        if (r is Map<String, dynamic>) _open(r);
       },
       child: Container(
         margin: const EdgeInsets.fromLTRB(20, 4, 20, 10),

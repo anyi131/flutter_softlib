@@ -574,7 +574,7 @@ class _Base64ToolState extends State<Base64Tool> {
   void _encode() {
     setState(() {
       try {
-        _out = base64Encode(_in.text);
+        _out = base64Encode(utf8.encode(_in.text));
       } catch (e) {
         _out = '编码失败';
       }
@@ -584,7 +584,7 @@ class _Base64ToolState extends State<Base64Tool> {
   void _decode() {
     setState(() {
       try {
-        _out = base64Decode(_in.text.trim());
+        _out = utf8.decode(base64Decode(_in.text.trim()));
       } catch (e) {
         _out = '解码失败：内容不是合法的 Base64';
       }
