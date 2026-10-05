@@ -298,6 +298,7 @@ class _AdminToolTabState extends State<AdminToolTab>
     final icon = TextEditingController(text: '${x?['icon'] ?? ''}');
     final route = TextEditingController(text: '${x?['route'] ?? ''}');
     final target = TextEditingController(text: '${x?['target'] ?? ''}');
+    final apiUrl = TextEditingController(text: '${x?['api_url'] ?? ''}');
     final weigh = TextEditingController(text: '${x?['weigh'] ?? 0}');
     int catId = int.tryParse('${x?['cat_id'] ?? 0}') ?? 0;
     if (catId == 0 && _cats.isNotEmpty) {
@@ -332,6 +333,7 @@ class _AdminToolTabState extends State<AdminToolTab>
                 _field('图标（emoji）', icon, '如：🔢'),
                 _field('路由标识 route', route, '如：calculator（内置工具必填）'),
                 _field('外链 target', target, 'http://...（外链工具填）'),
+                _field('接口地址 api_url', apiUrl, '联网工具数据源，支持 {q}/{page} 占位符；后台可随时改'),
                 _field('排序权重', weigh, '越大越靠前', number: true),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<int>(
@@ -368,6 +370,7 @@ class _AdminToolTabState extends State<AdminToolTab>
                     'icon': icon.text.trim(),
                     'route': route.text.trim(),
                     'target': target.text.trim(),
+                    'api_url': apiUrl.text.trim(),
                     'weigh': int.tryParse(weigh.text) ?? 0,
                     'need_ad': needAd,
                     'kind': target.text.trim().isEmpty ? 'local' : 'link',
