@@ -377,6 +377,105 @@ class SoftService {
     return [];
   }
 
+  // ═══════════ 影视 / 音乐 / 短剧（v47 样本真实接口）═══════════
+
+  /// 影视搜索（多源聚合）
+  Future<List<Map<String, dynamic>>> mediaMovieSearch(String q, {String src = ''}) async {
+    try {
+      final r = await _dio.get('/api/softlib/media/movie_search',
+          queryParameters: {'q': q, if (src.isNotEmpty) 'src': src},
+          options: Options(receiveTimeout: const Duration(seconds: 40)));
+      if (r.data is Map && r.data['code'] == 1) {
+        final d = r.data['data'];
+        final list = (d is Map ? (d['list'] as List?) : null) ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (e) {
+      debugPrint('[Softlib] movie search: $e');
+    }
+    return [];
+  }
+
+  /// 影视详情（含播放地址）
+  Future<Map<String, dynamic>?> mediaMovieDetail(String src, String id) async {
+    try {
+      final r = await _dio.get('/api/softlib/media/movie_detail',
+          queryParameters: {'src': src, 'id': id},
+          options: Options(receiveTimeout: const Duration(seconds: 40)));
+      if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
+        return Map<String, dynamic>.from(r.data['data'] as Map);
+      }
+    } catch (e) {
+      debugPrint('[Softlib] movie detail: $e');
+    }
+    return null;
+  }
+
+  /// 音乐搜索（网易云）
+  Future<List<Map<String, dynamic>>> mediaMusicSearch(String q) async {
+    try {
+      final r = await _dio.get('/api/softlib/media/music_search',
+          queryParameters: {'q': q, 'src': 'netease'},
+          options: Options(receiveTimeout: const Duration(seconds: 30)));
+      if (r.data is Map && r.data['code'] == 1) {
+        final d = r.data['data'];
+        final list = (d is Map ? (d['list'] as List?) : null) ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (e) {
+      debugPrint('[Softlib] music search: $e');
+    }
+    return [];
+  }
+
+  /// 取音乐播放直链
+  Future<Map<String, dynamic>?> mediaMusicUrl(String id, {String src = 'netease'}) async {
+    try {
+      final r = await _dio.get('/api/softlib/media/music_url',
+          queryParameters: {'id': id, 'src': src},
+          options: Options(receiveTimeout: const Duration(seconds: 30)));
+      if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
+        return Map<String, dynamic>.from(r.data['data'] as Map);
+      }
+    } catch (e) {
+      debugPrint('[Softlib] music url: $e');
+    }
+    return null;
+  }
+
+  /// 短剧列表
+  Future<List<Map<String, dynamic>>> mediaDramaList({int page = 1}) async {
+    try {
+      final r = await _dio.get('/api/softlib/media/drama_list',
+          queryParameters: {'page': page},
+          options: Options(receiveTimeout: const Duration(seconds: 30)));
+      if (r.data is Map && r.data['code'] == 1) {
+        final d = r.data['data'];
+        final list = (d is Map ? (d['list'] as List?) : null) ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (e) {
+      debugPrint('[Softlib] drama list: $e');
+    }
+    return [];
+  }
+
+  /// 短剧剧集
+  Future<Map<String, dynamic>?> mediaDramaChannels(String id,
+      {String src = 'hn'}) async {
+    try {
+      final r = await _dio.get('/api/softlib/media/drama_channels',
+          queryParameters: {'id': id, 'src': src},
+          options: Options(receiveTimeout: const Duration(seconds: 30)));
+      if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
+        return Map<String, dynamic>.from(r.data['data'] as Map);
+      }
+    } catch (e) {
+      debugPrint('[Softlib] drama channels: $e');
+    }
+    return null;
+  }
+
   // ═══════════ 内置工具数据（真实界面工具，需求：工具要有实体界面）═══════════
 
   /// 通用工具接口请求

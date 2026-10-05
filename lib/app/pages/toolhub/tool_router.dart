@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'comic_page.dart';
 import 'hero_gallery_page.dart';
+import 'drama_page.dart';
 import 'movie_page.dart';
 import 'quote_music_page.dart';
 import 'tools_common.dart';
@@ -62,7 +63,7 @@ VoidCallback? _byRoute(String r) {
     case 'moviesearch': return () => Get.to(() => const MoviePage());
     case 'music': return () => Get.to(() => const MusicPage());
     case 'cctv': return () => Get.to(() => const CctvTool());
-    case 'shortvideo': return () => Get.to(() => const ShortVideoTool());
+    case 'shortvideo': return () => Get.to(() => const DramaPage());
     // 小说漫画
     case 'comic': return () => Get.to(() => const ComicPage());
     case 'novel': return () => Get.to(() => const NovelTool());
@@ -158,6 +159,10 @@ VoidCallback? _byName(String t) {
   // 影视音频
   if (_m(t, ['影视大全', '影视库', '电影大全'])) return () => Get.to(() => const MoviePage());
   if (_m(t, ['影视搜索'])) return () => Get.to(() => const MoviePage());
+  if (_m(t, ['河马短剧', '七猫短剧', '红果短剧', '短剧', '爽剧', '追剧']))
+    return () => Get.to(() => const DramaPage());
+  if (_m(t, ['大米星球', '555影视', '永乐视频']))
+    return () => Get.to(() => const MoviePage());
   if (_m(t, ['音乐播放器', '音乐搜索', '听歌', '酷狗音乐', '网易云音乐', 'QQ音乐'])) return () => Get.to(() => const MusicPage());
   if (_m(t, ['漫画书城', '漫画大全', '在线漫画'])) return () => Get.to(() => const ComicPage());
   // 美图
