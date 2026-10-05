@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../api/api_host.dart';
 import '../../../design/kit.dart';
 import '../../../design/theme_controller.dart';
+import '../../../design/app_style.dart';
+import '../../../design/app_style_controller.dart';
 import '../../../design/ui.dart';
 import '../../../api/soft_service.dart';
 import '../../../api/post_service.dart';
@@ -109,12 +111,36 @@ class MineLogic extends GetxController {
   }
 
   /// 打开消息中心
+  ///
+  /// ★ 修复「有时候点不进去」：
+  ///   以前是 `await Get.toNamed(...)` 后再 `await unread()`，
+  ///   跳转被网络请求阻塞；快速连点还会重复入栈。
+  ///   改为：跳转不阻塞 + 未读数后台刷新。
+  bool _msgOpening = false;
   Future<void> openMessages() async {
     if (!isLoggedIn) return openLogin();
-    await Get.toNamed(Routes.message);
-    // 回来后刷新未读数
-    messageCount = await MessageService.instance.unread();
-    update();
+    if (_msgOpening) return; // 防连点
+    _msgOpening = true;
+    try {
+      Get.toNamed(Routes.message);
+    } finally {
+      // 短暂节流，避免同一瞬间重复打开
+      Future.delayed(const Duration(milliseconds: 600), () {
+        _msgOpening = false;
+      });
+    }
+    // 未读数后台刷新，不阻塞界面
+    _refreshUnread();
+  }
+
+  Future<void> _refreshUnread() async {
+    try {
+      final n = await MessageService.instance.unread();
+      if (n != messageCount) {
+        messageCount = n;
+        update();
+      }
+    } catch (_) {}
   }
 
   /// 充值余额 —— 打开会员中心（复用现有支付通道）
@@ -260,7 +286,8 @@ class MineLogic extends GetxController {
   /// 切换浅色 / 深色主题
   Future<void> switchTheme() async {
     final tc = ThemeController.instance;
-    final next = await Get.dialog<ThemeMode>(
+    final sc = AppStyleController.instance;
+    await Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
@@ -271,21 +298,106 @@ class MineLogic extends GetxController {
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _themeOption(ThemeMode.light, '浅色模式',
-                Icons.light_mode_rounded, tc.mode.value == ThemeMode.light),
-            _themeOption(ThemeMode.dark, '深色模式', Icons.dark_mode_rounded,
-                tc.mode.value == ThemeMode.dark),
-            _themeOption(ThemeMode.system, '跟随系统',
-                Icons.settings_brightness_rounded,
-                tc.mode.value == ThemeMode.system),
-          ],
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('主题',
+                    style: Ty.tiny.copyWith(
+                        fontSize: 12, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                _themeOption(ThemeMode.light, '浅色模式',
+                    Icons.light_mode_rounded, tc.mode.value == ThemeMode.light),
+                _themeOption(ThemeMode.dark, '深色模式', Icons.dark_mode_rounded,
+                    tc.mode.value == ThemeMode.dark),
+                _themeOption(ThemeMode.system, '跟随系统',
+                    Icons.settings_brightness_rounded,
+                    tc.mode.value == ThemeMode.system),
+                const SizedBox(height: 12),
+                Divider(color: Colors.grey.withAlpha(40), height: 1),
+                const SizedBox(height: 12),
+                Text('软件列表样式',
+                    style: Ty.tiny.copyWith(
+                        fontSize: 12, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                // ★ 需求 #9：多种列表样式可切换
+                Obx(() => Column(
+                      children: AppListStyle.values
+                          .map((s) => _styleOption(
+                                s.icon,
+                                s.label,
+                                s.desc,
+                                sc.listStyle.value == s,
+                                () => sc.setListStyle(s),
+                              ))
+                          .toList(),
+                    )),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('关闭')),
+        ],
+      ),
+    );
+  }
+
+  /// 样式选项（带说明文字）
+  Widget _styleOption(IconData icon, String label, String desc, bool selected,
+      VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: InkWell(
+        // ★ 不关闭弹窗：用户可连续切换预览
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFF5B6CFF).withAlpha(26)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF5B6CFF).withAlpha(120)
+                  : Colors.grey.withAlpha(40),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon,
+                  size: 19,
+                  color: selected ? const Color(0xFF5B6CFF) : Colors.grey),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight:
+                                selected ? FontWeight.w800 : FontWeight.w500)),
+                    const SizedBox(height: 2),
+                    Text(desc,
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey[500])),
+                  ],
+                ),
+              ),
+              if (selected)
+                const Icon(Icons.check_circle_rounded,
+                    size: 19, color: Color(0xFF5B6CFF)),
+            ],
+          ),
         ),
       ),
     );
-    if (next != null) await tc.setMode(next);
   }
 
   Widget _themeOption(

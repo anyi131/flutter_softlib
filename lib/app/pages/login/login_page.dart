@@ -83,15 +83,20 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    final account = _account.text.trim();
+    String account = _account.text.trim();
     final pwd = _pwd.text;
     setState(() {
-      _errAccount = account.isEmpty ? '请输入邮箱或用户名' : '';
+      _errAccount = account.isEmpty ? '请输入邮箱、QQ号或用户名' : '';
       _errServer = '';
     });
     if (account.isEmpty || pwd.isEmpty) {
       if (pwd.isEmpty) _errServer = '请输入密码';
       return;
+    }
+    // ★ 需求 #2：省去自己输入 @qq.com
+    //   纯数字（5-12位）当成 QQ 号 → 自动补全为 QQ 邮箱后登录
+    if (RegExp(r'^\d{5,12}$').hasMatch(account)) {
+      account = '$account@qq.com';
     }
 
     setState(() => _loading = true);

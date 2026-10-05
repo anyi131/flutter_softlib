@@ -319,19 +319,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
               _action(Icons.favorite_border_rounded, '${p.likeCount}', () async {
                 final n = await _svc.like(p.id);
                 if (n != null && mounted) {
-                  setState(() => _post = PostItem(
-                        id: p.id,
-                        nickname: p.nickname,
-                        avatar: p.avatar,
-                        content: p.content,
-                        images: p.images,
-                        catId: p.catId,
-                        catTitle: p.catTitle,
-                        likeCount: n,
-                        commentCount: p.commentCount,
-                        views: p.views,
-                        createtime: p.createtime,
-                      ));
+                  // ★ 用 copyWith：避免手动重建时漏字段导致视频/图片丢失
+                  setState(() => _post = p.copyWith(likeCount: n));
                 }
               }),
               const SizedBox(width: 20),

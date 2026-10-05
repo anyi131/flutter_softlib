@@ -70,6 +70,9 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
   // ── 关于软件（后台可配）──
   bool aboutEnable = true;
   final aboutNameCtrl = TextEditingController();
+  // ── 注册邮箱限制 + UI 风格（需求 #1 / #9）──
+  final emailDomainsCtrl = TextEditingController();
+  String uiStyle = 'glass';
   final aboutVersionCtrl = TextEditingController();
   final aboutLogCtrl = TextEditingController();
   final aboutSloganCtrl = TextEditingController();
@@ -114,6 +117,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
     feedGroupCtrl.dispose();
     feedUserCtrl.dispose();
     aboutNameCtrl.dispose();
+    emailDomainsCtrl.dispose();
     aboutVersionCtrl.dispose();
     aboutLogCtrl.dispose();
     aboutSloganCtrl.dispose();
@@ -184,6 +188,9 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         // 关于软件
         aboutEnable = '${cfg['about_enable']}' != '0';
         aboutNameCtrl.text = '${cfg['about_name'] ?? '安逸软件库'}';
+        // 注册邮箱限制 + UI 风格（需求 #1 / #9）
+        emailDomainsCtrl.text = '${cfg['email_allow_domains'] ?? ''}';
+        uiStyle = '${cfg['app_ui_style'] ?? 'glass'}';
         aboutVersionCtrl.text = '${cfg['about_version'] ?? '1.0.0'}';
         aboutLogCtrl.text = '${cfg['about_logo'] ?? ''}';
         aboutSloganCtrl.text = '${cfg['about_slogan'] ?? ''}';
@@ -270,6 +277,9 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'about_contact': aboutContactCtrl.text.trim(),
         'about_website': aboutWebsiteCtrl.text.trim(),
         'about_update_url': aboutUpdateCtrl.text.trim(),
+        // 注册邮箱限制 + UI 风格（需求 #1 / #9）
+        'email_allow_domains': emailDomainsCtrl.text.trim(),
+        'app_ui_style': uiStyle,
       });
       if (mounted) {
         setState(() {
@@ -346,6 +356,29 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
             _field('联系方式（邮箱/QQ）', aboutContactCtrl),
             _field('官方网站', aboutWebsiteCtrl),
             _field('检查更新地址（App 内跳转）', aboutUpdateCtrl),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _card(
+          title: '注册与界面风格',
+          children: [
+            _field('允许注册的邮箱域名（逗号分隔，留空=不限）', emailDomainsCtrl),
+            Text('例：qq.com,163.com,gmail.com —— 只允许这些邮箱注册；留空则任意邮箱都可注册',
+                style: Ty.tiny.copyWith(color: context.t3)),
+            const SizedBox(height: 12),
+            Text('软件列表默认样式', style: Ty.h3.copyWith(fontSize: 13)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _styleChip('glass', '玻璃卡片', Icons.view_agenda_rounded),
+                const SizedBox(width: 7),
+                _styleChip('compact', '紧凑列表', Icons.view_list_rounded),
+                const SizedBox(width: 7),
+                _styleChip('grid', '双列网格', Icons.grid_view_rounded),
+              ],
+            ),
+            Text('用户也可在「我的 → 外观设置」里自行切换，个人选择优先',
+                style: Ty.tiny.copyWith(color: context.t3)),
           ],
         ),
         const SizedBox(height: 12),
@@ -534,6 +567,36 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
           SectionHeader(title: title),
           ...children,
         ],
+      ),
+    );
+  }
+
+  /// 样式选择 chip
+  Widget _styleChip(String key, String label, IconData icon) {
+    final sel = uiStyle == key;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => uiStyle = key),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: sel ? C.brand : context.t3.withAlpha(20),
+            borderRadius: BorderRadius.circular(R.md),
+            border: Border.all(
+                color: sel ? C.brand : C.stroke.withAlpha(60), width: 0.9),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 18, color: sel ? Colors.white : context.t2),
+              const SizedBox(height: 4),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: sel ? Colors.white : context.t2)),
+            ],
+          ),
+        ),
       ),
     );
   }

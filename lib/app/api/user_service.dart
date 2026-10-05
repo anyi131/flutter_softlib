@@ -71,8 +71,12 @@ class UserInfo {
     );
   }
 
-  /// 账号（展示用）：直接用后端 username，没有则用 id
+  /// 账号（展示用）
+  ///
+  /// ★ 需求 #3：优先显示 QQ 号；没有 QQ 则显示邮箱；再没有才用 username/id
   String get account {
+    if (qq.isNotEmpty) return qq;
+    if (email.isNotEmpty) return email;
     if (username.isNotEmpty) return username;
     return id > 0 ? id.toString() : '';
   }

@@ -19,6 +19,7 @@ import 'app/design/ui.dart';
 import 'app/widgets/pro_motion.dart';
 import 'app/api/user_service.dart';
 import 'app/utils/device_info_util.dart';
+import 'app/design/app_style_controller.dart';
 
 /// 应用程序主入口
 Future<void> main() async {
@@ -69,6 +70,9 @@ Future<void> _initializeServices() async {
   await UserService.instance.restore();
   // 恢复主题设置
   await ThemeController.instance.restore();
+  // 界面样式（软件列表风格，需求 #9）
+  Get.put<AppStyleController>(AppStyleController.instance, permanent: true);
+  await AppStyleController.instance.restore();
   // 配置EasyLoading
   _configureEasyLoading();
   // 设置设备方向

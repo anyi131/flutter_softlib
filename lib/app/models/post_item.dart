@@ -43,6 +43,52 @@ class PostItem {
   static int _i(dynamic v) => int.tryParse('${v ?? 0}') ?? 0;
   static String _s(dynamic v) => (v ?? '').toString();
 
+  /// 复制并修改部分字段
+  ///
+  /// ★ 修复「点赞后视频/图片消失」：以前点赞处是手动 new PostItem(...)，
+  ///   只填了一部分字段，导致 videoUrl/videoCover 等被悄悄清空，
+  ///   界面看起来像「数据丢失」。统一用 copyWith 避免遗漏。
+  PostItem copyWith({
+    int? id,
+    int? userId,
+    String? nickname,
+    String? avatar,
+    String? content,
+    List<String>? images,
+    String? videoUrl,
+    String? videoType,
+    String? videoCover,
+    int? catId,
+    String? catTitle,
+    int? likeCount,
+    int? commentCount,
+    int? views,
+    int? createtime,
+    bool? isAdmin,
+    bool? isVip,
+    String? title,
+  }) =>
+      PostItem(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        nickname: nickname ?? this.nickname,
+        avatar: avatar ?? this.avatar,
+        content: content ?? this.content,
+        images: images ?? this.images,
+        videoUrl: videoUrl ?? this.videoUrl,
+        videoType: videoType ?? this.videoType,
+        videoCover: videoCover ?? this.videoCover,
+        catId: catId ?? this.catId,
+        catTitle: catTitle ?? this.catTitle,
+        likeCount: likeCount ?? this.likeCount,
+        commentCount: commentCount ?? this.commentCount,
+        views: views ?? this.views,
+        createtime: createtime ?? this.createtime,
+        isAdmin: isAdmin ?? this.isAdmin,
+        isVip: isVip ?? this.isVip,
+        title: title ?? this.title,
+      );
+
   factory PostItem.fromJson(Map j) => PostItem(
         id: _i(j['id']),
         userId: _i(j['user_id']),

@@ -213,175 +213,217 @@ class _AppDetailsPageState extends State<AppDetailsPage>
         ? Icons.paid_rounded
         : (isVipItem ? Icons.workspace_premium_rounded : Icons.download_done_rounded);
     final icon = info?.fileIcon ?? '';
-    return Deco.glass(
-      context,
-      radius: R.xl,
-      alpha: 0.09,
-      glow: C.brand,
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
+    // ★ 详情页美化（需求 #7）：顶部加品牌渐变头图 + 更大的图标 + 光晕
+    return Column(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 渐变头图
+            Container(
+              height: 106,
+              margin: const EdgeInsets.only(bottom: 42),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    C.brand.withAlpha(context.isDark ? 150 : 120),
+                    C.violet.withAlpha(context.isDark ? 110 : 90),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(R.xl),
+              ),
+              child: Stack(
+                children: [
+                  // 装饰光斑
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withAlpha(28),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: -10,
+                    bottom: -30,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withAlpha(18),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 悬浮图标
+            Positioned(
+              left: 18,
+              bottom: 0,
+              child: Container(
+                width: 84,
+                height: 84,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(R.lg),
+                  borderRadius: BorderRadius.circular(R.lg + 4),
+                  border: Border.all(
+                    color: context.isDark ? C.bg1 : Colors.white,
+                    width: 3,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: C.brand.withAlpha(context.isDark ? 80 : 55),
-                      blurRadius: 24,
-                      offset: const Offset(0, 9),
+                      color: C.brand.withAlpha(context.isDark ? 90 : 60),
+                      blurRadius: 22,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(R.lg),
-                      child: icon.isEmpty
-                          ? _phIcon()
-                          : CachedNetworkImage(
-                              imageUrl: icon,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => _phIcon(),
-                              errorWidget: (_, __, ___) => _phIcon(),
-                            ),
-                    ),
-                    // ★ NEW 角标（图标左上角）
-                    if (it?.isNew == true)
-                      Positioned(
-                        left: -3,
-                        top: -3,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(10),
-                              bottomRight: Radius.circular(10),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFFF6B35).withAlpha(120),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Text('NEW',
-                              style: TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                  height: 1.1)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(R.lg),
+                  child: icon.isEmpty
+                      ? _phIcon()
+                      : CachedNetworkImage(
+                          imageUrl: icon,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 220,
+                          placeholder: (_, __) => _phIcon(),
+                          errorWidget: (_, __, ___) => _phIcon(),
                         ),
-                      ),
-                  ],
                 ),
               ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            ),
+            // 状态标签（右上角）
+            Positioned(
+              right: 12,
+              top: 12,
+              child: _chip(topLabel, Colors.white, topIcon),
+            ),
+            // NEW 角标
+            if (it?.isNew == true)
+              Positioned(
+                left: 14,
+                bottom: 66,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF6B35).withAlpha(140),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Text('NEW',
+                      style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                          height: 1.1)),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // 名称 + 版本 + 标签
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                info?.fileName?.isNotEmpty == true
+                    ? info!.fileName!
+                    : (it?.title ?? '未知软件'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Ty.h1.copyWith(color: context.t1, fontSize: 20),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _chip('人工亲测', C.brandBright, Icons.verified_rounded),
+                  const SizedBox(width: 6),
+                  if (isVipItem && !hasP)
+                    _chip('会员专享', C.amber,
+                        Icons.workspace_premium_rounded),
+                  const Spacer(),
+                  if ((it?.scoreCount ?? 0) > 0) ...[
+                    const Icon(Icons.star_rounded, size: 16, color: C.amber),
+                    const SizedBox(width: 3),
+                    Text(it!.scoreAvg.toStringAsFixed(1),
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: C.amber)),
+                    const SizedBox(width: 3),
+                    Text('(${it.scoreCount})',
+                        style: Ty.tiny.copyWith(color: context.t3)),
+                  ] else
                     Text(
-                      info?.fileName?.isNotEmpty == true
-                          ? info!.fileName!
-                          : (it?.title ?? '未知软件'),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Ty.h1.copyWith(color: context.t1, fontSize: 19),
+                      '版本 ${it?.version.isNotEmpty == true ? it!.version : '未知'}',
+                      style: Ty.tiny.copyWith(color: context.t3),
                     ),
-                    const SizedBox(height: 9),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 5,
-                      children: [
-                        _chip(topLabel, topColor, topIcon),
-                        _chip('人工亲测', C.brandBright, Icons.verified_rounded),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // 评分行
-                    Row(
-                      children: [
-                        if ((it?.scoreCount ?? 0) > 0) ...[
-                          const Icon(Icons.star_rounded, size: 15, color: C.amber),
-                          const SizedBox(width: 3),
-                          Text(it!.scoreAvg.toStringAsFixed(1),
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w900,
-                                  color: C.amber)),
-                          const SizedBox(width: 3),
-                          Text('(${it.scoreCount})',
-                              style: Ty.tiny.copyWith(color: context.t3)),
-                          const SizedBox(width: 10),
-                        ],
-                        Flexible(
-                          child: Text(
-                            '版本 ${it?.version.isNotEmpty == true ? it!.version : '未知'}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Ty.tiny.copyWith(color: context.t3),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        // 安全检测条
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 13),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                C.mint.withAlpha(context.isDark ? 40 : 26),
+                C.cyan.withAlpha(context.isDark ? 26 : 16),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(R.md),
+            border: Border.all(color: C.mint.withAlpha(75), width: 0.8),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: C.mint.withAlpha(40),
+                  shape: BoxShape.circle,
+                ),
+                child:
+                    const Icon(Icons.shield_rounded, size: 13, color: C.mint),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  '已通过安全检测 · 无病毒 · 无恶意插件',
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      color: C.mint,
+                      fontWeight: FontWeight.w700),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          // 安全检测条
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 13),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  C.mint.withAlpha(context.isDark ? 40 : 26),
-                  C.cyan.withAlpha(context.isDark ? 26 : 16),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(R.md),
-              border: Border.all(color: C.mint.withAlpha(75), width: 0.8),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: C.mint.withAlpha(40),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.shield_rounded, size: 13, color: C.mint),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    '已通过安全检测 · 无病毒 · 无恶意插件',
-                    style: TextStyle(
-                        fontSize: 11.5,
-                        color: C.mint,
-                        fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+
 
   Widget _chip(String text, Color color, IconData icon) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),

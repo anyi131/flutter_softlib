@@ -113,26 +113,33 @@ class _AdminLogsTabState extends State<AdminLogsTab> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    tooltip: '清理 30 天前日志',
+                    tooltip: '清理日志',
                     icon: const Icon(Icons.cleaning_services_rounded,
                         size: 20, color: C.warning),
                     onPressed: () async {
-                      final ok = await Get.dialog<bool>(AlertDialog(
+                      // ★ 需求 #6：区分「清理30天前」和「清空全部」
+                      //   （以前只有 30 天前，用户点完发现最近日志还在，以为没清）
+                      final mode = await Get.dialog<String>(AlertDialog(
                         title: const Text('清理日志'),
-                        content: const Text('确定清理 30 天前的操作日志吗？'),
+                        content: const Text('请选择清理方式：'),
                         actions: [
                           TextButton(
-                              onPressed: () => Get.back(result: false),
+                              onPressed: () => Get.back(),
                               child: const Text('取消')),
+                          TextButton(
+                              onPressed: () => Get.back(result: 'days'),
+                              child: const Text('清理 30 天前')),
                           FilledButton(
-                              onPressed: () => Get.back(result: true),
-                              child: const Text('清理')),
+                              onPressed: () => Get.back(result: 'all'),
+                              child: Text('清空全部',
+                                  style: TextStyle(color: C.danger))),
                         ],
                       ));
-                      if (ok != true) return;
+                      if (mode == null) return;
                       try {
-                        await _svc.clearOpLogs(days: 30);
-                        ToastUtil.success('已清理');
+                        await _svc.clearOpLogs(
+                            days: 30, all: mode == 'all');
+                        ToastUtil.success(mode == 'all' ? '已清空全部日志' : '已清理');
                         _load(reset: true);
                       } catch (e) {
                         ToastUtil.error(

@@ -8,6 +8,8 @@ import '../../../api/lzy_folder_parser.dart';
 import '../../../api/soft_service.dart';
 import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
+import '../../../design/app_style.dart';
+import '../../../design/app_style_controller.dart';
 import '../../../design/ui.dart';
 import '../../../models/app_cat.dart';
 import '../../../models/app_config.dart';
@@ -73,6 +75,10 @@ class _AppComponentState extends State<AppComponent> {
       _apps = list;
       _loading = false;
     });
+    // ★ 应用后台下发的默认列表样式（用户本地选过则不覆盖）—— 需求 #9
+    if (cfg != null) {
+      AppStyleController.instance.applyServerDefault(cfg.appUiStyle);
+    }
     // 若配置指定了数据源筛选，且与「全部」结果不同，再静默重取一次
     if (src != 'all') {
       await _load(reset: true);
@@ -464,19 +470,219 @@ class _AppComponentState extends State<AppComponent> {
         _refreshCtrl.finishLoad(
             _hasMore ? IndicatorResult.success : IndicatorResult.noMore);
       },
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics()),
-        padding: EdgeInsets.only(
-            top: 8, bottom: tabBottomPadding(context) + 12),
-        itemCount: _apps.length + (_loadingMore ? 1 : 0),
-        itemBuilder: (context, i) {
-          if (i >= _apps.length) return _loadMoreFooter();
-          return RepaintBoundary(child: _card(_apps[i]));
-        },
+      child: Obx(() {
+        final style = AppStyleController.instance.listStyle.value;
+        // ★ 需求 #9：三种列表样式（后台可切默认，用户可覆盖）
+        if (style == AppListStyle.grid) {
+          return GridView.builder(
+            physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics()),
+            padding: EdgeInsets.fromLTRB(context.pagePadding, 8,
+                context.pagePadding, tabBottomPadding(context) + 12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.82,
+            ),
+            itemCount: _apps.length,
+            itemBuilder: (context, i) => RepaintBoundary(
+              key: ValueKey('g_${_apps[i].id}'),
+              child: _gridCard(_apps[i]),
+            ),
+          );
+        }
+        return ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
+          padding: EdgeInsets.only(
+              top: 8, bottom: tabBottomPadding(context) + 12),
+          itemCount: _apps.length + (_loadingMore ? 1 : 0),
+          itemBuilder: (context, i) {
+            if (i >= _apps.length) return _loadMoreFooter();
+            final a = _apps[i];
+            return RepaintBoundary(
+              key: ValueKey('l_${a.id}'),
+              child: style == AppListStyle.compact
+                  ? _compactCard(a)
+                  : _card(a),
+            );
+          },
+        );
+      }),
+    );
+  }
+
+  /// 样式二：紧凑列表（一行一款）
+  Widget _compactCard(AppItem a) {
+    final vip = a.isVipItem;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          context.pagePadding, 3, context.pagePadding, 3),
+      child: KitCard(
+        radius: R.md,
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        onTap: () => Get.toNamed(Routes.appDetails,
+            arguments: {'appId': a.id.toString(), 'item': a}),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(R.sm),
+              child: a.icon.isEmpty
+                  ? _phSmall()
+                  : CachedNetworkImage(
+                      imageUrl: a.icon,
+                      width: 42,
+                      height: 42,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 96,
+                      placeholder: (_, __) => _phSmall(),
+                      errorWidget: (_, __, ___) => _phSmall(),
+                    ),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(a.title.isEmpty ? '未知应用' : a.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: context.t1)),
+                  const SizedBox(height: 3),
+                  Text(
+                    [
+                      if (a.size.isNotEmpty) a.size,
+                      if (a.version.isNotEmpty) 'v${a.version}',
+                    ].join('  ·  '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: context.t3),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            Pill(vip ? '会员' : '免费',
+                color: vip ? C.amber : C.mint, small: true),
+          ],
+        ),
       ),
     );
   }
+
+  /// 样式三：双列网格
+  Widget _gridCard(AppItem a) {
+    final vip = a.isVipItem;
+    return KitCard(
+      radius: R.lg,
+      padding: const EdgeInsets.all(12),
+      onTap: () => Get.toNamed(Routes.appDetails,
+          arguments: {'appId': a.id.toString(), 'item': a}),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(R.lg),
+                    boxShadow: [
+                      BoxShadow(
+                        color: C.brand.withAlpha(context.isDark ? 45 : 26),
+                        blurRadius: 14,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(R.lg),
+                    child: a.icon.isEmpty
+                        ? _ph()
+                        : CachedNetworkImage(
+                            imageUrl: a.icon,
+                            width: 62,
+                            height: 62,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 160,
+                            placeholder: (_, __) => _ph(),
+                            errorWidget: (_, __, ___) => _ph(),
+                          ),
+                  ),
+                ),
+                if (a.isNew)
+                  Positioned(
+                    left: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1.5),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                            colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          bottomRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: const Text('NEW',
+                          style: TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.1)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 9),
+          Text(a.title.isEmpty ? '未知应用' : a.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: context.t1)),
+          const SizedBox(height: 5),
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Pill(vip ? '会员' : '免费',
+                    color: vip ? C.amber : C.mint, small: true),
+                if (a.size.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(a.size,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 10.5, color: context.t3)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _phSmall() => Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              colors: [C.brand.withAlpha(50), C.violet.withAlpha(50)]),
+        ),
+      );
 
   /// 底部「加载更多」指示（文件夹模式分批加载时显示）
   Widget _loadMoreFooter() {

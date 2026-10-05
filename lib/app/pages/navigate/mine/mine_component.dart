@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/assets.dart';
+import '../../../api/user_service.dart';
 import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
@@ -154,7 +155,11 @@ class MineComponent extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        logged ? '账号 ${logic.uid}' : '登录后享受完整功能',
+                        logged
+                            ? ((UserService.instance.user?.qq ?? '').isNotEmpty
+                                ? 'QQ ${UserService.instance.user!.qq}'
+                                : '账号 ${logic.uid}')
+                            : '登录后享受完整功能',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Ty.small.copyWith(color: context.t3),

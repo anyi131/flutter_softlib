@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
 import '../../design/adaptive.dart';
 import '../../design/kit.dart';
@@ -44,16 +45,51 @@ class _RegisterPageState extends State<RegisterPage> {
   /// 用户手动改过昵称后，不再用 QQ/邮箱自动覆盖
   bool _nickTouched = false;
 
+  /// 后台允许的邮箱域名（空=不限）
+  List<String> _allowDomains = const [];
+
+  /// 常用邮箱后缀（默认给一组常用的；后台配了白名单就只显示白名单里的）
+  List<String> get _emailSuffixes {
+    if (_allowDomains.isNotEmpty) {
+      return _allowDomains.map((d) => '@$d').toList();
+    }
+    return const [
+      '@qq.com',
+      '@163.com',
+      '@126.com',
+      '@gmail.com',
+      '@outlook.com',
+      '@foxmail.com',
+    ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEmailPolicy();
+  }
+
+  /// 读后台的邮箱域名白名单
+  Future<void> _loadEmailPolicy() async {
+    try {
+      final cfg = await SoftService.instance.fetchConfig();
+      final raw = cfg?.emailAllowDomains ?? '';
+      if (!mounted) return;
+      setState(() {
+        _allowDomains = raw
+            .split(RegExp(r'[,，\s]+'))
+            .map((e) => e.trim().replaceAll('@', ''))
+            .where((e) => e.isNotEmpty)
+            .toList();
+      });
+    } catch (_) {}
+  }
+
   String _errNick = '';
   String _errEmail = '';
   String _errCode = '';
   String _errPwd = '';
   String _errServer = '';
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -254,10 +290,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 _autoNick();
               },
             ),
-            // 邮箱后缀快捷
+            // 邮箱后缀快捷（★ 需求 #1/#2：不再只给 QQ 邮箱）
             Wrap(
               spacing: 7,
-              children: ['@qq.com', '@163.com', '@gmail.com']
+              runSpacing: 7,
+              children: _emailSuffixes
                   .map((s) => GestureDetector(
                         onTap: () {
                           final cur = _email.text;
@@ -283,6 +320,12 @@ class _RegisterPageState extends State<RegisterPage> {
                       ))
                   .toList(),
             ),
+            if (_allowDomains.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text('本站仅支持这些邮箱：${_allowDomains.map((e) => '@$e').join('、')}',
+                    style: Ty.tiny.copyWith(color: C.warning)),
+              ),
             const SizedBox(height: 14),
 
             // ── 验证码 ──

@@ -366,20 +366,14 @@ class _SquareComponentState extends State<SquareComponent> {
                     onTap: () async {
                       final n = await _svc.like(p.id);
                       if (n != null && mounted) {
-                        setState(() => _posts[_posts.indexOf(p)] =
-                            PostItem(
-                          id: p.id,
-                          nickname: p.nickname,
-                          avatar: p.avatar,
-                          content: p.content,
-                          images: p.images,
-                          catId: p.catId,
-                          catTitle: p.catTitle,
-                          likeCount: n,
-                          commentCount: p.commentCount,
-                          views: p.views,
-                          createtime: p.createtime,
-                        ));
+                        // ★ 用 copyWith：避免手动重建时漏掉 videoUrl 等字段
+                        //   （这正是「点赞后视频消失/数据丢失」的原因）
+                        setState(() {
+                          final idx = _posts.indexWhere((e) => e.id == p.id);
+                          if (idx >= 0) {
+                            _posts[idx] = p.copyWith(likeCount: n);
+                          }
+                        });
                       }
                     },
                   ),

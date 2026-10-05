@@ -43,6 +43,11 @@ class AppConfig {
   final String aboutUpdateUrl;
   final String aboutExtra;
 
+  /// 注册邮箱域名白名单（空=不限）
+  final String emailAllowDomains;
+  /// 服务端可切换的 UI 风格（glass / classic / minimal）
+  final String appUiStyle;
+
   AppConfig({
     this.placard = '',
     this.feedbackGroup = '',
@@ -77,6 +82,8 @@ class AppConfig {
     this.aboutWebsite = '',
     this.aboutUpdateUrl = '',
     this.aboutExtra = '',
+    this.emailAllowDomains = '',
+    this.appUiStyle = 'glass',
   });
 
   static bool _b(dynamic v) =>
@@ -136,5 +143,9 @@ class AppConfig {
         aboutWebsite: _s(json['about_website']),
         aboutUpdateUrl: _s(json['about_update_url']),
         aboutExtra: _s(json['about_extra']),
+        emailAllowDomains: _s(json['email_allow_domains']),
+        appUiStyle: _s(json['app_ui_style']).isEmpty
+            ? 'glass'
+            : _s(json['app_ui_style']),
       );
 }

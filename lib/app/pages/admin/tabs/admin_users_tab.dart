@@ -573,6 +573,11 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                     icon: Icons.info_outline_rounded,
                     onTap: () => _showDetail(u)),
                 MiniAction(
+                    label: '操作日志',
+                    icon: Icons.history_rounded,
+                    color: C.cyan,
+                    onTap: () => _showUserLogs(id, '${u['nickname']}')),
+                MiniAction(
                     label: '编辑',
                     icon: Icons.edit_outlined,
                     onTap: () => _editUser(u)),
@@ -1104,8 +1109,183 @@ class _AdminUsersTabState extends State<AdminUsersTab>
     );
   }
 
-  /// 用户详情（只读，展示全部字段）
-  Future<void> _showDetail(Map u) async {
+  /// 某用户的详细操作日志（需求 #4）
+  Future<void> _showUserLogs(int id, String nickname) async {
+    Map<String, dynamic> data = {};
+    bool loading = true;
+    try {
+      data = await _svc.userLogs(id);
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+    loading = false;
+    if (!mounted) return;
+
+    final user = Map<String, dynamic>.from(data['user'] ?? {});
+    final logs = ((data['logs'] as List?) ?? [])
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+    final stat = Map<String, dynamic>.from(data['stat'] ?? {});
+    final devices = ((stat['devices'] as List?) ?? [])
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+    final ips = ((stat['ips'] as List?) ?? [])
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.86,
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).brightness == Brightness.dark
+              ? C.bg1
+              : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(R.xl)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.history_rounded, color: C.cyan, size: 21),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('$nickname · 操作日志',
+                      style: Ty.h2.copyWith(fontSize: 17, color: ctx.t1)),
+                ),
+                IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx)),
+              ],
+            ),
+            // 汇总信息
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: C.cyan.withAlpha(ctx.isDark ? 26 : 16),
+                borderRadius: BorderRadius.circular(R.md),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('共 ${stat['total'] ?? 0} 条记录',
+                      style: Ty.h3.copyWith(fontSize: 14, color: ctx.t1)),
+                  const SizedBox(height: 6),
+                  if (user['email'] != null && '${user['email']}'.isNotEmpty)
+                    Text('邮箱：${user['email']}',
+                        style: Ty.tiny.copyWith(color: ctx.t3)),
+                  if (devices.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '设备：${devices.map((d) => '${d['device']}(${d['n']})').join('、')}',
+                        style: Ty.tiny.copyWith(color: ctx.t3),
+                      ),
+                    ),
+                  if (ips.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'IP：${ips.take(3).map((d) => '${d['ip']}（${d['address']}）').join(' / ')}',
+                        style: Ty.tiny.copyWith(color: ctx.t3),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: loading
+                  ? const Center(
+                      child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.4)))
+                  : (logs.isEmpty
+                      ? const Center(child: Text('暂无操作记录'))
+                      : ListView.separated(
+                          itemCount: logs.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 7),
+                          itemBuilder: (_, i) {
+                            final L = logs[i];
+                            return Container(
+                              padding: const EdgeInsets.all(11),
+                              decoration: BoxDecoration(
+                                color: ctx.isDark
+                                    ? Colors.white.withAlpha(8)
+                                    : C.bg2,
+                                borderRadius: BorderRadius.circular(R.md),
+                                border: Border.all(
+                                    color: C.stroke.withAlpha(50), width: 0.8),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Pill('${L['action']}',
+                                          color: C.brand, small: true),
+                                      const SizedBox(width: 7),
+                                      Expanded(
+                                        child: Text('${L['detail'] ?? ''}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Ty.small.copyWith(
+                                                fontSize: 12.5,
+                                                color: ctx.t2)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 4,
+                                    children: [
+                                      _miniMeta(ctx,
+                                          Icons.access_time_rounded,
+                                          '${L['createtime_text'] ?? ''}'),
+                                      _miniMeta(ctx, Icons.location_on_outlined,
+                                          '${L['ip']} ${L['address']}'),
+                                      if ('${L['device'] ?? ''}'.isNotEmpty)
+                                        _miniMeta(ctx,
+                                            Icons.phone_android_rounded,
+                                            '${L['device']}'),
+                                      if ('${L['os'] ?? ''}'.isNotEmpty)
+                                        _miniMeta(ctx, Icons.memory_rounded,
+                                            '${L['os']}'),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        )),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _miniMeta(BuildContext ctx, IconData i, String t) {
+    if (t.trim().isEmpty) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(i, size: 11, color: ctx.t3),
+        const SizedBox(width: 3),
+        Text(t.trim(),
+            style: Ty.tiny.copyWith(fontSize: 10.5, color: ctx.t3)),
+      ],
+    );
+  }
+
+  /// 用户详情（只读，展示全部字段）Future<void> _showDetail(Map u) async {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

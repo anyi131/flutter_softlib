@@ -308,9 +308,9 @@ class AdminService {
   Future<Map<String, dynamic>> userLogs(int id) async =>
       Map<String, dynamic>.from((await _post('user_logs', {'id': id}))['data'] ?? {});
 
-  /// 清理 N 天前的日志
-  Future<void> clearOpLogs({int days = 30}) async =>
-      _post('op_log_clear', {'days': days});
+  /// 清理日志：all=true 清空全部；否则清理 N 天前
+  Future<void> clearOpLogs({int days = 30, bool all = false}) async =>
+      _post('op_log_clear', all ? {'mode': 'all'} : {'days': days});
 
   Future<List<Map<String, dynamic>>> reviews() async {
     final d = (await _post('reviews'))['data'];
