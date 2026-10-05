@@ -1285,7 +1285,8 @@ class _AdminUsersTabState extends State<AdminUsersTab>
     );
   }
 
-  /// 用户详情（只读，展示全部字段）Future<void> _showDetail(Map u) async {
+  /// 用户详情（只读，展示全部字段）
+  Future<void> _showDetail(Map u) async {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
