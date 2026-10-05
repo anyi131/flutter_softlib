@@ -494,7 +494,7 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                         height: 40,
                         color: C.brand.withAlpha(context.isDark ? 40 : 26),
                         child:
-                            const Icon(Icons.person, size: 21, color: C.brand))
+                            Icon(Icons.person, size: 21, color: C.brand))
                     : CachedNetworkImage(
                         imageUrl: '${u['avatar']}',
                         width: 40,
@@ -517,7 +517,7 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                             style: Ty.h3.copyWith(
                                 fontSize: 14.5, color: context.t1)),
                         if (isAdmin)
-                          const Pill('管理员', color: C.brand, small: true),
+                          Pill('管理员', color: C.brand, small: true),
                         if (isVip)
                           const Pill('VIP', color: C.gold, small: true),
                         if (banned)

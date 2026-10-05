@@ -164,7 +164,7 @@ class _CollectLzyAccountViewState extends State<CollectLzyAccountView>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SectionHeader(title: '填写蓝奏云账号', accent: C.brand),
+                SectionHeader(title: '填写蓝奏云账号', accent: C.brand),
                 const SizedBox(height: 4),
                 Text(
                   '采集选中的软件时，会由采集平台上传到你的蓝奏云。'

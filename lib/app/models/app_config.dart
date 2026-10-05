@@ -42,9 +42,14 @@ class AppConfig {
   final String aboutWebsite;
   final String aboutUpdateUrl;
   final String aboutExtra;
+  /// 页脚文案（后台可配，避免写死）
+  final String aboutFooter;
 
   /// 注册邮箱域名白名单（空=不限）
   final String emailAllowDomains;
+  /// 是否允许非 QQ 邮箱注册（false = 仅 QQ 邮箱）
+  final bool emailNonQqOn;
+
   /// 服务端可切换的 UI 风格（glass / classic / minimal）
   final String appUiStyle;
 
@@ -82,7 +87,9 @@ class AppConfig {
     this.aboutWebsite = '',
     this.aboutUpdateUrl = '',
     this.aboutExtra = '',
+    this.aboutFooter = '',
     this.emailAllowDomains = '',
+    this.emailNonQqOn = false,
     this.appUiStyle = 'glass',
   });
 
@@ -143,7 +150,9 @@ class AppConfig {
         aboutWebsite: _s(json['about_website']),
         aboutUpdateUrl: _s(json['about_update_url']),
         aboutExtra: _s(json['about_extra']),
+        aboutFooter: _s(json['about_footer']),
         emailAllowDomains: _s(json['email_allow_domains']),
+        emailNonQqOn: _b(json['email_nonqq_on']),
         appUiStyle: _s(json['app_ui_style']).isEmpty
             ? 'glass'
             : _s(json['app_ui_style']),

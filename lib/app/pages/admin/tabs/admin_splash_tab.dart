@@ -72,6 +72,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
   final aboutNameCtrl = TextEditingController();
   // ── 注册邮箱限制 + UI 风格（需求 #1 / #9）──
   final emailDomainsCtrl = TextEditingController();
+  bool emailNonQqOn = false;
   String uiStyle = 'glass';
   final aboutVersionCtrl = TextEditingController();
   final aboutLogCtrl = TextEditingController();
@@ -190,6 +191,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         aboutNameCtrl.text = '${cfg['about_name'] ?? '安逸软件库'}';
         // 注册邮箱限制 + UI 风格（需求 #1 / #9）
         emailDomainsCtrl.text = '${cfg['email_allow_domains'] ?? ''}';
+        emailNonQqOn = '${cfg['email_nonqq_on']}' == '1';
         uiStyle = '${cfg['app_ui_style'] ?? 'glass'}';
         aboutVersionCtrl.text = '${cfg['about_version'] ?? '1.0.0'}';
         aboutLogCtrl.text = '${cfg['about_logo'] ?? ''}';
@@ -279,6 +281,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'about_update_url': aboutUpdateCtrl.text.trim(),
         // 注册邮箱限制 + UI 风格（需求 #1 / #9）
         'email_allow_domains': emailDomainsCtrl.text.trim(),
+        'email_nonqq_on': emailNonQqOn ? 1 : 0,
         'app_ui_style': uiStyle,
       });
       if (mounted) {
@@ -362,7 +365,14 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         _card(
           title: '注册与界面风格',
           children: [
-            _field('允许注册的邮箱域名（逗号分隔，留空=不限）', emailDomainsCtrl),
+            _switch('允许使用非 QQ 邮箱注册', emailNonQqOn,
+                (v) => setState(() => emailNonQqOn = v)),
+            if (!emailNonQqOn)
+              Text('关闭时：注册页只显示 @qq.com，且其他邮箱会被拒绝',
+                  style: Ty.tiny.copyWith(color: C.warning)),
+            if (emailNonQqOn) ...[
+              _field('允许注册的邮箱域名（逗号分隔，留空=不限）', emailDomainsCtrl),
+            ],
             Text('例：qq.com,163.com,gmail.com —— 只允许这些邮箱注册；留空则任意邮箱都可注册',
                 style: Ty.tiny.copyWith(color: context.t3)),
             const SizedBox(height: 12),

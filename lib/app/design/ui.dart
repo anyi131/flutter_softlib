@@ -19,10 +19,37 @@ import 'package:flutter/material.dart';
 class C {
   C._();
 
-  // 品牌色（极光蓝紫）★ 与主题、旧 AppColor.primary 对齐
-  static const brand = Color(0xFF4B5EF5);
-  static const brandBright = Color(0xFF6E7DFF);
-  static const brandDeep = Color(0xFF3A4BD8);
+  // 品牌色（默认极光蓝紫）★ 与主题、旧 AppColor.primary 对齐
+  //
+  // ★ 需求（v43 #1）：外观修改要全局生效。
+  //   品牌色改为「可变静态量」，由 ThemeController 在切换配色方案时统一改写，
+  //   这样全 App 的按钮/渐变/光晕/选中态都会跟着变（无需逐页改代码）。
+  static Color brand = const Color(0xFF4B5EF5);
+  static Color brandBright = const Color(0xFF6E7DFF);
+  static Color brandDeep = const Color(0xFF3A4BD8);
+
+  /// 次要强调色（渐变第二色），同样可被配色方案改写
+  static Color accent = const Color(0xFFA78BFA);
+
+  /// 应用一套配色方案（由 ThemeController 调用）
+  static void applyPalette({
+    required Color b,
+    required Color bb,
+    required Color bd,
+    required Color ac,
+  }) {
+    brand = b;
+    brandBright = bb;
+    brandDeep = bd;
+    accent = ac;
+  }
+
+  /// 品牌渐变（跟随当前配色方案）
+  static LinearGradient get brandGradient => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [brand, accent],
+      );
 
   // 强调色
   static const cyan = Color(0xFF22D3EE);
@@ -232,8 +259,8 @@ class Deco {
     );
   }
 
-  /// 品牌渐变
-  static const brandGradient = LinearGradient(
+  /// 品牌渐变（跟随配色方案，改为 getter 以支持动态品牌色）
+  static LinearGradient get brandGradient => LinearGradient(
     colors: [C.brandBright, C.brand],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -243,8 +270,8 @@ class Deco {
   static LinearGradient aurora({double a = 1}) => LinearGradient(
     colors: [
       C.brand.withAlpha((255 * a).round()),
-      C.violet.withAlpha((255 * a).round()),
-      C.cyan.withAlpha((255 * a).round()),
+      C.accent.withAlpha((255 * a).round()),
+      C.brandBright.withAlpha((255 * a).round()),
     ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -393,7 +420,7 @@ ThemeData buildNewTheme({required bool dark}) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(R.md),
-        borderSide: const BorderSide(color: C.brand, width: 1.5),
+        borderSide: BorderSide(color: C.brand, width: 1.5),
       ),
       hintStyle: TextStyle(fontSize: 13.5, color: dark ? C.t3 : C.lt3),
     ),

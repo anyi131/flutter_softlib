@@ -214,7 +214,7 @@ class MineComponent extends StatelessWidget {
         color:
             context.isDark ? C.bg2 : const Color(0xFFEDF0F7),
         alignment: Alignment.center,
-        child: const Icon(Icons.person_rounded, size: 34, color: C.brandBright),
+        child: Icon(Icons.person_rounded, size: 34, color: C.brandBright),
       );
 
   Widget _badge(BuildContext context, String text, Color color,

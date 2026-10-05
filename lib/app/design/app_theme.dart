@@ -13,11 +13,11 @@ import 'ui.dart';
 class AppColor {
   AppColor._();
 
-  static const primary = C.brand;
-  static const primaryLight = C.brandBright;
-  static const primaryDark = C.brandDeep;
+  static Color primary = C.brand;
+  static Color primaryLight = C.brandBright;
+  static Color primaryDark = C.brandDeep;
 
-  static const accent = C.accentOrange;
+  static Color accent = C.accentOrange;
   static const success = C.success;
   static const warning = C.warning;
   static const danger = C.danger;

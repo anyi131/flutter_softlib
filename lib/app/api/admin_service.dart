@@ -471,4 +471,26 @@ class AdminService {
           {int catId = 0}) async =>
       Map<String, dynamic>.from((await _post('collect_import',
           {'items': jsonEncode(items), 'cat_id': catId}))['data'] ?? {});
+
+  // ───────── 工具管理（v43 #5）─────────
+  Future<List<Map<String, dynamic>>> toolCats() async {
+    final d = (await _post('tool_cats'))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> saveToolCat(Map<String, dynamic> data) async =>
+      _post('tool_cat_save', data);
+
+  Future<void> deleteToolCat(int id) async =>
+      _post('tool_cat_del', {'id': id});
+
+  Future<List<Map<String, dynamic>>> tools({int catId = 0}) async {
+    final d = (await _post('tools', {if (catId > 0) 'cat_id': catId}))['data'];
+    return d is List ? d.map((e) => Map<String, dynamic>.from(e)).toList() : [];
+  }
+
+  Future<void> saveTool(Map<String, dynamic> data) async =>
+      _post('tool_save', data);
+
+  Future<void> deleteTool(int id) async => _post('tool_del', {'id': id});
 }

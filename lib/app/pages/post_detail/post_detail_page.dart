@@ -347,7 +347,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   Widget _commentHeader() => Row(
         children: [
-          const SectionHeader(title: '评论', accent: C.brand),
+          SectionHeader(title: '评论', accent: C.brand),
           const Spacer(),
           Text('${_comments.length} 条',
               style: Ty.tiny.copyWith(color: context.t3)),
@@ -378,7 +378,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     width: 32,
                     height: 32,
                     color: C.brand.withAlpha(26),
-                    child: const Icon(Icons.person, size: 17, color: C.brand)),
+                    child: Icon(Icons.person, size: 17, color: C.brand)),
           ),
           const SizedBox(width: 10),
           Expanded(

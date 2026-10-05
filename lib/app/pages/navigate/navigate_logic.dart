@@ -42,6 +42,11 @@ class NavigateLogic extends GetxController {
       selectedIcon: Icon(Icons.tips_and_updates),
     ),
     NavigationDestination(
+      icon: Icon(Icons.widgets_outlined),
+      label: '工具',
+      selectedIcon: Icon(Icons.widgets_rounded),
+    ),
+    NavigationDestination(
       icon: Icon(Icons.person_outline),
       label: '我的',
       selectedIcon: Icon(Icons.person),
@@ -52,6 +57,7 @@ class NavigateLogic extends GetxController {
     AppComponent(),
     SquareComponent(),
     TipsComponent(),
+    ToolsComponent(),
     MineComponent(),
   ];
   PageController pageController = PageController();

@@ -152,7 +152,7 @@ class _RechargePageState extends State<RechargePage> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                const SectionHeader(title: '自定义金额', accent: C.brand),
+                SectionHeader(title: '自定义金额', accent: C.brand),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _amtCtrl,

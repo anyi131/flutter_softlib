@@ -464,7 +464,7 @@ class _SquareComponentState extends State<SquareComponent> {
         width: 38,
         height: 38,
         color: C.brand.withAlpha(26),
-        child: const Icon(Icons.person, size: 20, color: C.brand),
+        child: Icon(Icons.person, size: 20, color: C.brand),
       );
 
   /// 视频模式选择胶囊

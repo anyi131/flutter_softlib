@@ -151,6 +151,8 @@ class SoftLibApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final mode = ThemeController.instance.mode.value;
+      // ★ 依赖 rebuildTick：切换全局配色方案时全 App 重建，实现「全局生效」
+      final _ = ThemeController.instance.rebuildTick.value;
       final isDark = mode == ThemeMode.dark ||
           (mode == ThemeMode.system &&
               MediaQuery.of(Get.context ?? context).platformBrightness ==

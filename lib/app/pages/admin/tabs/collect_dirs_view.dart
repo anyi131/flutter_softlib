@@ -148,7 +148,7 @@ class _CollectDirsViewState extends State<CollectDirsView>
                 ),
                 const SizedBox(width: 6),
                 if (fallback)
-                  const Pill('兜底', color: C.accentOrange, small: true),
+                  Pill('兜底', color: C.accentOrange, small: true),
                 if (!enabled) ...[
                   const SizedBox(width: 4),
                   Pill('已禁用', color: C.danger, small: true),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../api/soft_service.dart';
 import '../../design/adaptive.dart';
@@ -224,50 +225,30 @@ class _AboutPageState extends State<AboutPage> {
 
   // ── 信息列表 ──
   Widget _infoList(AppConfig? cfg) {
-    final rows = <List<Widget>>[];
+    // ★ 每行带自己的 onTap（修复「按键没功能」）
+    final rows = <({IconData icon, Color color, String label, String value, VoidCallback? onTap})>[];
     void add(IconData i, Color c, String label, String value,
         {VoidCallback? onTap}) {
       if (value.isEmpty) return;
-      rows.add([
-        Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: c.withAlpha(context.isDark ? 38 : 24),
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Icon(i, size: 15, color: c),
-        ),
-        const SizedBox(width: 11),
-        Text(label, style: Ty.body.copyWith(fontSize: 13.5, color: context.t2)),
-        const Spacer(),
-        Flexible(
-          child: Text(value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.right,
-              style: Ty.small.copyWith(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: onTap != null ? C.brand : context.t1)),
-        ),
-        if (onTap != null) ...[
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right_rounded, size: 16, color: context.t3),
-        ],
-      ]);
+      rows.add((icon: i, color: c, label: label, value: value, onTap: onTap));
     }
 
     final contact = cfg?.aboutContact ?? '';
     final website = cfg?.aboutWebsite ?? '';
+    final updateUrl = cfg?.aboutUpdateUrl ?? '';
     add(Icons.alternate_email_rounded, C.cyan, '联系方式', contact,
         onTap: contact.isEmpty ? null : () => _copy(contact));
     add(Icons.language_rounded, C.mint, '官方网站', website,
-        onTap: website.isEmpty ? null : () => JumpUtil.openUrl(website));
-
-    final updateUrl = cfg?.aboutUpdateUrl ?? '';
+        onTap: website.isEmpty ? null : () => _openUrl(website));
     add(Icons.system_update_rounded, C.violet, '检查更新',
         updateUrl.isEmpty ? '' : '前往下载最新版',
-        onTap: updateUrl.isEmpty ? null : () => JumpUtil.openUrl(updateUrl));
+        onTap: updateUrl.isEmpty ? null : () => _openUrl(updateUrl));
+    add(Icons.share_rounded, C.brandBright, '分享本软件', '推荐给朋友',
+        onTap: _shareApp);
+    add(Icons.description_rounded, C.violet, '用户协议', '查看详情',
+        onTap: () => Get.toNamed('/agreement', arguments: {'type': 'agreement'}));
+    add(Icons.privacy_tip_rounded, C.pink, '隐私政策', '查看详情',
+        onTap: () => Get.toNamed('/agreement', arguments: {'type': 'privacy'}));
 
     if (rows.isEmpty) return const SizedBox.shrink();
 
@@ -284,16 +265,76 @@ class _AboutPageState extends State<AboutPage> {
                       ? Colors.white.withAlpha(14)
                       : Colors.black.withAlpha(8)),
             InkWell(
-              onTap: () {},
+              onTap: rows[i].onTap ??
+                  (rows[i].value.isEmpty ? null : () => _copy(rows[i].value)),
+              borderRadius: BorderRadius.circular(8),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                child: Row(children: rows[i]),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: rows[i].color
+                            .withAlpha(context.isDark ? 38 : 24),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child:
+                          Icon(rows[i].icon, size: 15, color: rows[i].color),
+                    ),
+                    const SizedBox(width: 11),
+                    Text(rows[i].label,
+                        style: Ty.body
+                            .copyWith(fontSize: 13.5, color: context.t2)),
+                    const Spacer(),
+                    Flexible(
+                      child: Text(rows[i].value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: Ty.small.copyWith(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: rows[i].onTap != null
+                                  ? C.brand
+                                  : context.t1)),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 16, color: context.t3),
+                  ],
+                ),
               ),
             ),
           ],
         ],
       ),
     );
+  }
+
+  /// 打开链接（带错误提示）
+  void _openUrl(String url) {
+    if (url.isEmpty) return;
+    try {
+      JumpUtil.openUrl(url);
+    } catch (e) {
+      ToastUtil.error('无法打开链接');
+    }
+  }
+
+  /// 分享本软件（系统分享面板）
+  Future<void> _shareApp() async {
+    try {
+      final box = context.findRenderObject() as RenderBox?;
+      await Share.share(
+        '推荐一个好用的软件库：${_cfg?.aboutName ?? '安逸软件库'}\n${_cfg?.aboutWebsite ?? ''}',
+        subject: _cfg?.aboutName ?? '安逸软件库',
+        sharePositionOrigin:
+            box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+      );
+    } catch (e) {
+      ToastUtil.error('分享失败');
+    }
   }
 
   void _copy(String s) {
@@ -359,18 +400,22 @@ class _AboutPageState extends State<AboutPage> {
     );
   }
 
-  // ── 页脚 ──
+  // ── 页脚（全部由后台配置，无写死内容）──
   Widget _footer(AppConfig? cfg) {
     final copyright = cfg?.aboutCopyright ?? '';
+    final footer = cfg?.aboutFooter ?? '';
     return Column(
       children: [
         if (copyright.isNotEmpty)
           Text(copyright,
               textAlign: TextAlign.center,
               style: Ty.tiny.copyWith(color: context.t3)),
-        const SizedBox(height: 6),
-        Text('Made with ❤  by iSh',
-            style: Ty.tiny.copyWith(fontSize: 10, color: context.t3)),
+        if (footer.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(footer,
+              textAlign: TextAlign.center,
+              style: Ty.tiny.copyWith(fontSize: 10, color: context.t3)),
+        ],
       ],
     );
   }

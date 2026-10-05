@@ -22,7 +22,7 @@ class AdminContentTab extends StatefulWidget {
 class _AdminContentTabState extends State<AdminContentTab>
     with SingleTickerProviderStateMixin {
   final _svc = AdminService.instance;
-  late final TabController _tab = TabController(length: 10, vsync: this);
+  late final TabController _tab = TabController(length: 11, vsync: this);
 
   List<Map<String, dynamic>> _posts = [];
   List<Map<String, dynamic>> _reviews = [];
@@ -33,6 +33,8 @@ class _AdminContentTabState extends State<AdminContentTab>
   List<Map<String, dynamic>> _referrals = [];
   List<Map<String, dynamic>> _versions = [];
   List<Map<String, dynamic>> _sources = [];
+  List<Map<String, dynamic>> _toolCats = [];
+  List<Map<String, dynamic>> _tools = [];
   bool _loading = true;
 
   @override
@@ -59,6 +61,13 @@ class _AdminContentTabState extends State<AdminContentTab>
       final rf = await _svc.referrals();
       final vs = await _svc.versions();
       final sc = await _svc.sources();
+      // 工具（v43 #5）
+      List<Map<String, dynamic>> tcats = [];
+      List<Map<String, dynamic>> tls = [];
+      try {
+        tcats = await _svc.toolCats();
+        tls = await _svc.tools();
+      } catch (_) {}
       if (mounted) setState(() {
         _posts = p;
         _reviews = r;
@@ -69,6 +78,8 @@ class _AdminContentTabState extends State<AdminContentTab>
         _referrals = rf;
         _versions = vs;
         _sources = sc;
+        _toolCats = tcats;
+        _tools = tls;
         _loading = false;
       });
     } catch (e) {
@@ -100,6 +111,7 @@ class _AdminContentTabState extends State<AdminContentTab>
             Tab(text: '推荐 ${_referrals.length}'),
             Tab(text: '版本 ${_versions.length}'),
             Tab(text: '卡密 ${_cards.length}'),
+            Tab(text: '工具 ${_tools.length}'),
             const Tab(text: '配置'),
           ],
         ),
@@ -118,6 +130,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                     _referralList(),
                     _versionList(),
                     _cardList(),
+                    _toolList(),
                     _configList(),
                   ],
                 ),
@@ -1595,6 +1608,355 @@ class _AdminContentTabState extends State<AdminContentTab>
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
     }
+  }
+
+  // ═════════ 工具管理（v43 #5）═════════
+  Widget _toolList() {
+    if (_toolCats.isEmpty && _tools.isEmpty) {
+      return const EmptyState(
+          text: '暂无工具', hint: '点击右下角新增工具分类或工具', icon: Icons.widgets_outlined);
+    }
+    return Stack(
+      children: [
+        ListView(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 90),
+          children: [
+            // 分类
+            Row(
+              children: [
+                Text('工具分类', style: Ty.h3.copyWith(fontSize: 14)),
+                const Spacer(),
+                MiniAction(
+                  label: '新增分类',
+                  icon: Icons.add_rounded,
+                  onTap: () => _editToolCat(null),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ..._toolCats.map((c) => KitCard(
+                  margin: const EdgeInsets.only(bottom: 7),
+                  padding: const EdgeInsets.all(11),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: _parseColor('${c['color']}').withAlpha(30),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(Icons.widgets_rounded,
+                            size: 16,
+                            color: _parseColor('${c['color']}')),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${c['title']}',
+                                style: Ty.h3.copyWith(
+                                    fontSize: 13.5, color: context.t1)),
+                            Text(
+                                '${c['subtitle'] ?? ''} · ${c['count'] ?? 0} 个工具 · 权重 ${c['weigh'] ?? 0}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Ty.tiny.copyWith(color: context.t3)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined,
+                            size: 17, color: C.brand),
+                        onPressed: () => _editToolCat(c),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            size: 17, color: C.danger),
+                        onPressed: () async {
+                          final ok = await Get.dialog<bool>(AlertDialog(
+                            title: const Text('删除分类'),
+                            content: Text('删除「${c['title']}」会同时删除其下所有工具，确定吗？'),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Get.back(result: false),
+                                  child: const Text('取消')),
+                              FilledButton(
+                                  onPressed: () => Get.back(result: true),
+                                  child: const Text('删除')),
+                            ],
+                          ));
+                          if (ok != true) return;
+                          await _svc.deleteToolCat((c['id'] as num).toInt());
+                          ToastUtil.success('已删除');
+                          _load();
+                        },
+                      ),
+                    ],
+                  ),
+                )),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Text('工具条目', style: Ty.h3.copyWith(fontSize: 14)),
+                const Spacer(),
+                MiniAction(
+                  label: '新增工具',
+                  icon: Icons.add_rounded,
+                  onTap: () => _editTool(null),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ..._tools.map((t) {
+              final cat = _toolCats.firstWhere(
+                (c) => c['id'] == t['cat_id'],
+                orElse: () => <String, dynamic>{},
+              );
+              return KitCard(
+                margin: const EdgeInsets.only(bottom: 7),
+                padding: const EdgeInsets.all(11),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: C.brand.withAlpha(26),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${t['title']}'.isNotEmpty
+                            ? '${t['title']}'.characters.first
+                            : '·',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            color: C.brand),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${t['title']}',
+                              style: Ty.h3.copyWith(
+                                  fontSize: 13.5, color: context.t1)),
+                          Text(
+                              '${cat['title'] ?? '未分类'} · ${t['type']} · ${t['target']}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Ty.tiny.copyWith(color: context.t3)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined,
+                          size: 17, color: C.brand),
+                      onPressed: () => _editTool(t),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          size: 17, color: C.danger),
+                      onPressed: () async {
+                        await _svc.deleteTool((t['id'] as num).toInt());
+                        ToastUtil.success('已删除');
+                        _load();
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Color _parseColor(String s) {
+    var v = s.trim().replaceAll('#', '');
+    if (v.length == 6) v = 'FF$v';
+    final n = int.tryParse(v, radix: 16);
+    return n == null ? C.brand : Color(n);
+  }
+
+  /// 新增/编辑工具分类
+  Future<void> _editToolCat(Map? c) async {
+    final title = TextEditingController(text: '${c?['title'] ?? ''}');
+    final subtitle = TextEditingController(text: '${c?['subtitle'] ?? ''}');
+    final color =
+        TextEditingController(text: '${c?['color'] ?? '#4B5EF5'}');
+    final iconCtrl = TextEditingController(text: '${c?['icon'] ?? ''}');
+    final weigh = TextEditingController(text: '${c?['weigh'] ?? 0}');
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(c == null ? '新增工具分类' : '编辑工具分类'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                  controller: title,
+                  decoration: const InputDecoration(
+                      labelText: '分类名称 *', isDense: true)),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: subtitle,
+                  decoration: const InputDecoration(
+                      labelText: '英文名 / 副标题', isDense: true)),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: color,
+                  decoration: const InputDecoration(
+                      labelText: '主题色（如 #4B5EF5）', isDense: true)),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: iconCtrl,
+                  decoration: const InputDecoration(
+                      labelText: '图标标识（movie/link/tool/news/image/text/calc/game）',
+                      isDense: true)),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: weigh,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                      labelText: '权重（越大越靠前）', isDense: true)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          FilledButton(
+            onPressed: () async {
+              if (title.text.trim().isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await _svc.saveToolCat({
+                  'id': c?['id'] ?? 0,
+                  'title': title.text.trim(),
+                  'subtitle': subtitle.text.trim(),
+                  'color': color.text.trim(),
+                  'icon': iconCtrl.text.trim(),
+                  'weigh': int.tryParse(weigh.text) ?? 0,
+                  'enable_switch': 1,
+                });
+                ToastUtil.success('已保存');
+                _load();
+              } catch (e) {
+                ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 新增/编辑工具条目
+  Future<void> _editTool(Map? t) async {
+    final title = TextEditingController(text: '${t?['title'] ?? ''}');
+    final target = TextEditingController(text: '${t?['target'] ?? ''}');
+    final iconCtrl = TextEditingController(text: '${t?['icon'] ?? ''}');
+    final weigh = TextEditingController(text: '${t?['weigh'] ?? 0}');
+    int catId = (t?['cat_id'] as num?)?.toInt() ??
+        (_toolCats.isNotEmpty ? (_toolCats.first['id'] as num).toInt() : 0);
+    String type = '${t?['type'] ?? 'link'}';
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
+        return AlertDialog(
+          title: Text(t == null ? '新增工具' : '编辑工具'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                    controller: title,
+                    decoration: const InputDecoration(
+                        labelText: '工具名称 *', isDense: true)),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<int>(
+                  initialValue: catId,
+                  decoration: const InputDecoration(
+                      labelText: '所属分类', isDense: true),
+                  items: _toolCats
+                      .map((c) => DropdownMenuItem(
+                            value: (c['id'] as num).toInt(),
+                            child: Text('${c['title']}'),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setD(() => catId = v ?? 0),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: type,
+                  decoration: const InputDecoration(
+                      labelText: '类型', isDense: true),
+                  items: const [
+                    DropdownMenuItem(value: 'link', child: Text('外部链接')),
+                    DropdownMenuItem(value: 'page', child: Text('App 内页面')),
+                  ],
+                  onChanged: (v) => setD(() => type = v ?? 'link'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: target,
+                    decoration: const InputDecoration(
+                        labelText: '目标（网址 或 路由如 /appSearch）',
+                        isDense: true)),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: iconCtrl,
+                    decoration: const InputDecoration(
+                        labelText: '图标 URL（留空用首字色块）', isDense: true)),
+                const SizedBox(height: 10),
+                TextField(
+                    controller: weigh,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: '权重', isDense: true)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            FilledButton(
+              onPressed: () async {
+                if (title.text.trim().isEmpty) return;
+                Navigator.pop(ctx);
+                try {
+                  await _svc.saveTool({
+                    'id': t?['id'] ?? 0,
+                    'cat_id': catId,
+                    'title': title.text.trim(),
+                    'target': target.text.trim(),
+                    'icon': iconCtrl.text.trim(),
+                    'type': type,
+                    'weigh': int.tryParse(weigh.text) ?? 0,
+                    'enable_switch': 1,
+                  });
+                  ToastUtil.success('已保存');
+                  _load();
+                } catch (e) {
+                  ToastUtil.error(
+                      e.toString().replaceFirst('Exception: ', ''));
+                }
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      }),
+    );
   }
 
   Widget _configList() {

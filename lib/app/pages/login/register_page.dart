@@ -47,12 +47,15 @@ class _RegisterPageState extends State<RegisterPage> {
 
   /// 后台允许的邮箱域名（空=不限）
   List<String> _allowDomains = const [];
+  /// 是否允许非 QQ 邮箱注册
+  bool _allowNonQq = false;
 
-  /// 常用邮箱后缀（默认给一组常用的；后台配了白名单就只显示白名单里的）
+  /// 常用邮箱后缀（默认只给 QQ；后台开启「其他邮箱」后才给更多）
   List<String> get _emailSuffixes {
     if (_allowDomains.isNotEmpty) {
       return _allowDomains.map((d) => '@$d').toList();
     }
+    if (!_allowNonQq) return const ['@qq.com'];
     return const [
       '@qq.com',
       '@163.com',
@@ -76,6 +79,7 @@ class _RegisterPageState extends State<RegisterPage> {
       final raw = cfg?.emailAllowDomains ?? '';
       if (!mounted) return;
       setState(() {
+        _allowNonQq = cfg?.emailNonQqOn ?? false;
         _allowDomains = raw
             .split(RegExp(r'[,，\s]+'))
             .map((e) => e.trim().replaceAll('@', ''))
@@ -320,10 +324,44 @@ class _RegisterPageState extends State<RegisterPage> {
                       ))
                   .toList(),
             ),
-            if (_allowDomains.isNotEmpty)
+            // ★ 需求 #3：未开其他邮箱时明确提醒「目前仅支持 QQ 邮箱」
+            if (!_allowNonQq && _allowDomains.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 9),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 11, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: C.warning.withAlpha(context.isDark ? 34 : 20),
+                    borderRadius: BorderRadius.circular(R.md),
+                    border: Border.all(
+                        color: C.warning.withAlpha(90), width: 0.8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded,
+                          size: 15, color: C.warning),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '目前仅支持 QQ 邮箱注册（@qq.com）\n'
+                          '其他邮箱可在后台「注册与界面风格」中开启',
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              height: 1.5,
+                              color: C.warning,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text('本站仅支持这些邮箱：${_allowDomains.map((e) => '@$e').join('、')}',
+                child: Text(
+                    '本站仅支持这些邮箱：${_allowDomains.map((e) => '@$e').join('、')}',
                     style: Ty.tiny.copyWith(color: C.warning)),
               ),
             const SizedBox(height: 14),

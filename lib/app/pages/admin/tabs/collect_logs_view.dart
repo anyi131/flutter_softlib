@@ -68,7 +68,7 @@ class _CollectLogsViewState extends State<CollectLogsView>
           _statCard(),
           const SizedBox(height: 10),
           if (_groups.isNotEmpty) ...[
-            const SectionHeader(title: '任务记录', accent: C.brand),
+            SectionHeader(title: '任务记录', accent: C.brand),
             const SizedBox(height: 6),
             ..._groups.map(_groupCard),
             const SizedBox(height: 10),

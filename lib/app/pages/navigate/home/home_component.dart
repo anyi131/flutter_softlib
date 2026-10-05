@@ -174,7 +174,7 @@ class _HomeComponentState extends State<HomeComponent> {
         onTap: () => Get.toNamed(Routes.appSearch),
         child: Row(
           children: [
-            const Icon(Icons.search_rounded, size: 20, color: C.brandBright),
+            Icon(Icons.search_rounded, size: 20, color: C.brandBright),
             const SizedBox(width: 10),
             Expanded(
               child: Text('搜索你想要的软件',
