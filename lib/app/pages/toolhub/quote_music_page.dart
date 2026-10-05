@@ -209,7 +209,11 @@ class _MusicPageState extends State<MusicPage> {
     if (id.isEmpty) return;
     if (_playingIdx == idx && _player != null && _player!.value.isInitialized) {
       setState(() {
-        _player!.value.isPlaying ? _player!.pause() : _player!.play();
+        if (_player!.value.isPlaying) {
+          _player!.pause();
+        } else {
+          _player!.play();
+        }
       });
       return;
     }
@@ -363,7 +367,7 @@ class _MusicPageState extends State<MusicPage> {
                           borderRadius: BorderRadius.circular(R.full),
                         ),
                         child: Text(k,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12.5,
                                 color: C.brand,
                                 fontWeight: FontWeight.w600)),
@@ -568,9 +572,11 @@ class _MusicPageState extends State<MusicPage> {
                 onPressed: () {
                   if (_player == null) return;
                   setState(() {
-                    v?.isPlaying ?? false
-                        ? _player!.pause()
-                        : _player!.play();
+                    if (v?.isPlaying ?? false) {
+                      _player!.pause();
+                    } else {
+                      _player!.play();
+                    }
                   });
                 },
               ),
