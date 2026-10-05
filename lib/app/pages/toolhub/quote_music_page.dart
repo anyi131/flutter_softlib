@@ -9,9 +9,96 @@ import '../../design/adaptive.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
-import 'hero_gallery_page.dart';
 
 /// 每日一言 / 心灵鸡汤（真实体内置工具）
+class ToolPageBar extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final ValueChanged<String>? onSearch;
+  final String searchHint;
+  const ToolPageBar({
+    super.key,
+    required this.title,
+    this.subtitle = '',
+    this.onSearch,
+    this.searchHint = '搜索',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding:
+          EdgeInsets.fromLTRB(context.pagePadding, 10, context.pagePadding, 6),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Get.back(),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: context.isDark
+                        ? Colors.white.withAlpha(14)
+                        : Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: context.isDark
+                          ? Colors.white.withAlpha(20)
+                          : Colors.black.withAlpha(8),
+                    ),
+                  ),
+                  child: Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 16, color: context.t1),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Ty.h2.copyWith(fontSize: 19, color: context.t1)),
+                    if (subtitle.isNotEmpty)
+                      Text(subtitle,
+                          style: Ty.tiny.copyWith(color: context.t3)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (onSearch != null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 40,
+              child: TextField(
+                onSubmitted: onSearch,
+                onChanged: (v) {
+                  if (v.isEmpty) onSearch!('');
+                },
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: searchHint,
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(R.full)),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+
 class QuotePage extends StatefulWidget {
   const QuotePage({super.key});
 
