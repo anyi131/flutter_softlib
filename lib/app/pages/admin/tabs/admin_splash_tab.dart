@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../api/admin_service.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
+import '../../../design/theme_palette.dart';
 import '../../../utils/toast_util.dart';
 
 /// 开屏与远程控制管理
@@ -74,6 +75,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
   final emailDomainsCtrl = TextEditingController();
   bool emailNonQqOn = false;
   String uiStyle = 'glass';
+  String themePalette = 'aurora';
   final aboutVersionCtrl = TextEditingController();
   final aboutLogCtrl = TextEditingController();
   final aboutSloganCtrl = TextEditingController();
@@ -193,6 +195,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         emailDomainsCtrl.text = '${cfg['email_allow_domains'] ?? ''}';
         emailNonQqOn = '${cfg['email_nonqq_on']}' == '1';
         uiStyle = '${cfg['app_ui_style'] ?? 'glass'}';
+        themePalette = '${cfg['theme_palette'] ?? 'aurora'}';
         aboutVersionCtrl.text = '${cfg['about_version'] ?? '1.0.0'}';
         aboutLogCtrl.text = '${cfg['about_logo'] ?? ''}';
         aboutSloganCtrl.text = '${cfg['about_slogan'] ?? ''}';
@@ -283,6 +286,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'email_allow_domains': emailDomainsCtrl.text.trim(),
         'email_nonqq_on': emailNonQqOn ? 1 : 0,
         'app_ui_style': uiStyle,
+        'theme_palette': themePalette,
       });
       if (mounted) {
         setState(() {
@@ -374,6 +378,58 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
               _field('允许注册的邮箱域名（逗号分隔，留空=不限）', emailDomainsCtrl),
             ],
             Text('例：qq.com,163.com,gmail.com —— 只允许这些邮箱注册；留空则任意邮箱都可注册',
+                style: Ty.tiny.copyWith(color: context.t3)),
+            const SizedBox(height: 12),
+            Text('全局主题配色（App 全站生效）',
+                style: Ty.h3.copyWith(fontSize: 13)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ThemePalette.all.map((p) {
+                final sel = themePalette == p.key;
+                return GestureDetector(
+                  onTap: () => setState(() => themePalette = p.key),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: sel ? p.brand.withAlpha(30) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: sel ? p.brand : Colors.grey.withAlpha(50),
+                        width: sel ? 1.4 : 0.9,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            gradient: p.gradient,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        Text(p.name,
+                            style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight:
+                                    sel ? FontWeight.w800 : FontWeight.w500)),
+                        if (sel) ...[
+                          const SizedBox(width: 5),
+                          Icon(Icons.check_circle_rounded,
+                              size: 14, color: p.brand),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            Text('用户不可自行切换，此设置对所有用户生效',
                 style: Ty.tiny.copyWith(color: context.t3)),
             const SizedBox(height: 12),
             Text('软件列表默认样式', style: Ty.h3.copyWith(fontSize: 13)),

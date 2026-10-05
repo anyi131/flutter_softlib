@@ -335,5 +335,64 @@ class _RetryInterceptor extends Interceptor {
     handler.next(err);
   }
 
+
+  // ═══════════ 内置工具数据（真实界面工具，需求：工具要有实体界面）═══════════
+
+  /// 通用工具接口请求
+  Future<dynamic> tbGet(String action, [Map<String, dynamic> query = const {}]) async {
+    final r = await _dio.get('/api/softlib/toolbox/$action',
+        queryParameters: query.isEmpty ? null : query,
+        options: Options(receiveTimeout: const Duration(seconds: 25)));
+    if (r.data is Map && r.data['code'] == 1) return r.data['data'];
+    throw Exception(r.data is Map ? (r.data['msg'] ?? '加载失败') : '加载失败');
+  }
+
+  /// 王者荣耀英雄列表
+  Future<List<Map<String, dynamic>>> toolsHeroes() async {
+    final d = await tbGet('heroes');
+    return (d as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// 漫画分类
+  Future<List<Map<String, dynamic>>> comicTags() async {
+    final d = await tbGet('comic_tags');
+    return (d as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// 漫画列表
+  Future<List<Map<String, dynamic>>> comicList({String tag = '', int page = 1}) async {
+    final d = await tbGet('comic_list', {'tag': tag, 'page': page});
+    return (d as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// 漫画章节
+  Future<List<Map<String, dynamic>>> comicChapters(String comicId) async {
+    final d = await tbGet('comic_chapters', {'comicid': comicId});
+    return (d as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// 漫画图片
+  Future<List<String>> comicImages(String chapterId) async {
+    final d = await tbGet('comic_images', {'chapterid': chapterId});
+    return (d as List? ?? []).map((e) => '$e').toList();
+  }
+
+  /// 影视搜索
+  Future<List<Map<String, dynamic>>> movieSearch(String q, {int page = 1}) async {
+    final d = await tbGet('movie_search', {'q': q, 'page': page});
+    return (d as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// 音乐搜索
+  Future<List<Map<String, dynamic>>> musicSearch(String q) async {
+    final d = await tbGet('music_search', {'q': q});
+    return (d as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// 每日一言
+  Future<Map<String, dynamic>> hitokoto() async {
+    final d = await tbGet('hitokoto');
+    return d is Map ? Map<String, dynamic>.from(d) : {};
+  }
 }
 

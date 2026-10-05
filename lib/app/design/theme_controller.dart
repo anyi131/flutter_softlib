@@ -35,10 +35,8 @@ class ThemeController extends GetxController {
         'system' => ThemeMode.system,
         _ => ThemeMode.light,
       };
-      final p = sp.getString(_keyPalette);
-      if (p != null && p.isNotEmpty) {
-        _applyPalette(ThemePalette.byKey(p));
-      }
+      // ★ 配色不再由用户本地决定，启动时先用默认，
+      //   拿到后台配置后再 applyServerPalette()
     } catch (_) {}
   }
 
@@ -56,14 +54,13 @@ class ThemeController extends GetxController {
     } catch (_) {}
   }
 
-  /// 切换全局配色方案（立即全局生效）
-  Future<void> setPalette(ThemePalette p) async {
+  /// 应用后台下发的配色方案（★ 由管理员控制，用户不可自行切换）
+  /// 只在确实变化时才刷新，避免每次启动都全量重建。
+  void applyServerPalette(String? key) {
+    final p = ThemePalette.byKey(key);
+    if (p.key == palette.value.key) return;
     _applyPalette(p);
     rebuildTick.value++;
-    try {
-      final sp = await SharedPreferences.getInstance();
-      await sp.setString(_keyPalette, p.key);
-    } catch (_) {}
   }
 
   void _applyPalette(ThemePalette p) {

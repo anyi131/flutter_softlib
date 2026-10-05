@@ -78,6 +78,8 @@ class _AppComponentState extends State<AppComponent> {
     // ★ 应用后台下发的默认列表样式（用户本地选过则不覆盖）—— 需求 #9
     if (cfg != null) {
       AppStyleController.instance.applyServerDefault(cfg.appUiStyle);
+      // ★ 主题配色由管理员在后台下发（用户不可自行切换）
+      ThemeController.instance.applyServerPalette(cfg.themePalette);
     }
     // 若配置指定了数据源筛选，且与「全部」结果不同，再静默重取一次
     if (src != 'all') {

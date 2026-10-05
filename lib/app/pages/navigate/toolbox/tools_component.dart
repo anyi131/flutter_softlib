@@ -7,6 +7,10 @@ import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../utils/jump_util.dart';
 import '../../../utils/toast_util.dart';
+import '../../toolhub/comic_page.dart';
+import '../../toolhub/hero_gallery_page.dart';
+import '../../toolhub/movie_page.dart';
+import '../../toolhub/quote_music_page.dart';
 
 /// 工具 Tab（v43 #5）
 ///
@@ -449,16 +453,60 @@ class _ToolsComponentState extends State<ToolsComponent> {
   }
 
   void _open(Map<String, dynamic> t) {
+    final title = '${t['title'] ?? ''}';
+    final type = '${t['type'] ?? ''}';
+
+    // ★ 内置工具（真实界面，不跳浏览器）—— 需求：工具要有实体界面
+    final builtin = _builtinRoute(title);
+    if (builtin != null) {
+      builtin();
+      return;
+    }
+
+    // App 内页面
+    if (type == 'page') {
+      final target = '${t['target'] ?? ''}';
+      if (target.startsWith('/')) {
+        Get.toNamed(target);
+        return;
+      }
+    }
+
+    // 其余走浏览器（外链工具）
     final target = '${t['target'] ?? ''}';
     if (target.isEmpty) {
       ToastUtil.error('该工具暂未配置链接');
       return;
     }
-    if ('${t['type']}' == 'page' && target.startsWith('/')) {
-      Get.toNamed(target);
-      return;
-    }
     JumpUtil.openUrl(target);
+  }
+
+  /// 内置工具路由表（按名称匹配，命中则打开 App 内真实界面）
+  VoidCallback? _builtinRoute(String title) {
+    switch (title) {
+      case '王者荣耀图集':
+      case '王者图集':
+      case '英雄图集':
+        return () => Get.to(() => const HeroGalleryPage());
+      case '漫画书城':
+      case '漫画大全':
+      case '在线漫画':
+        return () => Get.to(() => const ComicPage());
+      case '影视大全':
+      case '影视库':
+      case '电影大全':
+        return () => Get.to(() => const MoviePage());
+      case '每日一言':
+      case '每日一句':
+      case '心灵鸡汤':
+        return () => Get.to(() => const QuotePage());
+      case '音乐搜索':
+      case '音乐播放器':
+      case '听歌':
+        return () => Get.to(() => const MusicPage());
+      default:
+        return null;
+    }
   }
 
   int _total() {

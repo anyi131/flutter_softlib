@@ -320,68 +320,6 @@ class MineLogic extends GetxController {
                 const SizedBox(height: 12),
                 Divider(color: Colors.grey.withAlpha(40), height: 1),
                 const SizedBox(height: 12),
-                Text('主题配色（全局生效）',
-                    style: Ty.tiny.copyWith(
-                        fontSize: 12, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                // ★ 需求 v43 #1：全局主题模板切换
-                Obx(() {
-                  final cur = tc.palette.value;
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: ThemePalette.all.map((p) {
-                      final sel = cur.key == p.key;
-                      return GestureDetector(
-                        onTap: () => tc.setPalette(p),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: sel
-                                ? p.brand.withAlpha(30)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: sel
-                                  ? p.brand
-                                  : Colors.grey.withAlpha(50),
-                              width: sel ? 1.4 : 0.9,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  gradient: p.gradient,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 7),
-                              Text(p.name,
-                                  style: TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: sel
-                                          ? FontWeight.w800
-                                          : FontWeight.w500)),
-                              if (sel) ...[
-                                const SizedBox(width: 5),
-                                Icon(Icons.check_circle_rounded,
-                                    size: 14, color: p.brand),
-                              ],
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  );
-                }),
-                const SizedBox(height: 12),
-                Divider(color: Colors.grey.withAlpha(40), height: 1),
-                const SizedBox(height: 12),
                 Text('软件列表样式',
                     style: Ty.tiny.copyWith(
                         fontSize: 12, fontWeight: FontWeight.w800)),

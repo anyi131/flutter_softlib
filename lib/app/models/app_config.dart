@@ -50,6 +50,12 @@ class AppConfig {
   /// 是否允许非 QQ 邮箱注册（false = 仅 QQ 邮箱）
   final bool emailNonQqOn;
 
+  /// 后台下发的主题配色方案（管理员控制，用户不可改）
+  final String themePalette;
+
+  /// 工具首页风格（group/list/card）
+  final String toolHomeStyle;
+
   /// 服务端可切换的 UI 风格（glass / classic / minimal）
   final String appUiStyle;
 
@@ -91,6 +97,8 @@ class AppConfig {
     this.emailAllowDomains = '',
     this.emailNonQqOn = false,
     this.appUiStyle = 'glass',
+    this.themePalette = 'aurora',
+    this.toolHomeStyle = 'group',
   });
 
   static bool _b(dynamic v) =>
@@ -153,6 +161,12 @@ class AppConfig {
         aboutFooter: _s(json['about_footer']),
         emailAllowDomains: _s(json['email_allow_domains']),
         emailNonQqOn: _b(json['email_nonqq_on']),
+        themePalette: _s(json['theme_palette']).isEmpty
+            ? 'aurora'
+            : _s(json['theme_palette']),
+        toolHomeStyle: _s(json['tool_home_style']).isEmpty
+            ? 'group'
+            : _s(json['tool_home_style']),
         appUiStyle: _s(json['app_ui_style']).isEmpty
             ? 'glass'
             : _s(json['app_ui_style']),
