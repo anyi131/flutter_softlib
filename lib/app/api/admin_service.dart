@@ -493,4 +493,58 @@ class AdminService {
       _post('tool_save', data);
 
   Future<void> deleteTool(int id) async => _post('tool_del', {'id': id});
+
+  // ═══════════ 工具体系 v45（复刻样本「简助手」）═══════════
+
+  Future<List<Map<String, dynamic>>> jzsCats() async {
+    final d = (await _post('jzs_cats'))['data'];
+    if (d is Map && d['list'] is List) {
+      return (d['list'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<void> saveJzsCat(Map<String, dynamic> data) async =>
+      _post('jzs_cat_save', data);
+
+  Future<void> deleteJzsCat(int id) async =>
+      _post('jzs_cat_del', {'id': id});
+
+  Future<List<Map<String, dynamic>>> jzsTools(
+      {int catId = 0, String keyword = ''}) async {
+    final d = (await _post('jzs_tools', {
+      if (catId > 0) 'cat_id': catId,
+      if (keyword.isNotEmpty) 'kw': keyword,
+    }))['data'];
+    if (d is Map && d['list'] is List) {
+      return (d['list'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<void> saveJzsTool(Map<String, dynamic> data) async =>
+      _post('jzs_tool_save', data);
+
+  Future<void> deleteJzsTool(int id) async =>
+      _post('jzs_tool_del', {'id': id});
+
+  Future<List<Map<String, dynamic>>> jzsBanners() async {
+    final d = (await _post('jzs_banners'))['data'];
+    if (d is Map && d['list'] is List) {
+      return (d['list'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<void> saveJzsBanner(Map<String, dynamic> data) async =>
+      _post('jzs_banner_save', data);
+
+  Future<void> deleteJzsBanner(int id) async =>
+      _post('jzs_banner_del', {'id': id});
 }

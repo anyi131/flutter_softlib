@@ -5,6 +5,7 @@ import 'api_host.dart';
 import '../models/app_cat.dart';
 import '../models/app_config.dart';
 import '../models/app_item.dart';
+import 'user_service.dart';
 
 /// 软件数据服务（Dio 直连，不依赖 retrofit 生成代码）
 class SoftService {
@@ -285,6 +286,97 @@ class SoftService {
     if (item.url.isNotEmpty) return resolveLzy(item.url);
     return null;
   }
+  // ═══════════ 工具体系 v45（复刻样本「简助手」）═══════════
+
+  /// 整个工具配置（分组 + 工具 + 横幅 + 广告位）
+  Map<String, dynamic>? _jzsCache;
+  DateTime? _jzsAt;
+  static const _jzsTtl = Duration(minutes: 10);
+
+  Future<Map<String, dynamic>?> fetchJzsConfig({bool force = false}) async {
+    if (!force &&
+        _jzsCache != null &&
+        _jzsAt != null &&
+        DateTime.now().difference(_jzsAt!) < _jzsTtl) {
+      return _jzsCache;
+    }
+    try {
+      final r = await _dio.get('/api/softlib/jzs/config',
+          options: Options(receiveTimeout: const Duration(seconds: 15)));
+      if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
+        _jzsCache = Map<String, dynamic>.from(r.data['data'] as Map);
+        _jzsAt = DateTime.now();
+        return _jzsCache;
+      }
+    } catch (e) {
+      debugPrint('[Softlib] jzs config: $e');
+    }
+    return _jzsCache;
+  }
+
+  /// 工具搜索
+  Future<List<Map<String, dynamic>>> jzsSearch(String kw) async {
+    try {
+      final r = await _dio.get('/api/softlib/jzs/search',
+          queryParameters: {'kw': kw});
+      if (r.data is Map && r.data['code'] == 1) {
+        final list = (r.data['data']?['list'] as List?) ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (e) {
+      debugPrint('[Softlib] jzs search: $e');
+    }
+    return [];
+  }
+
+  /// 收藏 / 取消收藏（需登录）
+  Future<bool> jzsToggleFav(int toolId) async {
+    final r = await _dio.post('/api/softlib/jzs/fav',
+        data: {'tool_id': toolId, 'token': UserService.instance.token});
+    if (r.data is Map && r.data['code'] == 1) {
+      return r.data['data']?['fav'] == true;
+    }
+    throw Exception(r.data is Map ? (r.data['msg'] ?? '操作失败') : '操作失败');
+  }
+
+  /// 我的收藏
+  Future<List<Map<String, dynamic>>> jzsFavList() async {
+    try {
+      final r = await _dio.get('/api/softlib/jzs/fav_list',
+          queryParameters: {'token': UserService.instance.token});
+      if (r.data is Map && r.data['code'] == 1) {
+        final list = (r.data['data']?['list'] as List?) ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (e) {
+      debugPrint('[Softlib] jzs fav: $e');
+    }
+    return [];
+  }
+
+  /// 记录使用历史
+  Future<void> jzsAddHistory(int toolId) async {
+    try {
+      await _dio.post('/api/softlib/jzs/history',
+          data: {'tool_id': toolId, 'token': UserService.instance.token});
+    } catch (_) {}
+  }
+
+  /// 使用历史
+  Future<List<Map<String, dynamic>>> jzsHistory() async {
+    try {
+      final r = await _dio.get('/api/softlib/jzs/history_list',
+          queryParameters: {'token': UserService.instance.token});
+      if (r.data is Map && r.data['code'] == 1) {
+        final list = (r.data['data']?['list'] as List?) ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (e) {
+      debugPrint('[Softlib] jzs history: $e');
+    }
+    return [];
+  }
+
   // ═══════════ 内置工具数据（真实界面工具，需求：工具要有实体界面）═══════════
 
   /// 通用工具接口请求
