@@ -881,7 +881,10 @@ class _HotSearchToolState extends State<HotSearchTool> {
       _error = null;
     });
     try {
-      final json = await _httpJson('https://api.vvhan.com/api/hotlist/wbHot');
+      final argUrl = Get.arguments is Map ? '${(Get.arguments as Map)['apiUrl'] ?? ''}' : '';
+      final json = await _httpJson(argUrl.isNotEmpty
+          ? argUrl
+          : 'https://60s-api.viki.moe/v2/weibo');
       // 兼容 {data:[...]} / {data:{list:[...]}} / {list:[...]} 多种结构
       dynamic arr;
       if (json is Map) {
@@ -905,8 +908,8 @@ class _HotSearchToolState extends State<HotSearchTool> {
           i++;
           if (it is Map) {
             final title = _s(it['title'] ?? it['name'] ?? it['word']);
-            final url = _s(it['url'] ?? it['mobilUrl'] ?? it['href']);
-            final hot = _s(it['hot'] ?? it['hotValue'] ?? it['num'] ?? '$i');
+            final url = _s(it['url'] ?? it['link'] ?? it['mobilUrl'] ?? it['href']);
+            final hot = _s(it['hot'] ?? it['hot_value'] ?? it['hotValue'] ?? it['num'] ?? '$i');
             if (title.isNotEmpty) {
               out.add({'title': title, 'url': url, 'hot': hot, 'rank': '$i'});
             }
@@ -1206,7 +1209,10 @@ class _NewsToolState extends State<NewsTool> {
       _error = null;
     });
     try {
-      final json = await _httpJson('${ApiHost.base}/api/softlib/media/news_list');
+      final argUrl = Get.arguments is Map ? '${(Get.arguments as Map)['apiUrl'] ?? ''}' : '';
+      final json = await _httpJson(argUrl.isNotEmpty
+          ? argUrl
+          : '${ApiHost.base}/api/softlib/media/news_list');
       dynamic arr;
       if (json is Map) {
         if (json['data'] is List) {

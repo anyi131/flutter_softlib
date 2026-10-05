@@ -201,7 +201,11 @@ void openTool(Map<String, dynamic> t) {
   final target = '${t['target'] ?? ''}';
   final fn = toolRoute(title, target: target, route: route);
   if (fn != null) {
-    fn();
+    if ('${t['api_url'] ?? ''}'.isNotEmpty) {
+      Get.to(fn, arguments: {'apiUrl': '${t['api_url']}'});
+    } else {
+      fn();
+    }
     return;
   }
   if (target.startsWith('http')) {
