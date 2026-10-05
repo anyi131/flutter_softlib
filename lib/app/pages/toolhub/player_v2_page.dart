@@ -61,9 +61,8 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    VolumeController.listener?.call;
     try {
-      VolumeController.instance.addListener(() {
+      VolumeController.listener(() {
         if (mounted && !_vVol) setState(() {});
       });
     } catch (_) {}
@@ -87,12 +86,13 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
       if (widget.startPos != null && widget.startPos! > Duration.zero) {
         await c.seekTo(widget.startPos!);
       }
-      await c.setSpeed(_speed);
+      await c.setPlaybackSpeed(_speed);
       await c.play();
-      _briVal = await ScreenBrightness.instance.application ?? 1;
+      _briVal = await ScreenBrightness.application ?? 1;
       _briStart = _briVal;
       try {
-        _sysVol = await VolumeController.instance.getVolume() ?? 0.5;
+        final v2 = await VolumeController.getVolume();
+        _sysVol = (v2 is num) ? v2.toDouble() : 0.5;
       } catch (_) {}
       if (!mounted) return;
       setState(() => _ready = true);
@@ -183,13 +183,13 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
     if (_vBri) {
       final dy = d.localPosition.dy - _dragStartDy;
       _briVal = (_briStart - dy / (size.height * 0.6)).clamp(0.05, 1.0);
-      ScreenBrightness.instance.setApplicationScreenBrightness(_briVal);
+      ScreenBrightness.setApplicationScreenBrightness(_briVal);
       setState(() {});
     } else if (_vVol) {
       final dy = d.localPosition.dy - _dragStartDy;
       _volVal = (_volStart - dy / (size.height * 0.6)).clamp(0.0, 1.0);
       try {
-        VolumeController.instance.setVolume(_volVal);
+        VolumeController.setVolume(_volVal);
       } catch (_) {}
       _sysVol = _volVal;
       setState(() {});
@@ -262,7 +262,7 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
                 return GestureDetector(
                   onTap: () async {
                     _speed = s;
-                    await _c?.setSpeed(s);
+                    await _c?.setPlaybackSpeed(s);
                     if (mounted) setState(() {});
                     Get.back();
                   },
@@ -367,7 +367,7 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     try {
-      ScreenBrightness.instance.resetApplicationScreenBrightness();
+      ScreenBrightness.resetApplicationScreenBrightness();
     } catch (_) {}
     super.dispose();
   }
