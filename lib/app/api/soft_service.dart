@@ -293,48 +293,6 @@ class _CacheEntry {
   final DateTime at;
   _CacheEntry(this.data) : at = DateTime.now();
   bool get expired => DateTime.now().difference(at) > SoftService._cacheTtl;
-}
-
-/// 自动重试拦截器
-/// 对「连接超时 / 连接错误 / 5xx」自动重试一次（第二次仍失败才抛错），
-/// 显著降低弱网下的加载失败率。
-class _RetryInterceptor extends Interceptor {
-  static const _maxRetry = 1;
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final opt = err.requestOptions;
-    final tried = (opt.extra['_retry'] as int?) ?? 0;
-    final retriable = err.type == DioExceptionType.connectionTimeout ||
-        err.type == DioExceptionType.receiveTimeout ||
-        err.type == DioExceptionType.sendTimeout ||
-        err.type == DioExceptionType.connectionError ||
-        (err.response != null && (err.response!.statusCode ?? 0) >= 500);
-
-    if (retriable && tried < _maxRetry) {
-      opt.extra['_retry'] = tried + 1;
-      await Future.delayed(Duration(milliseconds: 400 * (tried + 1)));
-      try {
-        final resp = await Dio(BaseOptions(
-          baseUrl: opt.baseUrl,
-          connectTimeout: opt.connectTimeout,
-          receiveTimeout: opt.receiveTimeout,
-          headers: opt.headers,
-          persistentConnection: true,
-        )).request<dynamic>(
-          opt.path,
-          data: opt.data,
-          queryParameters: opt.queryParameters,
-          options: Options(method: opt.method),
-        );
-        return handler.resolve(resp);
-      } catch (_) {
-        // 重试仍失败 → 走原始错误
-      }
-    }
-    handler.next(err);
-  }
-
 
   // ═══════════ 内置工具数据（真实界面工具，需求：工具要有实体界面）═══════════
 
@@ -394,5 +352,48 @@ class _RetryInterceptor extends Interceptor {
     final d = await tbGet('hitokoto');
     return d is Map ? Map<String, dynamic>.from(d) : {};
   }
+}
+
+/// 自动重试拦截器
+/// 对「连接超时 / 连接错误 / 5xx」自动重试一次（第二次仍失败才抛错），
+/// 显著降低弱网下的加载失败率。
+class _RetryInterceptor extends Interceptor {
+  static const _maxRetry = 1;
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final opt = err.requestOptions;
+    final tried = (opt.extra['_retry'] as int?) ?? 0;
+    final retriable = err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.sendTimeout ||
+        err.type == DioExceptionType.connectionError ||
+        (err.response != null && (err.response!.statusCode ?? 0) >= 500);
+
+    if (retriable && tried < _maxRetry) {
+      opt.extra['_retry'] = tried + 1;
+      await Future.delayed(Duration(milliseconds: 400 * (tried + 1)));
+      try {
+        final resp = await Dio(BaseOptions(
+          baseUrl: opt.baseUrl,
+          connectTimeout: opt.connectTimeout,
+          receiveTimeout: opt.receiveTimeout,
+          headers: opt.headers,
+          persistentConnection: true,
+        )).request<dynamic>(
+          opt.path,
+          data: opt.data,
+          queryParameters: opt.queryParameters,
+          options: Options(method: opt.method),
+        );
+        return handler.resolve(resp);
+      } catch (_) {
+        // 重试仍失败 → 走原始错误
+      }
+    }
+    handler.next(err);
+  }
+
+
 }
 

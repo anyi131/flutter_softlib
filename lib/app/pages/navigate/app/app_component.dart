@@ -10,6 +10,7 @@ import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
 import '../../../design/app_style.dart';
 import '../../../design/app_style_controller.dart';
+import '../../../design/theme_controller.dart';
 import '../../../design/ui.dart';
 import '../../../models/app_cat.dart';
 import '../../../models/app_config.dart';
