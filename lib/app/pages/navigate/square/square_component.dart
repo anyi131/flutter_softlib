@@ -308,7 +308,7 @@ class _SquareComponentState extends State<SquareComponent> {
                                   borderRadius: BorderRadius.circular(R.xs / 2),
                                 ),
                                 child: Text(p.catTitle,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 10,
                                         color: C.brand,
                                         fontWeight: FontWeight.w700)),

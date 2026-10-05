@@ -186,7 +186,7 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   Widget _logoFallback() => Container(
-        decoration: const BoxDecoration(gradient: Deco.brandGradient),
+        decoration: BoxDecoration(gradient: Deco.brandGradient),
         alignment: Alignment.center,
         child: const Icon(Icons.android_rounded, color: Colors.white, size: 40),
       );

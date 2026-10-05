@@ -393,7 +393,7 @@ class _OverviewTabState extends State<_OverviewTab> {
           ),
           if (trend.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const SectionHeader(
+            SectionHeader(
                 title: '近 7 日趋势', subtitle: '新增用户 / 收入', accent: C.brand),
             GlassCard(
               radius: R.lg,

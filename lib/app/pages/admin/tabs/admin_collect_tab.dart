@@ -972,7 +972,7 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.edit_note_rounded,
+                      Icon(Icons.edit_note_rounded,
                           color: C.brand, size: 22),
                       const SizedBox(width: 8),
                       const Text('导入前确认',

@@ -147,7 +147,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.edit_outlined,
+                              icon: Icon(Icons.edit_outlined,
                                   size: 19, color: C.brand),
                               onPressed: () => _edit(a),
                             ),
@@ -317,7 +317,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.edit_outlined,
+                                  icon: Icon(Icons.edit_outlined,
                                       size: 19, color: C.brand),
                                   onPressed: () => editCat(c),
                                 ),

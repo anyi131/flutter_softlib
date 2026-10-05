@@ -198,7 +198,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         width: 40,
                         height: 40,
                         color: C.brand.withAlpha(26),
-                        child: const Icon(Icons.person,
+                        child: Icon(Icons.person,
                             size: 21, color: C.brand),
                       ),
               ),
@@ -414,7 +414,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       if (replyTo > 0 && replyNick.isNotEmpty)
                         TextSpan(
                           text: '@$replyNick ',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: C.brand, fontWeight: FontWeight.w700),
                         ),
                       TextSpan(text: '${c['content'] ?? ''}'),

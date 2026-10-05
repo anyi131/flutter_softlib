@@ -7,6 +7,7 @@ import 'package:flutter_softlib/app/http/http_api.dart';
 import 'package:flutter_softlib/app/pages/navigate/app/app_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/home/home_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/tips/tips_component.dart';
+import 'package:flutter_softlib/app/pages/navigate/tools/tools_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/square/square_component.dart';
 import 'package:flutter_softlib/app/pages/navigate/mine/mine_component.dart';
 import 'package:flutter_softlib/app/utils/jump_util.dart';

@@ -167,7 +167,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                   const Spacer(),
                   IconButton(
                     tooltip: '编辑内容',
-                    icon: const Icon(Icons.edit_outlined,
+                    icon: Icon(Icons.edit_outlined,
                         size: 18, color: C.brand),
                     onPressed: () => _editPost(p),
                   ),
@@ -1667,7 +1667,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined,
+                        icon: Icon(Icons.edit_outlined,
                             size: 17, color: C.brand),
                         onPressed: () => _editToolCat(c),
                       ),
@@ -1754,7 +1754,7 @@ class _AdminContentTabState extends State<AdminContentTab>
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.edit_outlined,
+                      icon: Icon(Icons.edit_outlined,
                           size: 17, color: C.brand),
                       onPressed: () => _editTool(t),
                     ),

@@ -24,7 +24,7 @@ class PrimaryButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
-    this.color = C.brand,
+    this.color,
     this.gold = false,
     this.loading = false,
     this.height = 54,
@@ -35,7 +35,7 @@ class PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
-  final Color color;
+  final Color? color;
   final bool gold;
   final bool loading;
   final double height;
@@ -47,13 +47,14 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _c = color ?? C.brand;
     final gradient = gold
         ? Deco.goldGradient
         : LinearGradient(
             colors: [
-              Color.lerp(color, Colors.white, 0.22)!,
-              color,
-              Color.lerp(color, Colors.black, 0.14)!,
+              Color.lerp(_c, Colors.white, 0.22)!,
+              _c,
+              Color.lerp(_c, Colors.black, 0.14)!,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -72,7 +73,7 @@ class PrimaryButton extends StatelessWidget {
           boxShadow: active
               ? [
                   BoxShadow(
-                    color: (gold ? C.gold : color)
+                    color: (gold ? C.gold : _c)
                         .withAlpha(context.isDark ? 90 : 72),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
@@ -171,7 +172,7 @@ class SoftButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
-    this.color = C.brand,
+    this.color,
     this.height = 46,
     this.expand = false,
   });
@@ -179,14 +180,15 @@ class SoftButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
-  final Color color;
+  final Color? color;
   final double height;
   final bool expand;
 
   @override
   Widget build(BuildContext context) {
+    final _c = color ?? C.brand;
     final child = Material(
-      color: color.withAlpha(context.isDark ? 34 : 22),
+      color: _c.withAlpha(context.isDark ? 34 : 22),
       borderRadius: BorderRadius.circular(R.full),
       child: InkWell(
         onTap: onPressed,
@@ -200,13 +202,13 @@ class SoftButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: color),
+                Icon(icon, size: 16, color: _c),
                 const SizedBox(width: 6),
               ],
               Text(
                 label,
                 style: TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w800, color: color),
+                    fontSize: 14, fontWeight: FontWeight.w800, color: _c),
               ),
             ],
           ),
@@ -224,36 +226,37 @@ class MiniAction extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
-    this.color = C.brand,
+    this.color,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final _c = color ?? C.brand;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(R.full),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
         decoration: BoxDecoration(
-          color: color.withAlpha(context.isDark ? 40 : 24),
+          color: _c.withAlpha(context.isDark ? 40 : 24),
           borderRadius: BorderRadius.circular(R.full),
-          border: Border.all(color: color.withAlpha(70)),
+          border: Border.all(color: _c.withAlpha(70)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: color),
+            Icon(icon, size: 13, color: _c),
             const SizedBox(width: 4),
             Text(label,
                 style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
-                    color: color)),
+                    color: _c)),
           ],
         ),
       ),
@@ -373,33 +376,34 @@ class Pill extends StatelessWidget {
   const Pill(
     this.text, {
     super.key,
-    this.color = C.brand,
+    this.color,
     this.icon,
     this.solid = false,
     this.small = false,
   });
 
   final String text;
-  final Color color;
+  final Color? color;
   final IconData? icon;
   final bool solid;
   final bool small;
 
   @override
   Widget build(BuildContext context) {
+    final _c = color ?? C.brand;
     return Container(
       padding: EdgeInsets.symmetric(
           horizontal: small ? 7 : 9, vertical: small ? 3 : 4.5),
       decoration: BoxDecoration(
-        color: solid ? color : color.withAlpha(context.isDark ? 40 : 24),
+        color: solid ? _c : _c.withAlpha(context.isDark ? 40 : 24),
         borderRadius: BorderRadius.circular(R.full),
-        border: solid ? null : Border.all(color: color.withAlpha(66), width: 0.8),
+        border: solid ? null : Border.all(color: _c.withAlpha(66), width: 0.8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: small ? 10 : 11.5, color: solid ? Colors.white : color),
+            Icon(icon, size: small ? 10 : 11.5, color: solid ? Colors.white : _c),
             const SizedBox(width: 3),
           ],
           // ★ 弹性 + 省略号：防止长文本（如用户自定义头衔）撑破父级 Row
@@ -411,7 +415,7 @@ class Pill extends StatelessWidget {
               style: TextStyle(
                 fontSize: small ? 10 : 11.5,
                 fontWeight: FontWeight.w800,
-                color: solid ? Colors.white : color,
+                color: solid ? Colors.white : _c,
               ),
             ),
           ),
@@ -429,16 +433,17 @@ class SectionHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.action,
-    this.accent = C.brand,
+    this.accent,
   });
 
   final String title;
   final String? subtitle;
   final Widget? action;
-  final Color accent;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
+    final _c = accent ?? C.brand;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -685,16 +690,17 @@ class KitProgress extends StatelessWidget {
   const KitProgress({
     super.key,
     required this.value,
-    this.color = C.brand,
+    this.color,
     this.height = 8,
   });
 
   final double value; // 0..1
-  final Color color;
+  final Color? color;
   final double height;
 
   @override
   Widget build(BuildContext context) {
+    final _c = color ?? C.brand;
     return ClipRRect(
       borderRadius: BorderRadius.circular(R.full),
       child: LinearProgressIndicator(
@@ -702,7 +708,7 @@ class KitProgress extends StatelessWidget {
         minHeight: height,
         backgroundColor:
             context.isDark ? Colors.white.withAlpha(24) : Colors.black12,
-        valueColor: AlwaysStoppedAnimation<Color>(color),
+        valueColor: AlwaysStoppedAnimation<Color>(_c),
       ),
     );
   }
@@ -748,12 +754,13 @@ class StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _c = color ?? C.brand;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(value,
             style: Ty.h3.copyWith(
-                fontSize: 16, color: color ?? context.t1)),
+                fontSize: 16, color: _c ?? context.t1)),
         const SizedBox(height: 3),
         Text(label, style: Ty.tiny.copyWith(color: context.t3)),
       ],

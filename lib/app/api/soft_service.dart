@@ -23,6 +23,22 @@ class SoftService {
     ),
   )..interceptors.add(_RetryInterceptor());
 
+  /// 工具 Tab 数据（分类 + 条目）—— 需求 v43 #5
+  Future<List<Map<String, dynamic>>> fetchTools() async {
+    try {
+      final r = await _dio.get('/api/softlib/tool/index');
+      if (r.data is Map && r.data['code'] == 1) {
+        final d = r.data['data'];
+        if (d is List) {
+          return d.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('[Softlib] tools: $e');
+    }
+    return [];
+  }
+
   /// 拉取全局配置（开屏/公告/远程控制）
   /// ★ 带内存缓存 + 并发去重：同一次会话内多个页面同时调用只发一次网络请求
   AppConfig? _configCache;
@@ -319,20 +335,5 @@ class _RetryInterceptor extends Interceptor {
     handler.next(err);
   }
 
-  /// 工具 Tab 数据（分类 + 条目）—— 需求 v43 #5
-  Future<List<Map<String, dynamic>>> fetchTools() async {
-    try {
-      final r = await _dio.get('/api/softlib/tool/index');
-      if (r.data is Map && r.data['code'] == 1) {
-        final d = r.data['data'];
-        if (d is List) {
-          return d.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-        }
-      }
-    } catch (e) {
-      debugPrint('[Softlib] tools: $e');
-    }
-    return [];
-  }
 }
 

@@ -267,7 +267,7 @@ class _ReviewTabState extends State<ReviewTab> {
                         width: 36,
                         height: 36,
                         color: C.brand.withAlpha(26),
-                        child: const Icon(Icons.person,
+                        child: Icon(Icons.person,
                             size: 19, color: C.brand)),
               ),
               const SizedBox(width: 10),
@@ -368,7 +368,7 @@ class _ReviewTabState extends State<ReviewTab> {
                               children: [
                                 TextSpan(
                                   text: rp.nickname,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       color: C.brand),
                                 ),
