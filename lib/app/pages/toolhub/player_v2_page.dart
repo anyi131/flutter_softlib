@@ -62,7 +62,7 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     try {
-      VolumeController.listener(() {
+      VolumeController().listener((v) {
         if (mounted && !_vVol) setState(() {});
       });
     } catch (_) {}
@@ -88,10 +88,13 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
       }
       await c.setPlaybackSpeed(_speed);
       await c.play();
-      _briVal = await ScreenBrightness.application ?? 1;
+      _briVal = 1;
+      try {
+        _briVal = await ScreenBrightness().current;
+      } catch (_) {}
       _briStart = _briVal;
       try {
-        final v2 = await VolumeController.getVolume();
+        final v2 = await VolumeController().getVolume();
         _sysVol = (v2 is num) ? v2.toDouble() : 0.5;
       } catch (_) {}
       if (!mounted) return;
@@ -183,13 +186,15 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
     if (_vBri) {
       final dy = d.localPosition.dy - _dragStartDy;
       _briVal = (_briStart - dy / (size.height * 0.6)).clamp(0.05, 1.0);
-      ScreenBrightness.setApplicationScreenBrightness(_briVal);
+      try {
+        ScreenBrightness().setScreenBrightness(_briVal);
+      } catch (_) {}
       setState(() {});
     } else if (_vVol) {
       final dy = d.localPosition.dy - _dragStartDy;
       _volVal = (_volStart - dy / (size.height * 0.6)).clamp(0.0, 1.0);
       try {
-        VolumeController.setVolume(_volVal);
+        VolumeController().setVolume(_volVal);
       } catch (_) {}
       _sysVol = _volVal;
       setState(() {});
@@ -367,7 +372,10 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     try {
-      ScreenBrightness.resetApplicationScreenBrightness();
+      ScreenBrightness().resetScreenBrightness();
+    } catch (_) {}
+    try {
+      VolumeController().removeListener();
     } catch (_) {}
     super.dispose();
   }
@@ -380,10 +388,10 @@ class _PlayerV2PageState extends State<PlayerV2Page> {
         onTap: _tapScreen,
         onDoubleTapDown: (d) => _doubleTapPos = d.localPosition,
         onDoubleTap: () => _onDoubleTap(_doubleTapPos ?? Offset.zero),
-        onVerticalDragStart: _onDragStart,
+        onVerticalDragStart: (d) => _onDragStart(d, MediaQuery.of(context).size),
         onVerticalDragUpdate: (d) => _onDragUpdate(d, MediaQuery.of(context).size),
         onVerticalDragEnd: _onDragEnd,
-        onHorizontalDragStart: _onDragStart,
+        onHorizontalDragStart: (d) => _onDragStart(d, MediaQuery.of(context).size),
         onHorizontalDragUpdate: (d) => _onDragUpdate(d, MediaQuery.of(context).size),
         onHorizontalDragEnd: _onDragEnd,
         child: _body(),
