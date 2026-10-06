@@ -40,8 +40,6 @@ jobs:
         with:
           path: |
             ~/.pub-cache
-            ~/.gradle/caches
-            ~/.gradle/wrapper
           key: ${{ runner.os }}-pubgradle-${{ hashFiles('pubspec.lock', 'android/**/*.gradle*') }}
           restore-keys: ${{ runner.os }}-pubgradle-
 
