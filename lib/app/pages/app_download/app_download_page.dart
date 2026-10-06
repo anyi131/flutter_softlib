@@ -252,7 +252,7 @@ class _AppDownloadPageState extends State<AppDownloadPage> {
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(color: C.brand.withAlpha(90)),
                         ),
-                        child: const Text(
+                        child: Text(
                           '清空失败',
                           style: TextStyle(
                             fontSize: 12.5,

@@ -206,7 +206,6 @@ class _HomeComponentState extends State<HomeComponent> {
   Widget _quickGrid() {
     // v52f #10：快捷入口去重 —— 移除与「我的/应用/线报 Tab」重复的
     // 下载管理/软件搜索/线报速递，换成独有功能
-    final logic = Get.find<NavigateLogic>();
     final items = [
       (
         _QI(Icons.emoji_events_rounded, '每日签到', C.amber),
