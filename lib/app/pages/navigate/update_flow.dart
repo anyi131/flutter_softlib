@@ -342,7 +342,7 @@ class _UpdateCardState extends State<_UpdateCard> {
               padding: const EdgeInsets.fromLTRB(22, 22, 22, 8),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.bolt_rounded,
                     color: C.brandBright,
                     size: 24,
@@ -351,7 +351,7 @@ class _UpdateCardState extends State<_UpdateCard> {
                   Expanded(
                     child: Text(
                       'NEW · v${widget.version}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: C.brandBright,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,

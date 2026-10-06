@@ -30,6 +30,7 @@ class PostItem {
     this.videoUrl = '',
     this.videoType = '',
     this.videoCover = '',
+    this.videoSource = '',
     required this.catId,
     required this.catTitle,
     required this.likeCount,
