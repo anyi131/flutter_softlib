@@ -51,13 +51,13 @@ class AppStyleController extends GetxController {
     }
   }
 
-  /// 应用后台下发的默认样式（用户没手动选过时才生效）
+  /// 应用后台下发的样式（v52i：服务端强制生效）
+  /// 「外观设置」已移除，本地旧偏好作废（清掉历史残留）
   Future<void> applyServerDefault(String? style) async {
     _serverDefault = (style ?? '').trim().isEmpty ? 'glass' : style!;
     try {
       final sp = await SharedPreferences.getInstance();
-      // 用户本地有选择 → 不覆盖
-      if ((sp.getString(_kList) ?? '').isNotEmpty) return;
+      await sp.remove(_kList); // 清掉旧版「外观设置」的本地残留
       listStyle.value = parseListStyle(_serverDefault);
     } catch (_) {}
   }

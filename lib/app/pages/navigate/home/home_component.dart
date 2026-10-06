@@ -43,26 +43,41 @@ class _HomeComponentState extends State<HomeComponent> {
         children: [
           // 页面背景光晕
           Deco.pageBackground(context),
-          SafeArea(
-            bottom: false,
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(child: _header()),
-                SliverToBoxAdapter(child: _search()),
-                SliverToBoxAdapter(child: _quickGrid()),
-                SliverToBoxAdapter(child: _banner()),
-                SliverToBoxAdapter(child: _notice()),
-                _referralTitle(),
-                _referralGrid(),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: context.tabSpace + 40),
-                ),
-              ],
-            ),
-          ),
+          SafeArea(bottom: false, child: _homeBody()),
         ],
       ),
+    );
+  }
+
+  /// v52i #4：首页两套模板（后台「界面」Tab home.template 可切）
+  Widget _homeBody() {
+    final tpl = widget.logic.configData?.uiConfig.homeTemplate ?? 'classic';
+    if (tpl == 'clean') {
+      // 极简模板：问候 + 公告 + 推荐直出
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _header()),
+          SliverToBoxAdapter(child: _notice()),
+          _referralTitle(),
+          _referralGrid(),
+          SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+        ],
+      );
+    }
+    // classic 标准模板（原版全模块）
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(child: _header()),
+        SliverToBoxAdapter(child: _search()),
+        SliverToBoxAdapter(child: _quickGrid()),
+        SliverToBoxAdapter(child: _banner()),
+        SliverToBoxAdapter(child: _notice()),
+        _referralTitle(),
+        _referralGrid(),
+        SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+      ],
     );
   }
 
@@ -206,21 +221,31 @@ class _HomeComponentState extends State<HomeComponent> {
   Widget _quickGrid() {
     // v52f #10：快捷入口去重 —— 移除与「我的/应用/线报 Tab」重复的
     // 下载管理/软件搜索/线报速递，换成独有功能
-    final items = [
+    // v52i #7：快捷入口由后台「界面」Tab 热配置（开关即时生效）
+    final ui = widget.logic.configData?.uiConfig;
+    final all = [
       (
         _QI(Icons.emoji_events_rounded, '每日签到', C.amber),
-        () => Get.toNamed(Routes.vip),
+        () => Get.find<NavigateLogic>().changePage(4),
+        ui?.quickSign ?? true,
       ),
       (
         _QI(Icons.workspace_premium_rounded, 'VIP会员', C.gold),
         () => Get.toNamed(Routes.vip),
+        ui?.quickVip ?? true,
       ),
-      (_QI(Icons.headset_mic_rounded, '联系客服', C.cyan), () => logic.joinUser()),
+      (
+        _QI(Icons.headset_mic_rounded, '联系客服', C.cyan),
+        () => widget.logic.joinUser(),
+        ui?.quickService ?? true,
+      ),
       (
         _QI(Icons.auto_awesome_rounded, '检查更新', C.violet),
         () => UpdateFlow.check(showLatestTip: true),
+        ui?.quickUpdate ?? true,
       ),
     ];
+    final items = all.where((e) => e.$3).map((e) => (e.$1, e.$2)).toList();
     return Padding(
       padding: EdgeInsets.fromLTRB(
         context.pagePadding - 6,

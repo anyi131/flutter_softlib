@@ -19,10 +19,13 @@ import 'dart:ui';
 
 import '../../config.dart';
 import '../../design/adaptive.dart';
+import '../../design/app_style.dart';
+import '../../design/app_style_controller.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import '../../models/app_item.dart';
+import '../../models/http/results/lzy_file_info_model.dart';
 import '../../routes/app_pages.dart';
 import '../../widgets/review/review_tab.dart';
 import 'app_details_logic.dart';
@@ -153,6 +156,15 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   }
 
   /// 顶部返回/分享（悬浮玻璃）
+  /// v52i #4：海报模板头图（截图 > 图标，都没有退品牌渐变）
+  ImageProvider? _posterProvider(LzyFileInfoData? info) {
+    final shots = logic.item?.screenshots ?? const [];
+    if (shots.isNotEmpty) return CachedNetworkImageProvider(shots.first);
+    final icon = info?.fileIcon ?? logic.item?.icon ?? '';
+    if (icon.isNotEmpty) return CachedNetworkImageProvider(icon);
+    return null;
+  }
+
   Widget _topBar() {
     return Positioned(
       top: 0,
@@ -232,19 +244,29 @@ class _AppDetailsPageState extends State<AppDetailsPage>
         Stack(
           clipBehavior: Clip.none,
           children: [
-            // 渐变头图
+            // 渐变头图（v52i #4：poster 模板换封面大图，standard 用渐变）
             Container(
               height: 106,
               margin: const EdgeInsets.only(bottom: 42),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    C.brand.withAlpha(context.isDark ? 150 : 120),
-                    C.violet.withAlpha(context.isDark ? 110 : 90),
-                  ],
-                ),
+                gradient: AppStyleController.instance.detailStyle.value ==
+                        AppDetailStyle.poster
+                    ? null
+                    : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          C.brand.withAlpha(context.isDark ? 150 : 120),
+                          C.violet.withAlpha(context.isDark ? 110 : 90),
+                        ],
+                      ),
+                image: AppStyleController.instance.detailStyle.value ==
+                        AppDetailStyle.poster
+                    ? DecorationImage(
+                        fit: BoxFit.cover,
+                        image: _posterProvider(info),
+                      )
+                    : null,
                 borderRadius: BorderRadius.circular(R.xl),
               ),
               child: Stack(

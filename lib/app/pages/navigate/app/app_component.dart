@@ -130,6 +130,9 @@ class _AppComponentState extends State<AppComponent> {
         try {
           folderItems = await LzyFolderParser.instance.parse(
             cat.url,
+            defaultDesc: cat.defaultDesc,
+            defaultShots: cat.defaultShots,
+            defaultIcon: cat.defaultIcon,
             pwd: cat.pwd.isEmpty ? 'password' : cat.pwd,
             onProgress: (pg, cnt) {
               if (mounted) {

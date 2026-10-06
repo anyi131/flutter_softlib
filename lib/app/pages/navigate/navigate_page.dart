@@ -45,19 +45,25 @@ class _NavigatePageState extends State<NavigatePage> {
           children: [
             Icon(Icons.exit_to_app_rounded, color: Color(0xFFFB7185), size: 22),
             SizedBox(width: 9),
-            Text('退出应用',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            Text(
+              '退出应用',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
-        content: const Text('确定要退出「安逸软件库」吗？',
-            style: TextStyle(fontSize: 14, height: 1.5)),
+        content: const Text(
+          '确定要退出「安逸软件库」吗？',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('取消')),
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('取消'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFFB7185)),
+              backgroundColor: const Color(0xFFFB7185),
+            ),
             onPressed: () => Navigator.pop(c, true),
             child: const Text('退出'),
           ),
@@ -79,15 +85,20 @@ class _NavigatePageState extends State<NavigatePage> {
       child: Scaffold(
         extendBody: true,
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            Deco.pageBackground(context),
-            PageView(
-              physics: const NeverScrollableScrollPhysics(),
-              controller: logic.pageController,
-              children: logic.pages,
-            ),
-          ],
+        body: GetBuilder<NavigateLogic>(
+          // v52i #1：Tab 开关后 PageView 必须跟着重建（之前只有底栏重建）
+          id: 'navigate',
+          init: NavigateLogic(),
+          builder: (logic) => Stack(
+            children: [
+              Deco.pageBackground(context),
+              PageView(
+                physics: const NeverScrollableScrollPhysics(),
+                controller: logic.pageController,
+                children: logic.pages,
+              ),
+            ],
+          ),
         ),
         bottomNavigationBar: GetBuilder<NavigateLogic>(
           id: 'navigate',
@@ -152,8 +163,7 @@ class _NavigatePageState extends State<NavigatePage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-              horizontal: sel ? 15 : 11, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: sel ? 15 : 11, vertical: 8),
           decoration: BoxDecoration(
             gradient: sel ? Deco.brandGradient : null,
             borderRadius: BorderRadius.circular(R.full),
@@ -175,7 +185,8 @@ class _NavigatePageState extends State<NavigatePage> {
                   size: 21,
                   color: sel ? Colors.white : context.t2,
                 ),
-                child: (sel ? dest.selectedIcon : dest.icon) ??
+                child:
+                    (sel ? dest.selectedIcon : dest.icon) ??
                     const SizedBox.shrink(),
               ),
               if (sel) ...[

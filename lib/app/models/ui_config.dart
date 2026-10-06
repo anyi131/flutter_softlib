@@ -33,6 +33,10 @@ class UiConfig {
   // ── 更新弹窗模板（v52g #1：classic/minimal/dark/poster/compact）──
   final String updateTemplate;
 
+  // ── 页面模板（v52i #4：每个界面都有可选模板）──
+  final String homeTemplate; // classic 标准首页 / clean 极简首页
+  final String detailStyle; // standard 标准 / poster 海报式
+
   // ── 首页快捷入口开关（v52g #7 热更新布局）──
   final bool quickSign;
   final bool quickVip;
@@ -57,6 +61,8 @@ class UiConfig {
     this.homeBanner = 'on',
     this.homeNotice = 'on',
     this.updateTemplate = 'classic',
+    this.homeTemplate = 'classic',
+    this.detailStyle = 'standard',
     this.quickSign = true,
     this.quickVip = true,
     this.quickService = true,
@@ -95,6 +101,8 @@ class UiConfig {
       homeBanner: _s(home['banner'], 'on'),
       homeNotice: _s(home['notice'], 'on'),
       updateTemplate: _s(json['update_template'], 'classic'),
+      homeTemplate: _s(home['template'], 'classic'),
+      detailStyle: _s(home['detail_style'], 'standard'),
       quickSign: _b(home['quick_sign'], true),
       quickVip: _b(home['quick_vip'], true),
       quickService: _b(home['quick_service'], true),
@@ -116,6 +124,8 @@ class UiConfig {
       tabTips: base.tabTips,
       tabMine: base.tabMine,
       updateTemplate: base.updateTemplate,
+      homeTemplate: base.homeTemplate,
+      detailStyle: base.detailStyle,
       quickSign: base.quickSign,
       quickVip: base.quickVip,
       quickService: base.quickService,

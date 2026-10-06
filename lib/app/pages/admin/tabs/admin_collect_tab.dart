@@ -743,7 +743,9 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
 
-      // 合并：已有成功结果优先，再用反查结果补齐还没拿到的
+      // 合并：已有成功结果优先，再用反查结果补齐还没拿到的；
+      // v52i #3：字段级补全 —— 站点 results 往往只有 name/url/desc，
+      // 反查结果（collect_results）带 size/version/logo/preview，空的都填上
       final merged = <Map<String, dynamic>>[];
       final used = <String>{};
       for (final k in known) {
@@ -752,7 +754,28 @@ class _AdminCollectTabState extends State<AdminCollectTab>
       }
       for (final f in fetched) {
         final n = '${f['name']}';
-        if (used.contains(n)) continue;
+        // 命中已有结果 → 只补空字段（size/version/logo/preview/category）
+        if (used.contains(n)) {
+          final ki = merged.indexWhere((e) => '${e['name']}' == n);
+          if (ki >= 0) {
+            for (final fk in [
+              'size',
+              'version',
+              'logo',
+              'preview',
+              'category',
+            ]) {
+              final cur = '${merged[ki][fk] ?? ''}';
+              final inc = '${f[fk] ?? ''}';
+              if (cur.isEmpty && inc.isNotEmpty) merged[ki][fk] = inc;
+            }
+            if ('${merged[ki]['desc'] ?? ''}'.trim().length < 8 &&
+                '${f['desc'] ?? ''}'.trim().length > 8) {
+              merged[ki]['desc'] = f['desc'];
+            }
+          }
+          continue;
+        }
         merged.add(f);
         used.add(n);
       }

@@ -23,16 +23,18 @@ class LzyFolderParser {
       'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36';
 
-  Dio _dio() => Dio(BaseOptions(
-        headers: {
-          'User-Agent': _ua,
-          'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8',
-          'Accept-Language': 'zh-CN,zh;q=0.9',
-        },
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 25),
-        followRedirects: true,
-      ));
+  Dio _dio() => Dio(
+    BaseOptions(
+      headers: {
+        'User-Agent': _ua,
+        'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+      },
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 25),
+      followRedirects: true,
+    ),
+  );
 
   /// 解析文件夹，返回全部软件
   /// [onProgress] 回调：(当前页, 已获取数量)
@@ -40,6 +42,9 @@ class LzyFolderParser {
     String folderUrl, {
     String pwd = 'password',
     int maxPages = 30,
+    String defaultDesc = '',
+    String defaultShots = '',
+    String defaultIcon = '',
     void Function(int page, int count)? onProgress,
     bool Function()? isCancelled,
   }) async {
@@ -61,13 +66,13 @@ class LzyFolderParser {
     final t = _tplVar(html, "'t'");
     final k = _tplVar(html, "'k'");
     final fidRaw = _match(html, RegExp(r"'fid'\s*:\s*([^,\n]+)"));
-    final fid = fidRaw == null
-        ? ''
-        : fidRaw.replaceAll(RegExp("[\\s'\"]"), '');
+    final fid = fidRaw == null ? '' : fidRaw.replaceAll(RegExp("[\\s'\"]"), '');
     final uid = _match(html, RegExp(r"'uid'\s*:\s*'([^']+)'")) ?? '';
     final puid = _match(html, RegExp(r"'puid'\s*:\s*'([^']+)'")) ?? '';
 
-    debugPrint('[LzyFolder] token: fid=$fid uid=$uid puid=${puid.isNotEmpty} t=$t k=${k.length}位');
+    debugPrint(
+      '[LzyFolder] token: fid=$fid uid=$uid puid=${puid.isNotEmpty} t=$t k=${k.length}位',
+    );
     if (fid.isEmpty || uid.isEmpty) {
       throw Exception('无法解析该文件夹（链接可能已失效）');
     }
@@ -102,7 +107,10 @@ class LzyFolderParser {
           data: body,
           options: Options(
             contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
-            headers: {'X-Requested-With': 'XMLHttpRequest', 'Referer': folderUrl},
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Referer': folderUrl,
+            },
             responseType: ResponseType.json,
           ),
         );
@@ -110,11 +118,13 @@ class LzyFolderParser {
         if (d is Map) data = Map<String, dynamic>.from(d);
       } catch (_) {
         if (pg == 1) throw Exception('网络请求失败，请重试');
-        break;   // 后续页失败 = 到此为止
+        break; // 后续页失败 = 到此为止
       }
 
       if (data == null || data['zt'] != 1) {
-        debugPrint('[LzyFolder] page $pg 失败: zt=${data?['zt']} info=${data?['info']}');
+        debugPrint(
+          '[LzyFolder] page $pg 失败: zt=${data?['zt']} info=${data?['info']}',
+        );
         if (pg == 1) {
           throw Exception((data?['info'] ?? '解析失败').toString());
         }
@@ -126,32 +136,43 @@ class LzyFolderParser {
 
       for (final it in list) {
         if (it is! Map) continue;
-        if ((it['t'] ?? 0) == 2) continue;  // 跳过子文件夹
+        if ((it['t'] ?? 0) == 2) continue; // 跳过子文件夹
         final name = (it['name_all'] ?? '').toString();
         final id = (it['id'] ?? '').toString();
         if (id.isEmpty) continue;
-        out.add(AppItem(
-          id: 0,
-          title: name.replaceAll(RegExp(r'\.(apk|ipa|zip|rar|7z)$', caseSensitive: false), ''),
-          provider: 'lzy',
-          url: '$base/$id',
-          file: '',
-          icon: '$iconBase${it['ico'] ?? ''}',
-          size: (it['size'] ?? '').toString(),
-          version: _guessVersion(name),
-          description: '',
-          catId: 0,
-          weigh: 0,
-          views: 0,
-          uploadDate: (it['time'] ?? '').toString(),
-          isNew: true,
-          fromFolder: true,
-        ));
+        out.add(
+          AppItem(
+            id: 0,
+            title: name.replaceAll(
+              RegExp(r'\.(apk|ipa|zip|rar|7z)$', caseSensitive: false),
+              '',
+            ),
+            provider: 'lzy',
+            url: '$base/$id',
+            file: '',
+            icon: defaultIcon.isNotEmpty
+                ? defaultIcon
+                : '$iconBase${it['ico'] ?? ''}',
+            size: (it['size'] ?? '').toString(),
+            version: _guessVersion(name),
+            description: defaultDesc,
+            catId: 0,
+            weigh: 0,
+            views: 0,
+            uploadDate: (it['time'] ?? '').toString(),
+            isNew: true,
+            fromFolder: true,
+            screenshots: defaultShots
+                .split(',')
+                .where((e) => e.trim().isNotEmpty)
+                .toList(),
+          ),
+        );
       }
 
       debugPrint('[LzyFolder] page $pg 成功: ${list.length} 条, 累计 ${out.length}');
       onProgress?.call(pg, out.length);
-      if (list.length < 50) break;         // 不足一页 = 到底
+      if (list.length < 50) break; // 不足一页 = 到底
 
       // ★ 间隔 900ms，否则被限流
       await Future.delayed(const Duration(milliseconds: 900));
@@ -184,10 +205,12 @@ class LzyFolderParser {
   static String _guessVersion(String name) {
     final v = RegExp(r'[vV]\s*(\d+(?:\.\d+){1,3})').firstMatch(name);
     if (v != null) return 'v${v.group(1)}';
-    final n = RegExp(r'(?<![\d.])(\d+\.\d+(?:\.\d+){0,2})(?![\d.])').firstMatch(name);
+    final n = RegExp(r'(?<![\d.])(\d+\.\d+(?:\.\d+){0,2})(?![\d.])')
+        .firstMatch(name);
     if (n != null) {
       final s = n.group(1)!;
-      if (!RegExp(r'^(19|20)\d{2}\.\d{1,2}\.\d{1,2}$').hasMatch(s)) return 'v$s';
+      if (!RegExp(r'^(19|20)\d{2}\.\d{1,2}\.\d{1,2}$').hasMatch(s))
+        return 'v$s';
     }
     return '';
   }
