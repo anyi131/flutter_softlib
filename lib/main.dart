@@ -20,6 +20,7 @@ import 'app/widgets/pro_motion.dart';
 import 'app/api/user_service.dart';
 import 'app/utils/device_info_util.dart';
 import 'app/design/app_style_controller.dart';
+import 'app/api/soft_service.dart';
 
 /// 应用程序主入口
 Future<void> main() async {
@@ -73,6 +74,20 @@ Future<void> _initializeServices() async {
   // 界面样式（软件列表风格，需求 #9）
   Get.put<AppStyleController>(AppStyleController.instance, permanent: true);
   await AppStyleController.instance.restore();
+  // v52j #2：冷启动先拉一次配置并应用主题（首帧就是后台设置的样子）
+  try {
+    final cfg = await SoftService.instance.fetchConfig(force: true);
+    if (cfg != null) {
+      final ui = cfg.uiConfig;
+      await ThemeController.instance.setMode(switch (ui.themeMode) {
+        'dark' => ThemeMode.dark,
+        'system' => ThemeMode.system,
+        _ => ThemeMode.light,
+      });
+      ThemeController.instance.applyServerPalette(ui.themePalette);
+      AppStyleController.instance.applyServerDefault(ui.listStyle);
+    }
+  } catch (_) {}
   // 配置EasyLoading
   _configureEasyLoading();
   // 设置设备方向

@@ -26,8 +26,44 @@ import '../../api/soft_service.dart';
 import '../../utils/permission_utils.dart';
 import '../../widgets/icon_font.dart';
 
-class NavigateLogic extends GetxController {
+class NavigateLogic extends GetxController with WidgetsBindingObserver {
   /// 底部 Tab —— 由后台「界面配置」动态决定（默认全开）
+  // v52j #2：原始 Tab 基准（applyUiConfig 每次从这里重建，避免多次运行索引漂移）
+  static const List<NavigationDestination> _baseLabels = [
+    NavigationDestination(
+      icon: Icon(IconFont.home),
+      label: '首页',
+      selectedIcon: Icon(IconFont.homeFill),
+    ),
+    NavigationDestination(
+      icon: Icon(IconFont.appB),
+      label: '应用',
+      selectedIcon: Icon(IconFont.appBFill),
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.explore_outlined),
+      label: '广场',
+      selectedIcon: Icon(Icons.explore),
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.tips_and_updates_outlined),
+      label: '线报',
+      selectedIcon: Icon(Icons.tips_and_updates),
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.person_outline),
+      label: '我的',
+      selectedIcon: Icon(Icons.person),
+    ),
+  ];
+  static List<Widget> _basePages() => [
+    HomeComponent(),
+    AppComponent(),
+    SquareComponent(),
+    TipsComponent(),
+    MineComponent(),
+  ];
+
   List<NavigationDestination> labels = [
     NavigationDestination(
       icon: Icon(IconFont.home),
@@ -64,11 +100,11 @@ class NavigateLogic extends GetxController {
   ];
 
   /// 按后台配置裁剪 Tab（工具Tab已整体移除）
-  Future<void> applyUiConfig() async {
+  Future<void> applyUiConfig({bool force = false}) async {
     try {
-      final cfg = await SoftService.instance.fetchConfig();
-      final ui = cfg?.uiConfig;
-      if (ui == null) return;
+      final cfg = await SoftService.instance.fetchConfig(force: force);
+      if (cfg == null) return; // 拉不到配置绝不覆盖当前状态
+      final ui = cfg.uiConfig;
       final ls = <NavigationDestination>[];
       final ps = <Widget>[];
       void add(bool on, NavigationDestination d, Widget p) {
@@ -78,11 +114,11 @@ class NavigateLogic extends GetxController {
         }
       }
 
-      add(ui.tabHome, labels[0], pages[0]);
-      add(true, labels[1], pages[1]); // 应用 Tab 常驻
-      add(ui.tabSquare, labels[2], pages[2]);
-      add(ui.tabTips, labels[3], pages[3]);
-      add(ui.tabMine, labels[4], pages[4]);
+      add(ui.tabHome, _baseLabels[0], _basePages()[0]);
+      add(true, _baseLabels[1], _basePages()[1]); // 应用 Tab 常驻
+      add(ui.tabSquare, _baseLabels[2], _basePages()[2]);
+      add(ui.tabTips, _baseLabels[3], _basePages()[3]);
+      add(ui.tabMine, _baseLabels[4], _basePages()[4]);
       labels = ls;
       pages = ps;
       if (currentIndex >= ps.length) {
@@ -107,6 +143,21 @@ class NavigateLogic extends GetxController {
   HttpApi httpApi = Get.find<HttpApi>();
 
   @override
+  void onInit() {
+    super.onInit();
+    // v52j #2：App 从后台恢复时重新拉取并应用后台配置
+    // （「退出软件重进」多数只是进程恢复，onReady 不会再跑）
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      applyUiConfig(force: true);
+    }
+  }
+
+  @override
   void onReady() {
     // TODO: implement onReady
     super.onReady();
@@ -128,5 +179,11 @@ class NavigateLogic extends GetxController {
   /// 权限请求
   Future<void> _requestPermissionsOnStartup() async {
     await PermissionUtils.requestAppPermissions(Get.context!);
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.onClose();
   }
 }

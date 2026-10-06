@@ -10,6 +10,7 @@ class PostItem {
   final String videoType;
   final String videoCover;
   final String videoSource; // 原始分享链接（直链过期后重新解析用）
+  final String ipArea; // IP 属地（发布时定位）
   final int catId;
   final String catTitle;
   final int likeCount;
@@ -31,6 +32,7 @@ class PostItem {
     this.videoType = '',
     this.videoCover = '',
     this.videoSource = '',
+    this.ipArea = '',
     required this.catId,
     required this.catTitle,
     required this.likeCount,
@@ -61,6 +63,7 @@ class PostItem {
     String? videoType,
     String? videoCover,
     String? videoSource,
+    String? ipArea,
     int? catId,
     String? catTitle,
     int? likeCount,
@@ -81,6 +84,7 @@ class PostItem {
     videoType: videoType ?? this.videoType,
     videoCover: videoCover ?? this.videoCover,
     videoSource: videoSource ?? this.videoSource,
+    ipArea: ipArea ?? this.ipArea,
     catId: catId ?? this.catId,
     catTitle: catTitle ?? this.catTitle,
     likeCount: likeCount ?? this.likeCount,
@@ -102,6 +106,7 @@ class PostItem {
     videoType: _s(j['video_type']),
     videoCover: _s(j['video_cover']),
     videoSource: _s(j['video_source']),
+    ipArea: _s(j['ip_area']),
     images: (j['images'] is List)
         ? (j['images'] as List).map((e) => e.toString()).toList()
         : _s(j['images'])

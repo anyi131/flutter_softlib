@@ -548,6 +548,17 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         color: context.t3,
                       ),
                     ),
+                    // v52j #1：IP 属地
+                    if ((c['ip_area'] ?? '').toString().isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        'IP属地${(c['ip_area']).toString().split(' ').first}',
+                        style: Ty.tiny.copyWith(
+                          fontSize: 10.5,
+                          color: context.t3,
+                        ),
+                      ),
+                    ],
                     const SizedBox(width: 12),
                     GestureDetector(
                       onTap: () => _startReply(c),

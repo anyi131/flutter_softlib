@@ -365,7 +365,9 @@ class _SquareComponentState extends State<SquareComponent> {
                                   const SizedBox(width: 6),
                                 ],
                                 Text(
-                                  p.relTime,
+                                  p.ipArea.isEmpty
+                                      ? p.relTime
+                                      : '${p.relTime} · IP属地${p.ipArea.split(' ').first}',
                                   style: Ty.tiny.copyWith(color: context.t3),
                                 ),
                               ],
