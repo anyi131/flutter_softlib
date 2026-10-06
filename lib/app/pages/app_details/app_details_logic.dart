@@ -21,6 +21,7 @@ import '../../models/app_item.dart';
 import '../../models/http/results/lzy_file_info_model.dart';
 import '../../api/api_host.dart';
 import '../../api/soft_service.dart';
+import '../../api/user_service.dart';
 import '../../utils/apk_installer.dart';
 import '../../utils/jump_util.dart';
 import '../../utils/toast_util.dart';
@@ -437,6 +438,10 @@ class AppDetailsLogic extends GetxController {
     // ★ 下载真正开始 → 自动取消加载动画
     ResolveOverlay.stage(ResolveStages.starting);
     ResolveOverlay.dismiss();
+    // v52f #3：上报「下载软件」操作日志（服务端不感知客户端下载）
+    UserService.instance.downloadLog(
+      appInfo?.fileName ?? fileName.replaceAll(RegExp(r'_\d+\.apk$'), ''),
+    );
     // 记录任务（失败也不能中断后续流程，否则进度条不会出现）
     try {
       await downloadTaskDao.setDownloadTask(

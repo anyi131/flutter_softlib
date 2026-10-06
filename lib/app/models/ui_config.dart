@@ -26,9 +26,18 @@ class UiConfig {
   final bool featureReferral; // 首页推荐
 
   // ── 首页布局 ──
-  final String listStyle; // glass / compact / grid（软件列表默认样式）
+  final String listStyle; // glass / compact / grid / large / minimal
   final String homeBanner; // on / off
   final String homeNotice;
+
+  // ── 更新弹窗模板（v52g #1：classic/minimal/dark/poster/compact）──
+  final String updateTemplate;
+
+  // ── 首页快捷入口开关（v52g #7 热更新布局）──
+  final bool quickSign;
+  final bool quickVip;
+  final bool quickService;
+  final bool quickUpdate;
 
   const UiConfig({
     this.themePalette = 'aurora',
@@ -47,6 +56,11 @@ class UiConfig {
     this.listStyle = 'glass',
     this.homeBanner = 'on',
     this.homeNotice = 'on',
+    this.updateTemplate = 'classic',
+    this.quickSign = true,
+    this.quickVip = true,
+    this.quickService = true,
+    this.quickUpdate = true,
   });
 
   static bool _b(dynamic v, [bool def = true]) =>
@@ -80,6 +94,11 @@ class UiConfig {
       listStyle: _s(home['list_style'], 'glass'),
       homeBanner: _s(home['banner'], 'on'),
       homeNotice: _s(home['notice'], 'on'),
+      updateTemplate: _s(json['update_template'], 'classic'),
+      quickSign: _b(home['quick_sign'], true),
+      quickVip: _b(home['quick_vip'], true),
+      quickService: _b(home['quick_service'], true),
+      quickUpdate: _b(home['quick_update'], true),
     );
   }
 
@@ -96,6 +115,11 @@ class UiConfig {
       tabSquare: base.tabSquare,
       tabTips: base.tabTips,
       tabMine: base.tabMine,
+      updateTemplate: base.updateTemplate,
+      quickSign: base.quickSign,
+      quickVip: base.quickVip,
+      quickService: base.quickService,
+      quickUpdate: base.quickUpdate,
     );
   }
 

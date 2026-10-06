@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../api/admin_service.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
-import '../../../design/theme_palette.dart';
 import '../../../utils/toast_util.dart';
 
 /// 开屏与远程控制管理
@@ -398,86 +397,6 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
               '例：qq.com,163.com,gmail.com —— 只允许这些邮箱注册；留空则任意邮箱都可注册',
               style: Ty.tiny.copyWith(color: context.t3),
             ),
-            const SizedBox(height: 12),
-            Text('全局主题配色（App 全站生效）', style: Ty.h3.copyWith(fontSize: 13)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: ThemePalette.all.map((p) {
-                final sel = themePalette == p.key;
-                return GestureDetector(
-                  onTap: () => setState(() => themePalette = p.key),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: sel ? p.brand.withAlpha(30) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: sel ? p.brand : Colors.grey.withAlpha(50),
-                        width: sel ? 1.4 : 0.9,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 16,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            gradient: p.gradient,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 7),
-                        Text(
-                          p.name,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
-                          ),
-                        ),
-                        if (sel) ...[
-                          const SizedBox(width: 5),
-                          Icon(
-                            Icons.check_circle_rounded,
-                            size: 14,
-                            color: p.brand,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            Text(
-              '建议到「界面」Tab 统一配置主题与开关（本页配置兼容保留）',
-              style: Ty.tiny.copyWith(color: context.t3),
-            ),
-            const SizedBox(height: 12),
-            Text('软件列表默认样式', style: Ty.h3.copyWith(fontSize: 13)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _styleChip('glass', '玻璃卡片', Icons.view_agenda_rounded),
-                const SizedBox(width: 7),
-                _styleChip('compact', '紧凑列表', Icons.view_list_rounded),
-                const SizedBox(width: 7),
-                _styleChip('grid', '双列网格', Icons.grid_view_rounded),
-                const SizedBox(width: 7),
-                _styleChip('large', '封面大图', Icons.image_rounded),
-                const SizedBox(width: 7),
-                _styleChip('minimal', '极简单行', Icons.line_weight_rounded),
-              ],
-            ),
-            Text(
-              'v52：外观设置已统一到「界面」Tab，App 端不再提供用户切换',
-              style: Ty.tiny.copyWith(color: context.t3),
-            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -697,40 +616,6 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
   }
 
   /// 样式选择 chip
-  Widget _styleChip(String key, String label, IconData icon) {
-    final sel = uiStyle == key;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => uiStyle = key),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: sel ? C.brand : context.t3.withAlpha(20),
-            borderRadius: BorderRadius.circular(R.md),
-            border: Border.all(
-              color: sel ? C.brand : C.stroke.withAlpha(60),
-              width: 0.9,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 18, color: sel ? Colors.white : context.t2),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: sel ? Colors.white : context.t2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _switch(String label, bool value, ValueChanged<bool> onChanged) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

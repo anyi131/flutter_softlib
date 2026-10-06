@@ -39,6 +39,10 @@ class _AdminUiTabState extends State<AdminUiTab> {
   bool _notice = true, _referral = true;
   // 列表样式
   String _listStyle = 'glass';
+  // 更新弹窗模板（v52g #1）
+  String _updateTemplate = 'classic';
+  // 首页快捷入口（v52g #7）
+  bool _qSign = true, _qVip = true, _qService = true, _qUpdate = true;
 
   bool _loading = true;
   bool _saving = false;
@@ -90,6 +94,11 @@ class _AdminUiTabState extends State<AdminUiTab> {
         _notice = '${feat['notice'] ?? 1}' == '1';
         _referral = '${feat['referral'] ?? 1}' == '1';
         _listStyle = '${home['list_style'] ?? cfg['app_ui_style'] ?? 'glass'}';
+        _updateTemplate = '${ui['update_template'] ?? 'classic'}';
+        _qSign = '${home['quick_sign'] ?? 1}' == '1';
+        _qVip = '${home['quick_vip'] ?? 1}' == '1';
+        _qService = '${home['quick_service'] ?? 1}' == '1';
+        _qUpdate = '${home['quick_update'] ?? 1}' == '1';
         _loading = false;
       });
     } catch (e) {
@@ -154,6 +163,8 @@ class _AdminUiTabState extends State<AdminUiTab> {
         _card('底部导航开关', _tabSwitches()),
         _card('功能开关', _featureSwitches()),
         _card('软件列表默认样式', _listStylePicker()),
+        _card('更新弹窗模板', _templatePicker()),
+        _card('首页快捷入口', _quickSwitches()),
         const SizedBox(height: 16),
         AppPressable(
           onTap: _saving ? null : _save,
@@ -398,6 +409,68 @@ class _AdminUiTabState extends State<AdminUiTab> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _templatePicker() {
+    const opts = [
+      ('classic', '渐变卡'),
+      ('minimal', '极简'),
+      ('dark', '暗黑'),
+      ('poster', '海报'),
+      ('compact', '紧凑'),
+    ];
+    return Wrap(
+      spacing: 9,
+      runSpacing: 9,
+      children: [
+        for (final o in opts)
+          AppPressable(
+            onTap: () => setState(() => _updateTemplate = o.$1),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+              decoration: BoxDecoration(
+                color: _updateTemplate == o.$1
+                    ? C.brand.withAlpha(26)
+                    : context.isDark
+                    ? Colors.white.withAlpha(8)
+                    : Colors.black.withAlpha(4),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: _updateTemplate == o.$1
+                      ? C.brand.withAlpha(150)
+                      : Colors.transparent,
+                  width: 1.3,
+                ),
+              ),
+              child: Text(
+                o.$2,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: _updateTemplate == o.$1 ? C.brand : context.t2,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _quickSwitches() {
+    final items = [
+      ('每日签到', _qSign, (v) => _qSign = v),
+      ('VIP会员', _qVip, (v) => _qVip = v),
+      ('联系客服', _qService, (v) => _qService = v),
+      ('检查更新', _qUpdate, (v) => _qUpdate = v),
+    ];
+    return Wrap(
+      spacing: 9,
+      runSpacing: 9,
+      children: [
+        for (final it in items)
+          _chipToggle(it.$1, it.$2, (v) => setState(() => it.$3(v))),
+      ],
     );
   }
 

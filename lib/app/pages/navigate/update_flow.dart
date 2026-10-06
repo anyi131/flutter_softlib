@@ -32,7 +32,7 @@ class UpdateFlow {
       final version = packageInfo.version;
       final data = await SoftService.instance.checkVersion(version);
       if (data != null) {
-        show(data);
+        await show(data);
       } else if (showLatestTip) {
         ToastUtil.success('已是最新版本（v$version）');
       }
@@ -42,12 +42,19 @@ class UpdateFlow {
   }
 
   /// 显示更新弹窗（直接用 Map，避开 Retrofit 模型的类型限制）
-  static void show(Map<String, dynamic> d) {
+  static Future<void> show(Map<String, dynamic> d) async {
     final title = (d['title'] ?? '发现新版本').toString();
     final ver = (d['version'] ?? '').toString();
     final content = (d['content'] ?? '请及时更新以获取最佳体验').toString();
     final url = (d['dow_url'] ?? '').toString();
     final forced = '${d['forced_switch']}' == '1' || d['forced_switch'] == true;
+    // 模板：后台 ui_config.update_template 下发（取不到用 classic）
+    String template = 'classic';
+    try {
+      final cfg = await SoftService.instance.fetchConfig();
+      final t = cfg?.uiConfig.updateTemplate ?? '';
+      if (t.isNotEmpty) template = t;
+    } catch (_) {}
     if (url.isEmpty) return;
     showDialog(
       context: Get.context!,
@@ -67,6 +74,7 @@ class UpdateFlow {
             content: content,
             url: url,
             forced: forced,
+            template: template,
           ),
         ),
       ),
@@ -80,12 +88,16 @@ class _UpdateCard extends StatefulWidget {
   final String content;
   final String url;
   final bool forced;
+
+  /// 弹窗模板（后台 ui_config.update_template 下发）
+  final String template;
   const _UpdateCard({
     required this.title,
     required this.version,
     required this.content,
     required this.url,
     required this.forced,
+    this.template = 'classic',
   });
 
   @override
@@ -176,6 +188,17 @@ class _UpdateCardState extends State<_UpdateCard> {
 
   @override
   Widget build(BuildContext context) {
+    return switch (widget.template) {
+      'minimal' => _tplMinimal(),
+      'dark' => _tplDark(),
+      'poster' => _tplPoster(),
+      'compact' => _tplCompact(),
+      _ => _tplClassic(),
+    };
+  }
+
+  /// 模板一：classic —— 渐变头图卡（原版增强：标题不再与版本徽章重复）
+  Widget _tplClassic() {
     final isDark = context.isDark;
     return AppScaleIn(
       child: Container(
@@ -187,10 +210,9 @@ class _UpdateCardState extends State<_UpdateCard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── 渐变头图 ──
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
+              padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
               decoration: BoxDecoration(gradient: C.brandGradient),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,12 +222,14 @@ class _UpdateCardState extends State<_UpdateCard> {
                       const Icon(
                         Icons.rocket_launch_rounded,
                         color: Colors.white,
-                        size: 22,
+                        size: 21,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          widget.title,
+                          '发现新版本',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -215,7 +239,7 @@ class _UpdateCardState extends State<_UpdateCard> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 9),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -237,33 +261,247 @@ class _UpdateCardState extends State<_UpdateCard> {
                 ],
               ),
             ),
-            // ── 内容 ──
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(22, 16, 22, 8),
-                child: _phase == 'idle'
-                    ? HtmlWidget(
-                        widget.content,
-                        textStyle: TextStyle(
-                          fontSize: 13.8,
-                          height: 1.65,
-                          color: isDark ? C.t2 : C.lt2,
-                        ).copyWith(),
-                        onTapUrl: (u) {
-                          JumpUtil.openUrl(u);
-                          return true;
-                        },
-                      )
-                    : _progressBody(isDark),
-              ),
-            ),
-            // ── 按钮 ──
+            _tplBody(isDark),
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 10, 22, 22),
               child: _actionRow(isDark),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 模板二：minimal —— 极简白卡（左竖条标题，无头图）
+  Widget _tplMinimal() {
+    final isDark = context.isDark;
+    return AppScaleIn(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+        decoration: BoxDecoration(
+          color: isDark ? C.bg2 : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    gradient: C.brandGradient,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '发现新版本 v${widget.version}',
+                  style: TextStyle(
+                    fontSize: 17.5,
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? C.t1 : C.lt1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _tplBody(isDark),
+            const SizedBox(height: 14),
+            _actionRow(isDark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 模板三：dark —— 暗黑霓虹
+  Widget _tplDark() {
+    return AppScaleIn(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: C.bg0,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: C.brand.withAlpha(110), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: C.brand.withAlpha(60),
+              blurRadius: 34,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 22, 22, 8),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.bolt_rounded,
+                    color: C.brandBright,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'NEW · v${widget.version}',
+                      style: const TextStyle(
+                        color: C.brandBright,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _tplBody(true),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 10, 22, 22),
+              child: _actionRow(true),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 模板四：poster —— 全卡渐变海报
+  Widget _tplPoster() {
+    return AppScaleIn(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          gradient: C.brandGradient,
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 26, 24, 6),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.system_update_alt_rounded,
+                    color: Colors.white,
+                    size: 34,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'v${widget.version}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(210),
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _tplBody(false),
+                  const SizedBox(height: 10),
+                  _actionRow(false),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 模板五：compact —— 紧凑小卡
+  Widget _tplCompact() {
+    final isDark = context.isDark;
+    return AppScaleIn(
+      child: Container(
+        width: 300,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? C.bg2 : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                gradient: C.brandGradient,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.download_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '发现新版本 v${widget.version}',
+              style: TextStyle(
+                fontSize: 15.5,
+                fontWeight: FontWeight.w900,
+                color: isDark ? C.t1 : C.lt1,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _tplBody(isDark),
+            const SizedBox(height: 14),
+            _actionRow(isDark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 正文区（更新日志 / 进度态）——各模板共用
+  Widget _tplBody(bool isDark) {
+    return Flexible(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(2, 8, 2, 4),
+        child: _phase == 'idle'
+            ? HtmlWidget(
+                widget.content,
+                textStyle: TextStyle(
+                  fontSize: 13.8,
+                  height: 1.65,
+                  color: isDark ? C.t2 : C.lt2,
+                ),
+                onTapUrl: (u) {
+                  JumpUtil.openUrl(u);
+                  return true;
+                },
+              )
+            : _progressBody(isDark),
       ),
     );
   }

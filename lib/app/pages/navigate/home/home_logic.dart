@@ -7,8 +7,9 @@ import 'package:get/get.dart';
 
 import '../../../../generated/assets.dart';
 import '../../../config.dart';
+import '../../../api/soft_service.dart';
+import '../../../models/app_config.dart';
 import '../../../models/http/results/carousel_model.dart';
-import '../../../models/http/results/config_model.dart';
 import '../../../models/http/results/referral_model.dart';
 import '../../../routes/app_pages.dart';
 
@@ -16,7 +17,7 @@ class HomeLogic extends GetxController {
   HttpApi httpApi = Get.find<HttpApi>();
   List<CarouselData>? carouses;
   List<ReferralData>? referrals;
-  ConfigData? configData;
+  AppConfig? configData;
   String? word;
 
   @override
@@ -32,9 +33,10 @@ class HomeLogic extends GetxController {
   ///获取配置
   Future<void> getConfig() async {
     try {
-      var config = await httpApi.getConfig();
-      if (config.code == 1) {
-        configData = config.data;
+      // v52g：改走 SoftService（AppConfig 带 uiConfig，快捷入口热配置要用）
+      var config = await SoftService.instance.fetchConfig(force: true);
+      if (config != null) {
+        configData = config;
       }
       update(['placard']);
     } catch (e) {

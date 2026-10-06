@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../api/post_service.dart';
 import '../design/ui.dart';
 
 /// 动态视频播放器
@@ -23,6 +24,10 @@ class PostVideoPlayer extends StatefulWidget {
   final String url;
   final String type;
 
+  /// 动态 id（直链过期时用原始链接重新解析，v52g #2）
+  final int postId;
+  final String source;
+
   /// 封面（可选，抖音解析结果会带）
   final String cover;
 
@@ -40,6 +45,8 @@ class PostVideoPlayer extends StatefulWidget {
     super.key,
     required this.url,
     this.type = 'file',
+    this.postId = 0,
+    this.source = '',
     this.cover = '',
     this.videoWidth = 0,
     this.videoHeight = 0,
@@ -57,6 +64,10 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
   bool _ready = false;
   bool _failed = false;
   String _err = '';
+  // v52g #2：直链可变（过期刷新后替换）
+  late String _url = widget.url;
+  late String _cover = widget.cover;
+  bool _refreshed = false;
 
   /// 是否已「激活」（懒加载模式下点击后才 true）
   bool _activated = false;
@@ -142,6 +153,29 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
       c.setLooping(true);
       await c.play();
     } catch (e) {
+      // v52g #2：直链过期（抖音等有时效）→ 用原始链接重新解析一次再试
+      if (mounted &&
+          !_refreshed &&
+          widget.postId > 0 &&
+          widget.source.isNotEmpty) {
+        _refreshed = true;
+        try {
+          final r = await PostService.instance.videoRefresh(widget.postId);
+          final nu = (r['url'] ?? '').toString();
+          if (nu.isNotEmpty && mounted) {
+            setState(() {
+              _url = nu;
+              if ((r['cover'] ?? '').toString().isNotEmpty) {
+                _cover = (r['cover']).toString();
+              }
+              _failed = false;
+              _err = '';
+            });
+            await _initFile();
+            return;
+          }
+        } catch (_) {}
+      }
       if (mounted) {
         setState(() {
           _failed = true;
@@ -378,9 +412,9 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (widget.cover.isNotEmpty)
+              if (_cover.isNotEmpty)
                 CachedNetworkImage(
-                  imageUrl: widget.cover,
+                  imageUrl: _cover,
                   fit: BoxFit.cover,
                   placeholder: (_, __) => Container(color: Colors.black12),
                   errorWidget: (_, __, ___) => Container(color: Colors.black26),

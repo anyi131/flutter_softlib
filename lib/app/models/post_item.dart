@@ -9,6 +9,7 @@ class PostItem {
   final String videoUrl;
   final String videoType;
   final String videoCover;
+  final String videoSource; // 原始分享链接（直链过期后重新解析用）
   final int catId;
   final String catTitle;
   final int likeCount;
@@ -58,6 +59,7 @@ class PostItem {
     String? videoUrl,
     String? videoType,
     String? videoCover,
+    String? videoSource,
     int? catId,
     String? catTitle,
     int? likeCount,
@@ -67,54 +69,55 @@ class PostItem {
     bool? isAdmin,
     bool? isVip,
     String? title,
-  }) =>
-      PostItem(
-        id: id ?? this.id,
-        userId: userId ?? this.userId,
-        nickname: nickname ?? this.nickname,
-        avatar: avatar ?? this.avatar,
-        content: content ?? this.content,
-        images: images ?? this.images,
-        videoUrl: videoUrl ?? this.videoUrl,
-        videoType: videoType ?? this.videoType,
-        videoCover: videoCover ?? this.videoCover,
-        catId: catId ?? this.catId,
-        catTitle: catTitle ?? this.catTitle,
-        likeCount: likeCount ?? this.likeCount,
-        commentCount: commentCount ?? this.commentCount,
-        views: views ?? this.views,
-        createtime: createtime ?? this.createtime,
-        isAdmin: isAdmin ?? this.isAdmin,
-        isVip: isVip ?? this.isVip,
-        title: title ?? this.title,
-      );
+  }) => PostItem(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    nickname: nickname ?? this.nickname,
+    avatar: avatar ?? this.avatar,
+    content: content ?? this.content,
+    images: images ?? this.images,
+    videoUrl: videoUrl ?? this.videoUrl,
+    videoType: videoType ?? this.videoType,
+    videoCover: videoCover ?? this.videoCover,
+    videoSource: videoSource ?? this.videoSource,
+    catId: catId ?? this.catId,
+    catTitle: catTitle ?? this.catTitle,
+    likeCount: likeCount ?? this.likeCount,
+    commentCount: commentCount ?? this.commentCount,
+    views: views ?? this.views,
+    createtime: createtime ?? this.createtime,
+    isAdmin: isAdmin ?? this.isAdmin,
+    isVip: isVip ?? this.isVip,
+    title: title ?? this.title,
+  );
 
   factory PostItem.fromJson(Map j) => PostItem(
-        id: _i(j['id']),
-        userId: _i(j['user_id']),
-        nickname: _s(j['nickname']),
-        avatar: _s(j['avatar']),
-        content: _s(j['content']),
-        videoUrl: _s(j['video_url']),
-        videoType: _s(j['video_type']),
-        videoCover: _s(j['video_cover']),
-        images: (j['images'] is List)
-            ? (j['images'] as List).map((e) => e.toString()).toList()
-            : _s(j['images'])
-                .split(',')
-                .map((e) => e.trim())
-                .where((e) => e.isNotEmpty)
-                .toList(),
-        catId: _i(j['cat_id']),
-        catTitle: _s(j['cat_title']),
-        likeCount: _i(j['like_count']),
-        commentCount: _i(j['comment_count']),
-        views: _i(j['views']),
-        createtime: _i(j['createtime']),
-        isAdmin: j['is_admin'] == 1 || j['is_admin'] == true,
-        isVip: j['is_vip'] == 1 || j['is_vip'] == true,
-        title: _s(j['title']),
-      );
+    id: _i(j['id']),
+    userId: _i(j['user_id']),
+    nickname: _s(j['nickname']),
+    avatar: _s(j['avatar']),
+    content: _s(j['content']),
+    videoUrl: _s(j['video_url']),
+    videoType: _s(j['video_type']),
+    videoCover: _s(j['video_cover']),
+    videoSource: _s(j['video_source']),
+    images: (j['images'] is List)
+        ? (j['images'] as List).map((e) => e.toString()).toList()
+        : _s(j['images'])
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList(),
+    catId: _i(j['cat_id']),
+    catTitle: _s(j['cat_title']),
+    likeCount: _i(j['like_count']),
+    commentCount: _i(j['comment_count']),
+    views: _i(j['views']),
+    createtime: _i(j['createtime']),
+    isAdmin: j['is_admin'] == 1 || j['is_admin'] == true,
+    isVip: j['is_vip'] == 1 || j['is_vip'] == true,
+    title: _s(j['title']),
+  );
 
   static List<PostItem> listFrom(dynamic data) {
     if (data is List) {
@@ -129,8 +132,7 @@ class PostItem {
   /// 相对时间
   String get relTime {
     if (createtime <= 0) return '';
-    final diff =
-        DateTime.now().millisecondsSinceEpoch ~/ 1000 - createtime;
+    final diff = DateTime.now().millisecondsSinceEpoch ~/ 1000 - createtime;
     if (diff < 60) return '刚刚';
     if (diff < 3600) return '${diff ~/ 60} 分钟前';
     if (diff < 86400) return '${diff ~/ 3600} 小时前';
@@ -148,10 +150,10 @@ class PostCat {
   PostCat({required this.id, required this.title, required this.count});
 
   factory PostCat.fromJson(Map j) => PostCat(
-        id: int.tryParse('${j['id']}') ?? 0,
-        title: (j['title'] ?? '').toString(),
-        count: int.tryParse('${j['count']}') ?? 0,
-      );
+    id: int.tryParse('${j['id']}') ?? 0,
+    title: (j['title'] ?? '').toString(),
+    count: int.tryParse('${j['count']}') ?? 0,
+  );
 
   static List<PostCat> listFrom(dynamic data) {
     if (data is List) {

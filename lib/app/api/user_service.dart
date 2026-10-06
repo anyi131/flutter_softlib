@@ -225,6 +225,17 @@ class UserService {
         msg.contains('token') && msg.contains('失效');
   }
 
+  /// v52f #3：下载成功上报操作日志（fire-and-forget，失败静默）
+  Future<void> downloadLog(String appName) async {
+    if (_token.isEmpty) return;
+    try {
+      await _dio.post(
+        '/api/softlib/user/download_log',
+        data: {'token': _token, 'name': appName},
+      );
+    } catch (_) {}
+  }
+
   /// 统一解析后端 {code,msg,data}（★ 失效检测内建在这里）
   Map<String, dynamic> _unwrap(Response resp) {
     final d = resp.data;

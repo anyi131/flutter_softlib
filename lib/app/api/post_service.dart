@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+
 import 'api_host.dart';
 
 import 'package:dio/dio.dart';
@@ -14,12 +16,14 @@ class PostService {
   static final PostService instance = PostService._();
 
   static const String baseUrl = ApiHost.base;
-  final Dio _dio = Dio(BaseOptions(
-    headers: DeviceInfo.headers,
-    baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 12),
-    receiveTimeout: const Duration(seconds: 20),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      headers: DeviceInfo.headers,
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 12),
+      receiveTimeout: const Duration(seconds: 20),
+    ),
+  );
 
   /// 分类
   Future<List<PostCat>> fetchCats() async {
@@ -39,14 +43,17 @@ class PostService {
   /// ★ 加时间戳参数：绕过任何中间层(CDN/代理)的 HTTP 缓存，
   ///   避免「发了新动态刷新还是旧内容」（用户反馈 #3）
   Future<List<PostItem>> fetchPosts({int page = 1, int catId = 0}) async {
-    final r = await _dio.get('/api/softlib/post/index', queryParameters: {
-      'pages': page,
-      if (catId > 0) 'cat_id': catId,
-      '_t': DateTime.now().millisecondsSinceEpoch,
-    }, options: Options(headers: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache',
-    }));
+    final r = await _dio.get(
+      '/api/softlib/post/index',
+      queryParameters: {
+        'pages': page,
+        if (catId > 0) 'cat_id': catId,
+        '_t': DateTime.now().millisecondsSinceEpoch,
+      },
+      options: Options(
+        headers: {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'},
+      ),
+    );
     if (r.data is Map && r.data['code'] == 1) {
       return PostItem.listFrom(r.data['data']);
     }
@@ -55,8 +62,10 @@ class PostService {
 
   /// 动态详情
   Future<PostItem?> fetchDetail(int id) async {
-    final r = await _dio.get('/api/softlib/post/detail',
-        queryParameters: {'id': id});
+    final r = await _dio.get(
+      '/api/softlib/post/detail',
+      queryParameters: {'id': id},
+    );
     if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
       return PostItem.fromJson(Map<String, dynamic>.from(r.data['data']));
     }
@@ -73,16 +82,19 @@ class PostService {
     String videoUrl = '',
     String videoType = '',
   }) async {
-    final r = await _dio.post('/api/softlib/post/create', data: {
-      'token': UserService.instance.token,
-      'nickname': nickname,
-      'content': content,
-      'images': images.join(','),
-      'cat_id': catId,
-      'avatar': avatar,
-      if (videoUrl.isNotEmpty) 'video_url': videoUrl,
-      if (videoType.isNotEmpty) 'video_type': videoType,
-    });
+    final r = await _dio.post(
+      '/api/softlib/post/create',
+      data: {
+        'token': UserService.instance.token,
+        'nickname': nickname,
+        'content': content,
+        'images': images.join(','),
+        'cat_id': catId,
+        'avatar': avatar,
+        if (videoUrl.isNotEmpty) 'video_url': videoUrl,
+        if (videoType.isNotEmpty) 'video_type': videoType,
+      },
+    );
     if (r.data is Map && r.data['code'] != 1) {
       throw Exception(r.data['msg'] ?? '发布失败');
     }
@@ -104,11 +116,14 @@ class PostService {
   /// 评论列表
   Future<List<Map<String, dynamic>>> comments(int postId) async {
     try {
-      final r = await _dio.get('/api/softlib/post/comment_list',
-          queryParameters: {'post_id': postId});
+      final r = await _dio.get(
+        '/api/softlib/post/comment_list',
+        queryParameters: {'post_id': postId},
+      );
       if (r.data is Map && r.data['code'] == 1 && r.data['data'] is List) {
-        return List<Map<String, dynamic>>.from((r.data['data'] as List)
-            .map((e) => Map<String, dynamic>.from(e)));
+        return List<Map<String, dynamic>>.from(
+          (r.data['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+        );
       }
     } catch (e) {
       debugPrint('[Softlib] $e');
@@ -125,44 +140,50 @@ class PostService {
     List<String> images = const [],
     int replyTo = 0,
   }) async {
-    final r = await _dio.post('/api/softlib/post/comment', data: {
-      'token': UserService.instance.token,
-      'post_id': postId,
-      'nickname': nickname,
-      'content': content,
-      'avatar': avatar,
-      'images': images.join(','),
-      if (replyTo > 0) 'reply_to': replyTo,
-    });
+    final r = await _dio.post(
+      '/api/softlib/post/comment',
+      data: {
+        'token': UserService.instance.token,
+        'post_id': postId,
+        'nickname': nickname,
+        'content': content,
+        'avatar': avatar,
+        'images': images.join(','),
+        if (replyTo > 0) 'reply_to': replyTo,
+      },
+    );
     return r.data is Map && r.data['code'] == 1;
   }
 
   /// 删除评论（仅作者或管理员）
   Future<bool> deleteComment(int id) async {
-    final r = await _dio.post('/api/softlib/post/comment_del', data: {
-      'token': UserService.instance.token,
-      'id': id,
-    });
+    final r = await _dio.post(
+      '/api/softlib/post/comment_del',
+      data: {'token': UserService.instance.token, 'id': id},
+    );
     return r.data is Map && r.data['code'] == 1;
   }
 
   /// 删除动态（仅作者或管理员）
   Future<bool> deletePost(int id) async {
-    final r = await _dio.post('/api/softlib/post/delete', data: {
-      'token': UserService.instance.token,
-      'id': id,
-    });
+    final r = await _dio.post(
+      '/api/softlib/post/delete',
+      data: {'token': UserService.instance.token, 'id': id},
+    );
     return r.data is Map && r.data['code'] == 1;
   }
 
   /// 测试蓝奏云文件夹解析（返回软件数量）
   Future<int> fetchFolderForTest(String url) async {
-    final r = await _dio.get('/api/softlib/app/folder',
-        queryParameters: {'url': url},
-        options: Options(receiveTimeout: const Duration(seconds: 50)));
+    final r = await _dio.get(
+      '/api/softlib/app/folder',
+      queryParameters: {'url': url},
+      options: Options(receiveTimeout: const Duration(seconds: 50)),
+    );
     if (r.data is Map) {
       final m = r.data as Map;
-      if (m['code'] == 1 && m['data'] is List) return (m['data'] as List).length;
+      if (m['code'] == 1 && m['data'] is List)
+        return (m['data'] as List).length;
       throw Exception((m['msg'] ?? '解析失败').toString());
     }
     throw Exception('解析失败');
@@ -171,11 +192,16 @@ class PostService {
   /// 上传图片
   Future<String> uploadImage(File file) async {
     final form = FormData.fromMap({
-      'file': await MultipartFile.fromFile(file.path,
-          filename: file.path.split('/').last),
+      'file': await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split('/').last,
+      ),
     });
-    final r = await _dio.post('/api/softlib/pic/index',
-        data: form, options: Options(receiveTimeout: const Duration(seconds: 60)));
+    final r = await _dio.post(
+      '/api/softlib/pic/index',
+      data: form,
+      options: Options(receiveTimeout: const Duration(seconds: 60)),
+    );
     if (r.data is Map && r.data['code'] == 1) {
       return (r.data['data']['url'] ?? '').toString();
     }
@@ -185,12 +211,16 @@ class PostService {
   /// 上传视频（本地模式）
   Future<String> uploadVideo(File file) async {
     final form = FormData.fromMap({
-      'file': await MultipartFile.fromFile(file.path,
-          filename: file.path.split('/').last),
+      'file': await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split('/').last,
+      ),
     });
-    final r = await _dio.post('/api/softlib/video/index',
-        data: form,
-        options: Options(receiveTimeout: const Duration(minutes: 5)));
+    final r = await _dio.post(
+      '/api/softlib/video/index',
+      data: form,
+      options: Options(receiveTimeout: const Duration(minutes: 5)),
+    );
     if (r.data is Map && r.data['code'] == 1) {
       return (r.data['data']['url'] ?? '').toString();
     }
@@ -199,8 +229,10 @@ class PostService {
 
   /// 解析视频分享链接（链接模式）
   Future<Map<String, dynamic>> parseVideoLink(String url) async {
-    final r = await _dio.get('/api/softlib/videoparse/index',
-        queryParameters: {'url': url});
+    final r = await _dio.get(
+      '/api/softlib/videoparse/index',
+      queryParameters: {'url': url},
+    );
     if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
       final m = Map<String, dynamic>.from(r.data['data']);
       if ((m['url'] ?? '').toString().isEmpty) {
@@ -210,5 +242,17 @@ class PostService {
       return m;
     }
     throw Exception(r.data is Map ? (r.data['msg'] ?? '解析失败') : '解析失败');
+  }
+
+  /// v52g #2：视频直链过期 → 用原始链接重新解析
+  Future<Map<String, dynamic>> videoRefresh(int postId) async {
+    final r = await _dio.post(
+      '/api/softlib/post/video_refresh',
+      data: {'id': postId},
+    );
+    if (r.data is Map && r.data['code'] == 1 && r.data['data'] is Map) {
+      return Map<String, dynamic>.from(r.data['data']);
+    }
+    throw Exception((r.data is Map ? r.data['msg'] : '') ?? '刷新失败');
   }
 }

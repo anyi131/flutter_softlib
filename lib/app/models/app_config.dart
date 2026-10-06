@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'ui_config.dart';
 
 /// App 全局配置（来自 /api/softlib/config/index，后台可远程下发）
@@ -109,6 +111,23 @@ class AppConfig {
     this.toolHomeStyle = 'group',
     this.uiConfig = const UiConfig(),
   });
+
+  /// ★ v52g #6：ui_config 是嵌套 JSON（后台「界面」Tab 整体下发）
+  ///   之前 fromLegacy 只认根级 theme_palette/app_ui_style 旧字段，
+  ///   嵌套结构完全没读到 —— 后台改了配置 App 永远不生效。
+  static UiConfig _parseUiConfig(Map json) {
+    final raw = json['ui_config'];
+    if (raw is Map) {
+      return UiConfig.fromJson(Map<String, dynamic>.from(raw));
+    }
+    if (raw is String && raw.trim().startsWith('{')) {
+      try {
+        final d = jsonDecode(raw);
+        if (d is Map) return UiConfig.fromJson(Map<String, dynamic>.from(d));
+      } catch (_) {}
+    }
+    return UiConfig.fromLegacy(json);
+  }
 
   static bool _b(dynamic v) => v == true || v == 1 || v == '1' || v == 'true';
   static int _i(dynamic v) => int.tryParse((v ?? '').toString()) ?? 0;

@@ -395,6 +395,8 @@ class _SquareComponentState extends State<SquareComponent> {
                     PostVideoPlayer(
                       url: p.videoUrl,
                       type: p.videoType,
+                      postId: p.id,
+                      source: p.videoSource,
                       cover: p.videoCover,
                       lazy: true,
                     ),
