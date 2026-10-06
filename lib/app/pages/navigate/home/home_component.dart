@@ -12,6 +12,7 @@ import '../../../models/http/results/carousel_model.dart';
 import '../../../models/http/results/referral_model.dart';
 import '../../../routes/app_pages.dart';
 import '../navigate_logic.dart';
+import '../update_flow.dart';
 import 'home_logic.dart';
 
 /// 首页 —— 沉浸式玻璃拟态布局
@@ -54,7 +55,9 @@ class _HomeComponentState extends State<HomeComponent> {
                 SliverToBoxAdapter(child: _notice()),
                 _referralTitle(),
                 _referralGrid(),
-                SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+                SliverToBoxAdapter(
+                  child: SizedBox(height: context.tabSpace + 40),
+                ),
               ],
             ),
           ),
@@ -67,7 +70,11 @@ class _HomeComponentState extends State<HomeComponent> {
   Widget _header() {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        context.pagePadding, 14, context.pagePadding, 0),
+        context.pagePadding,
+        14,
+        context.pagePadding,
+        0,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -77,8 +84,10 @@ class _HomeComponentState extends State<HomeComponent> {
               children: [
                 ShaderMask(
                   shaderCallback: (r) => Deco.aurora().createShader(r),
-                  child: Text('发现好软件',
-                      style: Ty.display.copyWith(color: Colors.white)),
+                  child: Text(
+                    '发现好软件',
+                    style: Ty.display.copyWith(color: Colors.white),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 _wordLine(),
@@ -104,8 +113,10 @@ class _HomeComponentState extends State<HomeComponent> {
       builder: (logic) {
         final w = logic.word;
         if (w == null || w.isEmpty) {
-          return Text('每日精选 · 持续更新',
-              style: Ty.small.copyWith(color: context.t3));
+          return Text(
+            '每日精选 · 持续更新',
+            style: Ty.small.copyWith(color: context.t3),
+          );
         }
         return Row(
           children: [
@@ -146,9 +157,7 @@ class _HomeComponentState extends State<HomeComponent> {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: context.isDark
-              ? Colors.white.withAlpha(12)
-              : Colors.white,
+          color: context.isDark ? Colors.white.withAlpha(12) : Colors.white,
           shape: BoxShape.circle,
           border: Border.all(
             color: context.isDark
@@ -165,7 +174,11 @@ class _HomeComponentState extends State<HomeComponent> {
   Widget _search() {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        context.pagePadding, 18, context.pagePadding, 0),
+        context.pagePadding,
+        18,
+        context.pagePadding,
+        0,
+      ),
       child: Deco.glass(
         context,
         radius: R.full,
@@ -177,15 +190,12 @@ class _HomeComponentState extends State<HomeComponent> {
             Icon(Icons.search_rounded, size: 20, color: C.brandBright),
             const SizedBox(width: 10),
             Expanded(
-              child: Text('搜索你想要的软件',
-                  style: Ty.body.copyWith(color: context.t3, fontSize: 13.5)),
+              child: Text(
+                '搜索你想要的软件',
+                style: Ty.body.copyWith(color: context.t3, fontSize: 13.5),
+              ),
             ),
-            Pill(
-              '搜索',
-              color: C.brand,
-              solid: true,
-              small: true,
-            ),
+            Pill('搜索', color: C.brand, solid: true, small: true),
           ],
         ),
       ),
@@ -195,47 +205,67 @@ class _HomeComponentState extends State<HomeComponent> {
   // ───────── ③ 快捷入口 ─────────
   Widget _quickGrid() {
     final items = [
-      (_QI(Icons.download_rounded, '下载管理', C.brandBright),
-          () => Get.toNamed(Routes.appDownload)),
-      (_QI(Icons.search_rounded, '软件搜索', C.cyan),
-          () => Get.toNamed(Routes.appSearch)),
-      (_QI(Icons.article_rounded, '线报速递', C.mint),
-          () => Get.find<NavigateLogic>().changePage(3)),
-      (_QI(Icons.auto_awesome_rounded, '版本更新', C.violet),
-          () => Get.find<NavigateLogic>().checkUpdate(showLatestTip: true)),
+      (
+        _QI(Icons.download_rounded, '下载管理', C.brandBright),
+        () => Get.toNamed(Routes.appDownload),
+      ),
+      (
+        _QI(Icons.search_rounded, '软件搜索', C.cyan),
+        () => Get.toNamed(Routes.appSearch),
+      ),
+      (
+        _QI(Icons.article_rounded, '线报速递', C.mint),
+        () => Get.find<NavigateLogic>().changePage(3),
+      ),
+      (
+        _QI(Icons.auto_awesome_rounded, '版本更新', C.violet),
+        () => UpdateFlow.check(showLatestTip: true),
+      ),
     ];
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        context.pagePadding - 6, 20, context.pagePadding - 6, 4),
+        context.pagePadding - 6,
+        20,
+        context.pagePadding - 6,
+        4,
+      ),
       child: Row(
         children: items
-            .map((it) => Expanded(
-                  child: GestureDetector(
-                    onTap: it.$2,
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: it.$1.color.withAlpha(context.isDark ? 34 : 24),
-                            borderRadius: BorderRadius.circular(R.md + 2),
-                            border: Border.all(
-                                color: it.$1.color.withAlpha(60), width: 0.8),
+            .map(
+              (it) => Expanded(
+                child: GestureDetector(
+                  onTap: it.$2,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: it.$1.color.withAlpha(
+                            context.isDark ? 34 : 24,
                           ),
-                          child: Icon(it.$1.icon,
-                              color: it.$1.color, size: 26),
+                          borderRadius: BorderRadius.circular(R.md + 2),
+                          border: Border.all(
+                            color: it.$1.color.withAlpha(60),
+                            width: 0.8,
+                          ),
                         ),
-                        const SizedBox(height: 9),
-                        Text(it.$1.label,
-                            style: Ty.small.copyWith(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: context.t2)),
-                      ],
-                    ),
+                        child: Icon(it.$1.icon, color: it.$1.color, size: 26),
+                      ),
+                      const SizedBox(height: 9),
+                      Text(
+                        it.$1.label,
+                        style: Ty.small.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: context.t2,
+                        ),
+                      ),
+                    ],
                   ),
-                ))
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -251,7 +281,11 @@ class _HomeComponentState extends State<HomeComponent> {
         final idx = _carouselIdx.clamp(0, list.length - 1);
         return Padding(
           padding: EdgeInsets.fromLTRB(
-        context.pagePadding, 16, context.pagePadding, 0),
+            context.pagePadding,
+            16,
+            context.pagePadding,
+            0,
+          ),
           child: Column(
             children: [
               CarouselSlider.builder(
@@ -284,16 +318,20 @@ class _HomeComponentState extends State<HomeComponent> {
                                 color: context.cardBg,
                                 child: const Center(
                                   child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2)),
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
                                 ),
                               ),
                               errorWidget: (_, __, ___) => Container(
                                 color: context.cardBg,
-                                child: Image.asset(Assets.imagesSucceed,
-                                    fit: BoxFit.cover),
+                                child: Image.asset(
+                                  Assets.imagesSucceed,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                             ),
                             // 底部渐隐 + 标题
@@ -303,14 +341,18 @@ class _HomeComponentState extends State<HomeComponent> {
                               bottom: 0,
                               child: Container(
                                 padding: const EdgeInsets.fromLTRB(
-                                    16, 26, 16, 14),
+                                  16,
+                                  26,
+                                  16,
+                                  14,
+                                ),
                                 decoration: const BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.bottomCenter,
                                     end: Alignment.topCenter,
                                     colors: [
                                       Color(0xCC000000),
-                                      Color(0x00000000)
+                                      Color(0x00000000),
                                     ],
                                   ),
                                 ),
@@ -339,8 +381,7 @@ class _HomeComponentState extends State<HomeComponent> {
                   enlargeCenterPage: true,
                   enlargeFactor: 0.14,
                   autoPlayInterval: const Duration(seconds: 4),
-                  autoPlayAnimationDuration:
-                      const Duration(milliseconds: 700),
+                  autoPlayAnimationDuration: const Duration(milliseconds: 700),
                   autoPlayCurve: Curves.easeOutCubic,
                   onPageChanged: (i, _) {
                     if (_carouselIdx != i) {
@@ -383,7 +424,11 @@ class _HomeComponentState extends State<HomeComponent> {
         if (text.isEmpty) return const SizedBox.shrink();
         return Padding(
           padding: EdgeInsets.fromLTRB(
-        context.pagePadding, 16, context.pagePadding, 0),
+            context.pagePadding,
+            16,
+            context.pagePadding,
+            0,
+          ),
           child: Deco.glass(
             context,
             radius: R.md,
@@ -397,8 +442,11 @@ class _HomeComponentState extends State<HomeComponent> {
                     gradient: Deco.brandGradient,
                     borderRadius: BorderRadius.circular(R.xs - 1),
                   ),
-                  child: const Icon(Icons.campaign_rounded,
-                      size: 13, color: Colors.white),
+                  child: const Icon(
+                    Icons.campaign_rounded,
+                    size: 13,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -406,7 +454,10 @@ class _HomeComponentState extends State<HomeComponent> {
                     height: 18,
                     child: Marquee(
                       text: text,
-                      style: Ty.small.copyWith(color: context.t2, fontSize: 12.5),
+                      style: Ty.small.copyWith(
+                        color: context.t2,
+                        fontSize: 12.5,
+                      ),
                       blankSpace: 90,
                       velocity: 30,
                       accelerationDuration: const Duration(milliseconds: 800),
@@ -434,11 +485,19 @@ class _HomeComponentState extends State<HomeComponent> {
         return SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(
-        context.pagePadding, 26, context.pagePadding, 12),
+              context.pagePadding,
+              26,
+              context.pagePadding,
+              12,
+            ),
             child: SectionHeader(
               title: '官方推荐',
               accent: C.brandBright,
-              action: Pill('${list.length} 款', color: C.brandBright, small: true),
+              action: Pill(
+                '${list.length} 款',
+                color: C.brandBright,
+                small: true,
+              ),
             ),
           ),
         );
@@ -482,9 +541,8 @@ class _HomeComponentState extends State<HomeComponent> {
               imageUrl: d.image ?? '',
               fit: BoxFit.cover,
               memCacheWidth: 600,
-              placeholder: (_, __) => Container(
-                color: context.isDark ? C.bg2 : C.lbg2,
-              ),
+              placeholder: (_, __) =>
+                  Container(color: context.isDark ? C.bg2 : C.lbg2),
               errorWidget: (_, __, ___) =>
                   Image.asset(Assets.imagesSucceed, fit: BoxFit.cover),
             ),

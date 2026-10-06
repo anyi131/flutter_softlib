@@ -174,21 +174,27 @@ class MineLogic extends GetxController {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('修改 QQ 号会自动同步 QQ 头像',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const Text(
+                  '修改 QQ 号会自动同步 QQ 头像',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: nickCtrl,
                   maxLength: 20,
                   decoration: const InputDecoration(
-                      labelText: '昵称', border: OutlineInputBorder()),
+                    labelText: '昵称',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 TextField(
                   controller: qqCtrl,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                      labelText: 'QQ 号', border: OutlineInputBorder()),
+                    labelText: 'QQ 号',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ],
             ),
@@ -196,9 +202,13 @@ class MineLogic extends GetxController {
         ),
         actions: [
           TextButton(
-              onPressed: () => Get.back(result: false), child: const Text('取消')),
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消'),
+          ),
           FilledButton(
-              onPressed: () => Get.back(result: true), child: const Text('保存')),
+            onPressed: () => Get.back(result: true),
+            child: const Text('保存'),
+          ),
         ],
       ),
     );
@@ -223,9 +233,13 @@ class MineLogic extends GetxController {
         content: const Text('确定要退出当前账号吗？'),
         actions: [
           TextButton(
-              onPressed: () => Get.back(result: false), child: const Text('取消')),
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消'),
+          ),
           FilledButton(
-              onPressed: () => Get.back(result: true), child: const Text('退出')),
+            onPressed: () => Get.back(result: true),
+            child: const Text('退出'),
+          ),
         ],
       ),
     );
@@ -264,13 +278,16 @@ class MineLogic extends GetxController {
           controller: ctrl,
           autofocus: true,
           decoration: const InputDecoration(
-              hintText: '请输入卡密', border: OutlineInputBorder()),
+            hintText: '请输入卡密',
+            border: OutlineInputBorder(),
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('取消')),
           FilledButton(
-              onPressed: () => Get.back(result: ctrl.text.trim()),
-              child: const Text('兑换')),
+            onPressed: () => Get.back(result: ctrl.text.trim()),
+            child: const Text('兑换'),
+          ),
         ],
       ),
     );
@@ -282,165 +299,6 @@ class MineLogic extends GetxController {
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
     }
-  }
-
-  /// 切换浅色 / 深色主题
-  Future<void> switchTheme() async {
-    final tc = ThemeController.instance;
-    final sc = AppStyleController.instance;
-    await Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.brightness_6_rounded, size: 21, color: Color(0xFF7B8CFF)),
-            SizedBox(width: 9),
-            Text('外观设置',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('主题',
-                    style: Ty.tiny.copyWith(
-                        fontSize: 12, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                _themeOption(ThemeMode.light, '浅色模式',
-                    Icons.light_mode_rounded, tc.mode.value == ThemeMode.light),
-                _themeOption(ThemeMode.dark, '深色模式', Icons.dark_mode_rounded,
-                    tc.mode.value == ThemeMode.dark),
-                _themeOption(ThemeMode.system, '跟随系统',
-                    Icons.settings_brightness_rounded,
-                    tc.mode.value == ThemeMode.system),
-                const SizedBox(height: 12),
-                Divider(color: Colors.grey.withAlpha(40), height: 1),
-                const SizedBox(height: 12),
-                Text('软件列表样式',
-                    style: Ty.tiny.copyWith(
-                        fontSize: 12, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                // ★ 需求 #9：多种列表样式可切换
-                Obx(() => Column(
-                      children: AppListStyle.values
-                          .map((s) => _styleOption(
-                                s.icon,
-                                s.label,
-                                s.desc,
-                                sc.listStyle.value == s,
-                                () => sc.setListStyle(s),
-                              ))
-                          .toList(),
-                    )),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('关闭')),
-        ],
-      ),
-    );
-  }
-
-  /// 样式选项（带说明文字）
-  Widget _styleOption(IconData icon, String label, String desc, bool selected,
-      VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        // ★ 不关闭弹窗：用户可连续切换预览
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-          decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFF5B6CFF).withAlpha(26)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected
-                  ? const Color(0xFF5B6CFF).withAlpha(120)
-                  : Colors.grey.withAlpha(40),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(icon,
-                  size: 19,
-                  color: selected ? const Color(0xFF5B6CFF) : Colors.grey),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                                selected ? FontWeight.w800 : FontWeight.w500)),
-                    const SizedBox(height: 2),
-                    Text(desc,
-                        style: TextStyle(
-                            fontSize: 11, color: Colors.grey[500])),
-                  ],
-                ),
-              ),
-              if (selected)
-                const Icon(Icons.check_circle_rounded,
-                    size: 19, color: Color(0xFF5B6CFF)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _themeOption(
-      ThemeMode m, String label, IconData icon, bool selected) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        onTap: () => Get.back(result: m),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFF5B6CFF).withAlpha(26)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected
-                  ? const Color(0xFF5B6CFF).withAlpha(120)
-                  : Colors.grey.withAlpha(40),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 19,
-                  color: selected ? const Color(0xFF5B6CFF) : Colors.grey),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Text(label,
-                    style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight:
-                            selected ? FontWeight.w800 : FontWeight.w500)),
-              ),
-              if (selected)
-                const Icon(Icons.check_circle_rounded,
-                    size: 19, color: Color(0xFF5B6CFF)),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   /// 打开内嵌管理系统（App 内，不跳浏览器）
@@ -462,13 +320,17 @@ class MineLogic extends GetxController {
   }
 
   void showAgreement(String title, String content) {
-    Get.dialog(AlertDialog(
-      title: Text(title),
-      content: SingleChildScrollView(child: Text(content, style: const TextStyle(height: 1.7))),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('我知道了')),
-      ],
-    ));
+    Get.dialog(
+      AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: Text(content, style: const TextStyle(height: 1.7)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('我知道了')),
+        ],
+      ),
+    );
   }
 
   /// 用户协议 / 隐私政策（独立美化页面，内容来自后台）
@@ -491,13 +353,11 @@ class MineLogic extends GetxController {
 
     Get.dialog(
       Dialog(
-        insetPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
           width: double.maxFinite,
-          constraints: BoxConstraints(
-              maxHeight: Get.height * 0.78),
+          constraints: BoxConstraints(maxHeight: Get.height * 0.78),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             gradient: const LinearGradient(
@@ -537,29 +397,41 @@ class MineLogic extends GetxController {
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.emoji_events_rounded,
-                          color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.emoji_events_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('赞助排行榜',
-                            style: TextStyle(
-                                fontSize: 17.5,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white)),
+                        const Text(
+                          '赞助排行榜',
+                          style: TextStyle(
+                            fontSize: 17.5,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text('感谢每一位支持者 ❤',
-                            style: TextStyle(
-                                fontSize: 11.5,
-                                color: Colors.white.withAlpha(150))),
+                        Text(
+                          '感谢每一位支持者 ❤',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: Colors.white.withAlpha(150),
+                          ),
+                        ),
                       ],
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: Icon(Icons.close,
-                          size: 20, color: Colors.white.withAlpha(180)),
+                      icon: Icon(
+                        Icons.close,
+                        size: 20,
+                        color: Colors.white.withAlpha(180),
+                      ),
                       onPressed: Get.back,
                     ),
                   ],
@@ -574,47 +446,63 @@ class MineLogic extends GetxController {
                           child: SizedBox(
                             width: 26,
                             height: 26,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2.4),
+                            child: CircularProgressIndicator(strokeWidth: 2.4),
                           ),
                         ),
                       )
                     : (err.isNotEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 40),
-                            child: Text(err,
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              child: Text(
+                                err,
                                 style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white.withAlpha(170))),
-                          )
-                        : (list.isEmpty
-                            ? Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 40),
-                                child: Column(
-                                  children: [
-                                    Icon(Icons.volunteer_activism_rounded,
-                                        size: 40,
-                                        color: Colors.white.withAlpha(80)),
-                                    const SizedBox(height: 12),
-                                    Text('还没有赞助记录',
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.white.withAlpha(160))),
-                                    const SizedBox(height: 6),
-                                    Text('欢迎成为第一位支持者',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white.withAlpha(110))),
-                                  ],
+                                  fontSize: 13,
+                                  color: Colors.white.withAlpha(170),
                                 ),
-                              )
-                            : ListView.builder(
-                                shrinkWrap: true,
-                                padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
-                                itemCount: list.length,
-                                itemBuilder: (c, i) => _rankRow(list[i], i),
-                              ))),
+                              ),
+                            )
+                          : (list.isEmpty
+                                ? Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 40,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.volunteer_activism_rounded,
+                                          size: 40,
+                                          color: Colors.white.withAlpha(80),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          '还没有赞助记录',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white.withAlpha(160),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          '欢迎成为第一位支持者',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.white.withAlpha(110),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    padding: const EdgeInsets.fromLTRB(
+                                      14,
+                                      12,
+                                      14,
+                                      16,
+                                    ),
+                                    itemCount: list.length,
+                                    itemBuilder: (c, i) => _rankRow(list[i], i),
+                                  ))),
               ),
             ],
           ),
@@ -640,16 +528,14 @@ class MineLogic extends GetxController {
     final List<Color> medalColors = rank == 1
         ? [const Color(0xFFFFD54F), const Color(0xFFF59E0B)]
         : rank == 2
-            ? [const Color(0xFFE0E0E0), const Color(0xFF9E9E9E)]
-            : [const Color(0xFFD7A06A), const Color(0xFFB07B4F)];
+        ? [const Color(0xFFE0E0E0), const Color(0xFF9E9E9E)]
+        : [const Color(0xFFD7A06A), const Color(0xFFB07B4F)];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 9),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: top3
-            ? medalColors[1].withAlpha(26)
-            : Colors.white.withAlpha(8),
+        color: top3 ? medalColors[1].withAlpha(26) : Colors.white.withAlpha(8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: top3
@@ -713,9 +599,10 @@ class MineLogic extends GetxController {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Row(
@@ -723,30 +610,37 @@ class MineLogic extends GetxController {
                     if (title.isNotEmpty) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1.5),
+                          horizontal: 6,
+                          vertical: 1.5,
+                        ),
                         decoration: BoxDecoration(
                           color: C.violet.withAlpha(60),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(title,
-                            style: const TextStyle(
-                                fontSize: 9.5,
-                                color: Color(0xFFC9BEFF),
-                                fontWeight: FontWeight.w700)),
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            color: Color(0xFFC9BEFF),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 5),
                     ],
-                    if (isAdmin)
-                      _miniTag('管理', const Color(0xFFEF4444)),
+                    if (isAdmin) _miniTag('管理', const Color(0xFFEF4444)),
                     if (isVip) ...[
                       const SizedBox(width: 4),
                       _miniTag('会员', const Color(0xFFF59E0B)),
                     ],
                     if (title.isEmpty && !isAdmin && !isVip)
-                      Text('赞助者',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.white.withAlpha(110))),
+                      Text(
+                        '赞助者',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withAlpha(110),
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -760,9 +654,10 @@ class MineLogic extends GetxController {
               Text(
                 '¥$amount',
                 style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFFFFD54F)),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFFFD54F),
+                ),
               ),
               if ((double.tryParse(vipAmt) ?? 0) > 0 ||
                   (double.tryParse(reAmt) ?? 0) > 0)
@@ -773,7 +668,9 @@ class MineLogic extends GetxController {
                         ? '会员 ¥$vipAmt'
                         : '充值 ¥$reAmt',
                     style: TextStyle(
-                        fontSize: 9.5, color: Colors.white.withAlpha(120)),
+                      fontSize: 9.5,
+                      color: Colors.white.withAlpha(120),
+                    ),
                   ),
                 ),
             ],
@@ -784,31 +681,35 @@ class MineLogic extends GetxController {
   }
 
   Widget _miniTag(String t, Color c) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-        decoration: BoxDecoration(
-          color: c.withAlpha(60),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(t,
-            style: TextStyle(
-                fontSize: 9.5, color: c, fontWeight: FontWeight.w800)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+    decoration: BoxDecoration(
+      color: c.withAlpha(60),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      t,
+      style: TextStyle(fontSize: 9.5, color: c, fontWeight: FontWeight.w800),
+    ),
+  );
 
   Widget _rankAvatarFallback(String nick) => Container(
-        width: 38,
-        height: 38,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [C.brand.withAlpha(180), C.violet.withAlpha(160)],
-          ),
-        ),
-        child: Text(
-          nick.isNotEmpty ? nick.characters.first : '?',
-          style: const TextStyle(
-              fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
-        ),
-      );
+    width: 38,
+    height: 38,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [C.brand.withAlpha(180), C.violet.withAlpha(160)],
+      ),
+    ),
+    child: Text(
+      nick.isNotEmpty ? nick.characters.first : '?',
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w900,
+        color: Colors.white,
+      ),
+    ),
+  );
 
   /// 积分兑换
   Future<void> pointsExchange() async {
@@ -819,19 +720,25 @@ class MineLogic extends GetxController {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.monetization_on_rounded,
-                color: Color(0xFFFB923C), size: 21),
+            Icon(
+              Icons.monetization_on_rounded,
+              color: Color(0xFFFB923C),
+              size: 21,
+            ),
             SizedBox(width: 9),
-            Text('积分兑换',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            Text(
+              '积分兑换',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('当前积分：$points',
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w700)),
+            Text(
+              '当前积分：$points',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 14),
             for (final g in goodsList)
               _exchangeItem(
@@ -841,9 +748,7 @@ class MineLogic extends GetxController {
               ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: Get.back, child: const Text('取消')),
-        ],
+        actions: [TextButton(onPressed: Get.back, child: const Text('取消'))],
       ),
     );
     if (goods == null) return;
@@ -866,9 +771,7 @@ class MineLogic extends GetxController {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: enough
-                ? const Color(0xFFFFF8E6)
-                : Colors.grey.withAlpha(20),
+            color: enough ? const Color(0xFFFFF8E6) : Colors.grey.withAlpha(20),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: enough
@@ -878,21 +781,29 @@ class MineLogic extends GetxController {
           ),
           child: Row(
             children: [
-              const Icon(Icons.card_giftcard_rounded,
-                  size: 18, color: Color(0xFFFBBF24)),
+              const Icon(
+                Icons.card_giftcard_rounded,
+                size: 18,
+                color: Color(0xFFFBBF24),
+              ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(label,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700)),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-              Text('$cost 积分',
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: enough
-                          ? const Color(0xFFC9A227)
-                          : Colors.grey)),
+              Text(
+                '$cost 积分',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: enough ? const Color(0xFFC9A227) : Colors.grey,
+                ),
+              ),
             ],
           ),
         ),
@@ -907,8 +818,10 @@ class MineLogic extends GetxController {
     final v = await Get.dialog<String>(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('自定义称号',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        title: const Text(
+          '自定义称号',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -920,15 +833,18 @@ class MineLogic extends GetxController {
                 labelText: '称号',
               ),
             ),
-            Text('称号会显示在你的广场动态旁',
-                style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+            Text(
+              '称号会显示在你的广场动态旁',
+              style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+            ),
           ],
         ),
         actions: [
           TextButton(onPressed: Get.back, child: const Text('取消')),
           FilledButton(
-              onPressed: () => Get.back(result: ctrl.text.trim()),
-              child: const Text('保存')),
+            onPressed: () => Get.back(result: ctrl.text.trim()),
+            child: const Text('保存'),
+          ),
         ],
       ),
     );
@@ -948,8 +864,10 @@ class MineLogic extends GetxController {
     final action = await Get.dialog<String>(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('替换开屏',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        title: const Text(
+          '替换开屏',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+        ),
         content: Text(
           _userService.user?.splashImage.isNotEmpty == true
               ? '当前已设置自定义开屏图'
@@ -959,12 +877,14 @@ class MineLogic extends GetxController {
         actions: [
           if (_userService.user?.splashImage.isNotEmpty == true)
             TextButton(
-                onPressed: () => Get.back(result: 'reset'),
-                child: const Text('恢复默认')),
+              onPressed: () => Get.back(result: 'reset'),
+              child: const Text('恢复默认'),
+            ),
           TextButton(onPressed: Get.back, child: const Text('取消')),
           FilledButton(
-              onPressed: () => Get.back(result: 'upload'),
-              child: const Text('选择图片')),
+            onPressed: () => Get.back(result: 'upload'),
+            child: const Text('选择图片'),
+          ),
         ],
       ),
     );
@@ -982,8 +902,10 @@ class MineLogic extends GetxController {
       return;
     }
     try {
-      final picked = await ImagePicker()
-          .pickImage(source: ImageSource.gallery, imageQuality: 88);
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 88,
+      );
       if (picked == null) return;
       // ★ 先存本地（启动时优先用本地图，秒开且不依赖网络）——用户 #9 的要求
       final localPath = await LocalSplash.save(picked.path);

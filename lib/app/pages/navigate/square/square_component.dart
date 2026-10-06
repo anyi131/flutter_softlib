@@ -12,6 +12,7 @@ import '../../../api/user_service.dart';
 import '../../../models/post_item.dart';
 import '../../../routes/app_pages.dart';
 import '../../../design/adaptive.dart';
+import '../../../design/app_anim.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../widgets/tab_bottom_pad.dart';
@@ -28,8 +29,10 @@ class SquareComponent extends StatefulWidget {
 
 class _SquareComponentState extends State<SquareComponent> {
   final PostService _svc = PostService.instance;
-  final EasyRefreshController _refresh =
-      EasyRefreshController(controlFinishRefresh: true, controlFinishLoad: true);
+  final EasyRefreshController _refresh = EasyRefreshController(
+    controlFinishRefresh: true,
+    controlFinishLoad: true,
+  );
 
   List<PostCat> _cats = [];
   List<PostItem> _posts = [];
@@ -63,8 +66,13 @@ class _SquareComponentState extends State<SquareComponent> {
         }
         _loading = false;
       });
-      reset ? _refresh.finishRefresh() : _refresh.finishLoad(
-          list.length < 20 ? IndicatorResult.noMore : IndicatorResult.success);
+      reset
+          ? _refresh.finishRefresh()
+          : _refresh.finishLoad(
+              list.length < 20
+                  ? IndicatorResult.noMore
+                  : IndicatorResult.success,
+            );
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -83,8 +91,9 @@ class _SquareComponentState extends State<SquareComponent> {
   }
 
   void _toast(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 2)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+    );
   }
 
   @override
@@ -134,7 +143,12 @@ class _SquareComponentState extends State<SquareComponent> {
 
   Widget _topBar() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(context.pagePadding, 14, context.pagePadding, 2),
+      padding: EdgeInsets.fromLTRB(
+        context.pagePadding,
+        14,
+        context.pagePadding,
+        2,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -144,8 +158,10 @@ class _SquareComponentState extends State<SquareComponent> {
               children: [
                 Text('广场', style: Ty.display.copyWith(color: context.t1)),
                 const SizedBox(height: 4),
-                Text('交流分享 · 发现好软',
-                    style: Ty.small.copyWith(color: context.t3)),
+                Text(
+                  '交流分享 · 发现好软',
+                  style: Ty.small.copyWith(color: context.t3),
+                ),
               ],
             ),
           ),
@@ -174,9 +190,7 @@ class _SquareComponentState extends State<SquareComponent> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 gradient: sel ? Deco.brandGradient : null,
-                color: sel
-                    ? null
-                    : (isDark ? C.bg3 : Colors.white),
+                color: sel ? null : (isDark ? C.bg3 : Colors.white),
                 borderRadius: BorderRadius.circular(R.md),
               ),
               child: Text(
@@ -184,8 +198,9 @@ class _SquareComponentState extends State<SquareComponent> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
-                  color:
-                      sel ? Colors.white : (isDark ? C.t2 : const Color(0xFF4B5563)),
+                  color: sel
+                      ? Colors.white
+                      : (isDark ? C.t2 : const Color(0xFF4B5563)),
                 ),
               ),
             ),
@@ -214,7 +229,10 @@ class _SquareComponentState extends State<SquareComponent> {
         await _load();
       },
       child: ListView.builder(
-        padding: EdgeInsets.only(top: 4, bottom: tabBottomPadding(context) + 60),
+        padding: EdgeInsets.only(
+          top: 4,
+          bottom: tabBottomPadding(context) + 60,
+        ),
         itemCount: _posts.length,
         // ★ RepaintBoundary：每张卡片独立图层，滚动时不会整列重绘
         // ★ ValueKey：必须给每项唯一 key！否则刷新后 Flutter 会复用旧的
@@ -222,7 +240,10 @@ class _SquareComponentState extends State<SquareComponent> {
         //   （用户反馈的「新视频显示旧数据」就是这个原因）
         itemBuilder: (context, i) => RepaintBoundary(
           key: ValueKey('post_${_posts[i].id}'),
-          child: _postCard(_posts[i], isDark),
+          child: AppStaggerIn(
+            index: i % 8,
+            child: _postCard(_posts[i], isDark),
+          ),
         ),
       ),
     );
@@ -230,173 +251,216 @@ class _SquareComponentState extends State<SquareComponent> {
 
   Widget _postCard(PostItem p, bool isDark) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(context.pagePadding, 6, context.pagePadding, 6),
+      padding: EdgeInsets.fromLTRB(
+        context.pagePadding,
+        6,
+        context.pagePadding,
+        6,
+      ),
       child: Deco.glass(
         context,
         radius: R.lg,
         alpha: 0.06,
         child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(R.lg),
-        child: InkWell(
-        borderRadius: BorderRadius.circular(R.lg),
-        onTap: () async {
-          await Get.toNamed(Routes.postDetail, arguments: {'id': p.id, 'item': p});
-          _load(reset: true);
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 头部：头像 + 昵称 + 分类/时间
-              Row(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(R.lg),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(R.lg),
+            onTap: () async {
+              await Get.toNamed(
+                Routes.postDetail,
+                arguments: {'id': p.id, 'item': p},
+              );
+              _load(reset: true);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipOval(
-                    child: p.avatar.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: p.avatar,
-                            width: 38,
-                            height: 38,
-                            fit: BoxFit.cover,
-                            memCacheWidth: 96)
-                        : _avatar(),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  // 头部：头像 + 昵称 + 分类/时间
+                  Row(
+                    children: [
+                      ClipOval(
+                        child: p.avatar.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: p.avatar,
+                                width: 38,
+                                height: 38,
+                                fit: BoxFit.cover,
+                                memCacheWidth: 96,
+                              )
+                            : _avatar(),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // ★ 昵称弹性收缩，徽章固定宽度不参与挤压，
-                            //   避免长昵称 + 多个头衔导致 Row 溢出
-                            Flexible(
-                              child: Text(
-                                  p.nickname.isEmpty ? '匿名用户' : p.nickname,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Ty.h3.copyWith(color: context.t1)),
-                            ),
-                            if (p.isAdmin) ...[
-                              const SizedBox(width: 5),
-                              const Pill('管理',
-                                  color: C.danger, small: true),
-                            ],
-                            if (p.isVip) ...[
-                              const SizedBox(width: 4),
-                              const Pill('VIP',
-                                  color: C.amber, small: true, solid: true),
-                            ],
-                            if (p.title.isNotEmpty) ...[
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Pill(p.title, color: C.brand, small: true),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            if (p.catTitle.isNotEmpty) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: C.brand.withAlpha(22),
-                                  borderRadius: BorderRadius.circular(R.xs / 2),
+                            Row(
+                              children: [
+                                // ★ 昵称弹性收缩，徽章固定宽度不参与挤压，
+                                //   避免长昵称 + 多个头衔导致 Row 溢出
+                                Flexible(
+                                  child: Text(
+                                    p.nickname.isEmpty ? '匿名用户' : p.nickname,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Ty.h3.copyWith(color: context.t1),
+                                  ),
                                 ),
-                                child: Text(p.catTitle,
-                                    style: TextStyle(
+                                if (p.isAdmin) ...[
+                                  const SizedBox(width: 5),
+                                  const Pill(
+                                    '管理',
+                                    color: C.danger,
+                                    small: true,
+                                  ),
+                                ],
+                                if (p.isVip) ...[
+                                  const SizedBox(width: 4),
+                                  const Pill(
+                                    'VIP',
+                                    color: C.amber,
+                                    small: true,
+                                    solid: true,
+                                  ),
+                                ],
+                                if (p.title.isNotEmpty) ...[
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Pill(
+                                      p.title,
+                                      color: C.brand,
+                                      small: true,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                if (p.catTitle.isNotEmpty) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: C.brand.withAlpha(22),
+                                      borderRadius: BorderRadius.circular(
+                                        R.xs / 2,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      p.catTitle,
+                                      style: TextStyle(
                                         fontSize: 10,
                                         color: C.brand,
-                                        fontWeight: FontWeight.w700)),
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            Text(p.relTime,
-                                style: Ty.tiny.copyWith(color: context.t3)),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
+                                Text(
+                                  p.relTime,
+                                  style: Ty.tiny.copyWith(color: context.t3),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              if (p.content.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(p.content,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                  if (p.content.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      p.content,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
                         fontSize: 14.5,
                         height: 1.55,
-                        color: context.t1)),
-              ],
-              // 视频（本地直链 或 分享链接解析后的播放页）
-              // ★ 列表态用 lazy：只显示封面+播放按钮，点了才加载（避免滚动卡顿）
-              if (p.videoUrl.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                PostVideoPlayer(
-                  url: p.videoUrl,
-                  type: p.videoType,
-                  cover: p.videoCover,
-                  lazy: true,
-                ),
-              ],
-              // 图片九宫格
-              if (p.images.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _imageGrid(p.images),
-              ],
-              const SizedBox(height: 10),
-              Divider(
-                  height: 1,
-                  color: isDark
-                      ? Colors.white.withAlpha(14)
-                      : Colors.black.withAlpha(8)),
-              const SizedBox(height: 8),
-              // 底部：点赞 + 评论 + 浏览
-              Row(
-                children: [
-                  _action(
-                    icon: Icons.favorite_border_rounded,
-                    label: '${p.likeCount}',
-                    onTap: () async {
-                      final n = await _svc.like(p.id);
-                      if (n != null && mounted) {
-                        // ★ 用 copyWith：避免手动重建时漏掉 videoUrl 等字段
-                        //   （这正是「点赞后视频消失/数据丢失」的原因）
-                        setState(() {
-                          final idx = _posts.indexWhere((e) => e.id == p.id);
-                          if (idx >= 0) {
-                            _posts[idx] = p.copyWith(likeCount: n);
+                        color: context.t1,
+                      ),
+                    ),
+                  ],
+                  // 视频（本地直链 或 分享链接解析后的播放页）
+                  // ★ 列表态用 lazy：只显示封面+播放按钮，点了才加载（避免滚动卡顿）
+                  if (p.videoUrl.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    PostVideoPlayer(
+                      url: p.videoUrl,
+                      type: p.videoType,
+                      cover: p.videoCover,
+                      lazy: true,
+                    ),
+                  ],
+                  // 图片九宫格
+                  if (p.images.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    _imageGrid(p.images),
+                  ],
+                  const SizedBox(height: 10),
+                  Divider(
+                    height: 1,
+                    color: isDark
+                        ? Colors.white.withAlpha(14)
+                        : Colors.black.withAlpha(8),
+                  ),
+                  const SizedBox(height: 8),
+                  // 底部：点赞 + 评论 + 浏览
+                  Row(
+                    children: [
+                      _action(
+                        icon: Icons.favorite_border_rounded,
+                        label: '${p.likeCount}',
+                        onTap: () async {
+                          final n = await _svc.like(p.id);
+                          if (n != null && mounted) {
+                            // ★ 用 copyWith：避免手动重建时漏掉 videoUrl 等字段
+                            //   （这正是「点赞后视频消失/数据丢失」的原因）
+                            setState(() {
+                              final idx = _posts.indexWhere(
+                                (e) => e.id == p.id,
+                              );
+                              if (idx >= 0) {
+                                _posts[idx] = p.copyWith(likeCount: n);
+                              }
+                            });
                           }
-                        });
-                      }
-                    },
+                        },
+                      ),
+                      const SizedBox(width: 20),
+                      _action(
+                        icon: Icons.chat_bubble_outline_rounded,
+                        label: '${p.commentCount}',
+                        onTap: () async {
+                          await Get.toNamed(
+                            Routes.postDetail,
+                            arguments: {'id': p.id, 'item': p},
+                          );
+                          _load(reset: true);
+                        },
+                      ),
+                      const Spacer(),
+                      Icon(
+                        Icons.visibility_outlined,
+                        size: 13,
+                        color: context.t3,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${p.views}',
+                        style: Ty.tiny.copyWith(color: context.t3),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 20),
-                  _action(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    label: '${p.commentCount}',
-                    onTap: () async {
-                      await Get.toNamed(Routes.postDetail,
-                          arguments: {'id': p.id, 'item': p});
-                      _load(reset: true);
-                    },
-                  ),
-                  const Spacer(),
-                  Icon(Icons.visibility_outlined,
-                      size: 13, color: context.t3),
-                  const SizedBox(width: 3),
-                  Text('${p.views}',
-                      style: Ty.tiny.copyWith(color: context.t3)),
                 ],
               ),
-            ],
-          ),
             ),
           ),
         ),
@@ -410,10 +474,11 @@ class _SquareComponentState extends State<SquareComponent> {
       return ClipRRect(
         borderRadius: BorderRadius.circular(R.sm),
         child: CachedNetworkImage(
-            imageUrl: images[0],
-            height: 180,
-            fit: BoxFit.cover,
-            memCacheWidth: 900),
+          imageUrl: images[0],
+          height: 180,
+          fit: BoxFit.cover,
+          memCacheWidth: 900,
+        ),
       );
     }
     return GridView.builder(
@@ -433,17 +498,19 @@ class _SquareComponentState extends State<SquareComponent> {
           memCacheWidth: 360,
           placeholder: (_, __) => Container(color: Colors.black12),
           errorWidget: (_, __, ___) => Container(
-              color: Colors.black12,
-              child: const Icon(Icons.broken_image, size: 18)),
+            color: Colors.black12,
+            child: const Icon(Icons.broken_image, size: 18),
+          ),
         ),
       ),
     );
   }
 
-  Widget _action(
-      {required IconData icon,
-      required String label,
-      required VoidCallback onTap}) {
+  Widget _action({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(R.xs),
@@ -461,15 +528,20 @@ class _SquareComponentState extends State<SquareComponent> {
   }
 
   Widget _avatar() => Container(
-        width: 38,
-        height: 38,
-        color: C.brand.withAlpha(26),
-        child: Icon(Icons.person, size: 20, color: C.brand),
-      );
+    width: 38,
+    height: 38,
+    color: C.brand.withAlpha(26),
+    child: Icon(Icons.person, size: 20, color: C.brand),
+  );
 
   /// 视频模式选择胶囊
-  Widget _videoChip(String label, String value, String cur, BuildContext ctx,
-      ValueChanged<String> onTap) {
+  Widget _videoChip(
+    String label,
+    String value,
+    String cur,
+    BuildContext ctx,
+    ValueChanged<String> onTap,
+  ) {
     final sel = cur == value;
     return GestureDetector(
       onTap: () => onTap(value),
@@ -479,11 +551,14 @@ class _SquareComponentState extends State<SquareComponent> {
           color: sel ? C.brand : (ctx.isDark ? C.bg3 : C.lbg2),
           borderRadius: BorderRadius.circular(R.full),
         ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: sel ? Colors.white : ctx.t2)),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            color: sel ? Colors.white : ctx.t2,
+          ),
+        ),
       ),
     );
   }
@@ -491,14 +566,22 @@ class _SquareComponentState extends State<SquareComponent> {
   // ================= 发布 =================
   Future<void> _compose() async {
     if (!UserService.instance.isLoggedIn) {
-      final go = await Get.dialog<bool>(AlertDialog(
-        title: const Text('需要登录'),
-        content: const Text('发布动态需要先登录账号'),
-        actions: [
-          TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
-          FilledButton(onPressed: () => Get.back(result: true), child: const Text('去登录')),
-        ],
-      ));
+      final go = await Get.dialog<bool>(
+        AlertDialog(
+          title: const Text('需要登录'),
+          content: const Text('发布动态需要先登录账号'),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Get.back(result: true),
+              child: const Text('去登录'),
+            ),
+          ],
+        ),
+      );
       if (go == true) await Get.toNamed(Routes.login);
       if (!UserService.instance.isLoggedIn) return;
     }
@@ -522,367 +605,430 @@ class _SquareComponentState extends State<SquareComponent> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
-        Future<void> pickImage() async {
-          try {
-            final picker = ImagePicker();
-            final files = await picker.pickMultiImage(imageQuality: 82);
-            if (files.isEmpty) return;
-            for (final f in files) {
-              if (images.length >= 9) break;
-              localImages.add(File(f.path));
-              images.add(f.path);
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          Future<void> pickImage() async {
+            try {
+              final picker = ImagePicker();
+              final files = await picker.pickMultiImage(imageQuality: 82);
+              if (files.isEmpty) return;
+              for (final f in files) {
+                if (images.length >= 9) break;
+                localImages.add(File(f.path));
+                images.add(f.path);
+              }
+              setSheet(() {});
+            } catch (e) {
+              setSheet(() => err = '选择图片失败：请在设置中允许相册权限');
             }
-            setSheet(() {});
-          } catch (e) {
-            setSheet(() => err = '选择图片失败：请在设置中允许相册权限');
           }
-        }
 
-        return Container(
-          decoration: BoxDecoration(
-            color: ctx.isDark ? C.bg2 : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(R.lg)),
-          ),
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('发布动态', style: Ty.h3.copyWith(color: ctx.t1)),
-                    const Spacer(),
-                    IconButton(
-                      icon: Icon(Icons.close, size: 20, color: ctx.t2),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                // 分类
-                SizedBox(
-                  height: 34,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _cats.where((c) => c.id != 0).length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 7),
-                    itemBuilder: (_, i) {
-                      final c = _cats.where((e) => e.id != 0).toList()[i];
-                      final sel = catId == c.id;
-                      return GestureDetector(
-                        onTap: () => setSheet(() => catId = c.id),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: sel
-                                ? C.brand
-                                : (ctx.isDark ? C.bg3 : C.lbg2),
-                            borderRadius: BorderRadius.circular(R.md),
-                          ),
-                          child: Text(c.title,
-                              style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight:
-                                      sel ? FontWeight.w800 : FontWeight.w500,
-                                  color: sel ? Colors.white : ctx.t2)),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: contentCtrl,
-                  maxLines: 5,
-                  maxLength: 2000,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: '分享你的想法…',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(R.sm)),
-                  ),
-                ),
-                // 已选图片
-                if (images.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 7,
-                    runSpacing: 7,
+          return Container(
+            decoration: BoxDecoration(
+              color: ctx.isDark ? C.bg2 : Colors.white,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(R.lg),
+              ),
+            ),
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      for (int i = 0; i < images.length; i++)
-                        Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(9),
-                              child: Image.file(File(images[i]),
-                                  width: 74, height: 74, fit: BoxFit.cover),
-                            ),
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: GestureDetector(
-                                onTap: () => setSheet(() {
-                                  images.removeAt(i);
-                                  localImages.removeAt(i);
-                                }),
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.black54,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.close,
-                                      size: 13, color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      Text('发布动态', style: Ty.h3.copyWith(color: ctx.t1)),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, size: 20, color: ctx.t2),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
                     ],
                   ),
-                ],
-                // ── 视频 ──
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text('视频', style: Ty.tiny.copyWith(color: ctx.t3)),
-                    const SizedBox(width: 8),
-                    _videoChip('无', 'none', videoMode, ctx, (m) => setSheet(() {
+                  // 分类
+                  SizedBox(
+                    height: 34,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _cats.where((c) => c.id != 0).length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 7),
+                      itemBuilder: (_, i) {
+                        final c = _cats.where((e) => e.id != 0).toList()[i];
+                        final sel = catId == c.id;
+                        return GestureDetector(
+                          onTap: () => setSheet(() => catId = c.id),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: sel
+                                  ? C.brand
+                                  : (ctx.isDark ? C.bg3 : C.lbg2),
+                              borderRadius: BorderRadius.circular(R.md),
+                            ),
+                            child: Text(
+                              c.title,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: sel
+                                    ? FontWeight.w800
+                                    : FontWeight.w500,
+                                color: sel ? Colors.white : ctx.t2,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: contentCtrl,
+                    maxLines: 5,
+                    maxLength: 2000,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: '分享你的想法…',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(R.sm),
+                      ),
+                    ),
+                  ),
+                  // 已选图片
+                  if (images.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 7,
+                      children: [
+                        for (int i = 0; i < images.length; i++)
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(9),
+                                child: Image.file(
+                                  File(images[i]),
+                                  width: 74,
+                                  height: 74,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: GestureDetector(
+                                  onTap: () => setSheet(() {
+                                    images.removeAt(i);
+                                    localImages.removeAt(i);
+                                  }),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      size: 13,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ],
+                  // ── 视频 ──
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text('视频', style: Ty.tiny.copyWith(color: ctx.t3)),
+                      const SizedBox(width: 8),
+                      _videoChip(
+                        '无',
+                        'none',
+                        videoMode,
+                        ctx,
+                        (m) => setSheet(() {
                           videoMode = m;
                           videoFile = null;
                           videoLink = '';
                           videoPreviewUrl = '';
                           videoPreviewType = '';
-                        })),
-                    const SizedBox(width: 6),
-                    _videoChip('本地视频', 'local', videoMode, ctx,
-                        (m) => setSheet(() => videoMode = m)),
-                    const SizedBox(width: 6),
-                    _videoChip('视频链接', 'link', videoMode, ctx,
-                        (m) => setSheet(() => videoMode = m)),
-                  ],
-                ),
-                if (videoMode == 'local') ...[
-                  const SizedBox(height: 8),
-                  SoftButton(
-                    label: videoFile == null ? '选择本地视频' : '已选：${videoFile!.path.split('/').last}',
-                    icon: Icons.video_file_outlined,
-                    height: 40,
-                    onPressed: () async {
-                      try {
-                        final picker = ImagePicker();
-                        final f = await picker.pickVideo(
-                            source: ImageSource.gallery,
-                            maxDuration: const Duration(minutes: 5));
-                        if (f == null) return;
-                        setSheet(() {
-                          videoFile = File(f.path);
-                          videoPreviewUrl = '';
-                        });
-                      } catch (e) {
-                        setSheet(() => err = '选择视频失败，请允许相册权限');
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  Text('支持 mp4/mov/webm，单个不超过 100MB',
-                      style: Ty.tiny.copyWith(color: ctx.t3)),
-                ],
-                if (videoMode == 'link') ...[
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: videoLinkCtrl,
-                    decoration: InputDecoration(
-                      hintText: '粘贴链接或抖音口令（如 XO3FyvHVKf4）',
-                      isDense: true,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(R.sm)),
-                    ),
-                    onChanged: (v) => setSheet(() => videoLink = v),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      SoftButton(
-                        label: '解析预览',
-                        icon: Icons.link_rounded,
-                        height: 38,
-                        onPressed: () async {
-                          final u = videoLinkCtrl.text.trim();
-                          if (u.isEmpty) {
-                            setSheet(() => err = '请先粘贴视频链接');
-                            return;
-                          }
-                          setSheet(() {
-                            err = '';
-                            videoPreviewUrl = '__loading__';
-                          });
-                          try {
-                            final r = await _svc.parseVideoLink(u);
-                            setSheet(() {
-                              videoPreviewUrl = (r['url'] ?? '').toString();
-                              videoPreviewType = (r['type'] ?? '').toString();
-                            });
-                          } catch (e) {
-                            final msg =
-                                e.toString().replaceFirst('Exception: ', '');
-                            setSheet(() {
-                              videoPreviewUrl = '';
-                              err = msg.contains('没有识别到')
-                                  ? '没有识别到链接：请粘贴「v.douyin.com/xxx」这类链接，'
-                                      '或直接粘贴抖音口令码（10~14 位字母数字）'
-                                  : msg;
-                            });
-                          }
-                        },
+                        }),
+                      ),
+                      const SizedBox(width: 6),
+                      _videoChip(
+                        '本地视频',
+                        'local',
+                        videoMode,
+                        ctx,
+                        (m) => setSheet(() => videoMode = m),
+                      ),
+                      const SizedBox(width: 6),
+                      _videoChip(
+                        '视频链接',
+                        'link',
+                        videoMode,
+                        ctx,
+                        (m) => setSheet(() => videoMode = m),
                       ),
                     ],
                   ),
-                  if (videoPreviewUrl == '__loading__')
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Row(children: [
-                        const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2)),
-                        const SizedBox(width: 8),
-                        Text('解析中…', style: Ty.tiny.copyWith(color: ctx.t3)),
-                      ]),
-                    )
-                  else if (videoPreviewUrl.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: PostVideoPlayer(
-                          url: videoPreviewUrl,
-                          type: videoPreviewType,
-                          maxHeight: 240),
-                    ),
-                ],
-                // 表情面板
-                if (showEmoji)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: EmojiPanel(
-                      onPick: (e) {
-                        contentCtrl.text += e;
-                        contentCtrl.selection = TextSelection.fromPosition(
-                            TextPosition(offset: contentCtrl.text.length));
-                        setSheet(() {});
+                  if (videoMode == 'local') ...[
+                    const SizedBox(height: 8),
+                    SoftButton(
+                      label: videoFile == null
+                          ? '选择本地视频'
+                          : '已选：${videoFile!.path.split('/').last}',
+                      icon: Icons.video_file_outlined,
+                      height: 40,
+                      onPressed: () async {
+                        try {
+                          final picker = ImagePicker();
+                          final f = await picker.pickVideo(
+                            source: ImageSource.gallery,
+                            maxDuration: const Duration(minutes: 5),
+                          );
+                          if (f == null) return;
+                          setSheet(() {
+                            videoFile = File(f.path);
+                            videoPreviewUrl = '';
+                          });
+                        } catch (e) {
+                          setSheet(() => err = '选择视频失败，请允许相册权限');
+                        }
                       },
                     ),
-                  ),
-                if (err.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: C.danger.withAlpha(22),
-                      borderRadius: BorderRadius.circular(R.sm),
+                    const SizedBox(height: 4),
+                    Text(
+                      '支持 mp4/mov/webm，单个不超过 100MB',
+                      style: Ty.tiny.copyWith(color: ctx.t3),
                     ),
-                    child: Text(err,
-                        style: const TextStyle(
-                            fontSize: 12.5,
-                            color: C.danger,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: pickImage,
-                      icon: Icon(Icons.image_outlined, color: ctx.t2),
-                      tooltip: '添加图片',
+                  ],
+                  if (videoMode == 'link') ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: videoLinkCtrl,
+                      decoration: InputDecoration(
+                        hintText: '粘贴链接或抖音口令（如 XO3FyvHVKf4）',
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(R.sm),
+                        ),
+                      ),
+                      onChanged: (v) => setSheet(() => videoLink = v),
                     ),
-                    IconButton(
-                      onPressed: () => setSheet(() => showEmoji = !showEmoji),
-                      icon: Icon(Icons.emoji_emotions_outlined,
-                          color: showEmoji ? C.brand : ctx.t2),
-                      tooltip: '表情',
-                    ),
-                    const Spacer(),
-                    SizedBox(
-                      width: 116,
-                      child: PrimaryButton(
-                        label: '发布',
-                        icon: Icons.send_rounded,
-                        loading: sending,
-                        height: 44,
-                        onPressed: () async {
-                          final text = contentCtrl.text.trim();
-                          final hasVideo = (videoMode == 'local' && videoFile != null) ||
-                              (videoMode == 'link' && videoLinkCtrl.text.trim().isNotEmpty);
-                          if (text.isEmpty && images.isEmpty && !hasVideo) {
-                            setSheet(() => err = '请输入内容、添加图片或视频');
-                            return;
-                          }
-                          setSheet(() {
-                            sending = true;
-                            err = '';
-                          });
-                          try {
-                            // 先上传本地图片
-                            final urls = <String>[];
-                            for (int i = 0; i < images.length; i++) {
-                              if (images[i].startsWith('http')) {
-                                urls.add(images[i]);
-                              } else {
-                                urls.add(await PostService.instance
-                                    .uploadImage(localImages.removeAt(0)));
-                              }
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        SoftButton(
+                          label: '解析预览',
+                          icon: Icons.link_rounded,
+                          height: 38,
+                          onPressed: () async {
+                            final u = videoLinkCtrl.text.trim();
+                            if (u.isEmpty) {
+                              setSheet(() => err = '请先粘贴视频链接');
+                              return;
                             }
-                            // 视频处理：本地先上传，链接直接交给后端解析
-                            String videoUrl = '';
-                            String videoKind = '';
-                            if (videoMode == 'local' && videoFile != null) {
-                              videoUrl = await PostService.instance
-                                  .uploadVideo(videoFile!);
-                              videoKind = 'local';
-                            } else if (videoMode == 'link' &&
-                                videoLinkCtrl.text.trim().isNotEmpty) {
-                              videoUrl = videoLinkCtrl.text.trim();
-                              videoKind = 'link';
-                            }
-                            await _svc.create(
-                              nickname: user?.nickname ?? '匿名用户',
-                              content: text,
-                              images: urls,
-                              catId: catId,
-                              avatar: user?.avatar ?? '',
-                              videoUrl: videoUrl,
-                              videoType: videoKind,
-                            );
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            if (mounted) {
-                              _toast('发布成功 🎉');
-                              _load(reset: true);
-                            }
-                          } catch (e) {
                             setSheet(() {
-                              sending = false;
-                              err = e.toString().replaceFirst('Exception: ', '');
+                              err = '';
+                              videoPreviewUrl = '__loading__';
                             });
-                          }
+                            try {
+                              final r = await _svc.parseVideoLink(u);
+                              setSheet(() {
+                                videoPreviewUrl = (r['url'] ?? '').toString();
+                                videoPreviewType = (r['type'] ?? '').toString();
+                              });
+                            } catch (e) {
+                              final msg = e.toString().replaceFirst(
+                                'Exception: ',
+                                '',
+                              );
+                              setSheet(() {
+                                videoPreviewUrl = '';
+                                err = msg.contains('没有识别到')
+                                    ? '没有识别到链接：请粘贴「v.douyin.com/xxx」这类链接，'
+                                          '或直接粘贴抖音口令码（10~14 位字母数字）'
+                                    : msg;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    if (videoPreviewUrl == '__loading__')
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          children: [
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '解析中…',
+                              style: Ty.tiny.copyWith(color: ctx.t3),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (videoPreviewUrl.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: PostVideoPlayer(
+                          url: videoPreviewUrl,
+                          type: videoPreviewType,
+                          maxHeight: 240,
+                        ),
+                      ),
+                  ],
+                  // 表情面板
+                  if (showEmoji)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: EmojiPanel(
+                        onPick: (e) {
+                          contentCtrl.text += e;
+                          contentCtrl.selection = TextSelection.fromPosition(
+                            TextPosition(offset: contentCtrl.text.length),
+                          );
+                          setSheet(() {});
                         },
                       ),
                     ),
+                  if (err.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        color: C.danger.withAlpha(22),
+                        borderRadius: BorderRadius.circular(R.sm),
+                      ),
+                      child: Text(
+                        err,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: C.danger,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ],
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: pickImage,
+                        icon: Icon(Icons.image_outlined, color: ctx.t2),
+                        tooltip: '添加图片',
+                      ),
+                      IconButton(
+                        onPressed: () => setSheet(() => showEmoji = !showEmoji),
+                        icon: Icon(
+                          Icons.emoji_emotions_outlined,
+                          color: showEmoji ? C.brand : ctx.t2,
+                        ),
+                        tooltip: '表情',
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: 116,
+                        child: PrimaryButton(
+                          label: '发布',
+                          icon: Icons.send_rounded,
+                          loading: sending,
+                          height: 44,
+                          onPressed: () async {
+                            final text = contentCtrl.text.trim();
+                            final hasVideo =
+                                (videoMode == 'local' && videoFile != null) ||
+                                (videoMode == 'link' &&
+                                    videoLinkCtrl.text.trim().isNotEmpty);
+                            if (text.isEmpty && images.isEmpty && !hasVideo) {
+                              setSheet(() => err = '请输入内容、添加图片或视频');
+                              return;
+                            }
+                            setSheet(() {
+                              sending = true;
+                              err = '';
+                            });
+                            try {
+                              // 先上传本地图片
+                              final urls = <String>[];
+                              for (int i = 0; i < images.length; i++) {
+                                if (images[i].startsWith('http')) {
+                                  urls.add(images[i]);
+                                } else {
+                                  urls.add(
+                                    await PostService.instance.uploadImage(
+                                      localImages.removeAt(0),
+                                    ),
+                                  );
+                                }
+                              }
+                              // 视频处理：本地先上传，链接直接交给后端解析
+                              String videoUrl = '';
+                              String videoKind = '';
+                              if (videoMode == 'local' && videoFile != null) {
+                                videoUrl = await PostService.instance
+                                    .uploadVideo(videoFile!);
+                                videoKind = 'local';
+                              } else if (videoMode == 'link' &&
+                                  videoLinkCtrl.text.trim().isNotEmpty) {
+                                videoUrl = videoLinkCtrl.text.trim();
+                                videoKind = 'link';
+                              }
+                              await _svc.create(
+                                nickname: user?.nickname ?? '匿名用户',
+                                content: text,
+                                images: urls,
+                                catId: catId,
+                                avatar: user?.avatar ?? '',
+                                videoUrl: videoUrl,
+                                videoType: videoKind,
+                              );
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (mounted) {
+                                _toast('发布成功 🎉');
+                                _load(reset: true);
+                              }
+                            } catch (e) {
+                              setSheet(() {
+                                sending = false;
+                                err = e.toString().replaceFirst(
+                                  'Exception: ',
+                                  '',
+                                );
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 }

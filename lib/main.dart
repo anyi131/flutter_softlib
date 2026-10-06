@@ -176,7 +176,6 @@ class SoftLibApp extends StatelessWidget {
       //   就跳过绘制旧页 → 露出底层黑/白 → 表现为「闪屏」。
       defaultTransition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 260),
-      opaqueRoute: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: ThemeController.instance.mode.value,

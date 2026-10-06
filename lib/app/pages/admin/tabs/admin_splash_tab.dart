@@ -429,7 +429,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                 );
               }).toList(),
             ),
-            Text('用户不可自行切换，此设置对所有用户生效',
+            Text('建议到「界面」Tab 统一配置主题与开关（本页配置兼容保留）',
                 style: Ty.tiny.copyWith(color: context.t3)),
             const SizedBox(height: 12),
             Text('软件列表默认样式', style: Ty.h3.copyWith(fontSize: 13)),
@@ -443,7 +443,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                 _styleChip('grid', '双列网格', Icons.grid_view_rounded),
               ],
             ),
-            Text('用户也可在「我的 → 外观设置」里自行切换，个人选择优先',
+            Text('v52：外观设置已统一到「界面」Tab，App 端不再提供用户切换',
                 style: Ty.tiny.copyWith(color: context.t3)),
           ],
         ),

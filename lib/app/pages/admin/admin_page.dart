@@ -12,7 +12,7 @@ import 'tabs/admin_content_tab.dart';
 import 'tabs/admin_logs_tab.dart';
 import 'tabs/admin_orders_tab.dart';
 import 'tabs/admin_splash_tab.dart';
-import 'tabs/admin_tools_v2_tab.dart';
+import 'tabs/admin_ui_tab.dart';
 import 'tabs/admin_users_tab.dart';
 
 /// 软件内嵌管理系统（管理员专用）
@@ -66,23 +66,27 @@ class _AdminPageState extends State<AdminPage>
     if (_checking) {
       return Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(children: [
-          Deco.pageBackground(context),
-          const LoadingState(text: '正在校验管理员权限…'),
-        ]),
+        body: Stack(
+          children: [
+            Deco.pageBackground(context),
+            const LoadingState(text: '正在校验管理员权限…'),
+          ],
+        ),
       );
     }
     if (!_isAdmin) {
       return Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(children: [
-          Deco.pageBackground(context),
-          const EmptyState(
-            icon: Icons.lock_outline_rounded,
-            text: '仅管理员可访问',
-            hint: '请使用管理员账号登录后重试',
-          ),
-        ]),
+        body: Stack(
+          children: [
+            Deco.pageBackground(context),
+            const EmptyState(
+              icon: Icons.lock_outline_rounded,
+              text: '仅管理员可访问',
+              hint: '请使用管理员账号登录后重试',
+            ),
+          ],
+        ),
       );
     }
 
@@ -107,7 +111,7 @@ class _AdminPageState extends State<AdminPage>
                       AdminOrdersTab(),
                       AdminCollectTab(),
                       AdminContentTab(),
-                      AdminToolsV2Tab(),
+                      AdminUiTab(),
                       AdminLogsTab(),
                       AdminSplashTab(),
                     ],
@@ -134,8 +138,10 @@ class _AdminPageState extends State<AdminPage>
               children: [
                 ShaderMask(
                   shaderCallback: (r) => Deco.aurora().createShader(r),
-                  child: Text('管理后台',
-                      style: Ty.display.copyWith(color: Colors.white)),
+                  child: Text(
+                    '管理后台',
+                    style: Ty.display.copyWith(color: Colors.white),
+                  ),
                 ),
                 const SizedBox(height: 5),
                 Row(
@@ -144,11 +150,15 @@ class _AdminPageState extends State<AdminPage>
                       width: 6,
                       height: 6,
                       decoration: const BoxDecoration(
-                          color: C.mint, shape: BoxShape.circle),
+                        color: C.mint,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
-                    Text('${UserService.instance.user?.nickname ?? '管理员'}',
-                        style: Ty.small.copyWith(color: context.t3)),
+                    Text(
+                      '${UserService.instance.user?.nickname ?? '管理员'}',
+                      style: Ty.small.copyWith(color: context.t3),
+                    ),
                   ],
                 ),
               ],
@@ -161,23 +171,23 @@ class _AdminPageState extends State<AdminPage>
   }
 
   Widget _iconBtn(IconData i, VoidCallback f) => GestureDetector(
-        onTap: f,
-        child: Container(
-          width: 40,
-          height: 40,
-          margin: const EdgeInsets.only(left: 6),
-          decoration: BoxDecoration(
-            color: context.isDark ? Colors.white.withAlpha(12) : Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: context.isDark
-                  ? Colors.white.withAlpha(20)
-                  : Colors.black.withAlpha(8),
-            ),
-          ),
-          child: Icon(i, size: 19, color: context.t2),
+    onTap: f,
+    child: Container(
+      width: 40,
+      height: 40,
+      margin: const EdgeInsets.only(left: 6),
+      decoration: BoxDecoration(
+        color: context.isDark ? Colors.white.withAlpha(12) : Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: context.isDark
+              ? Colors.white.withAlpha(20)
+              : Colors.black.withAlpha(8),
         ),
-      );
+      ),
+      child: Icon(i, size: 19, color: context.t2),
+    ),
+  );
 
   // ───── Tab 栏（玻璃胶囊）─────
   Widget _tabBar() {
@@ -188,7 +198,7 @@ class _AdminPageState extends State<AdminPage>
       (Icons.receipt_long_rounded, '订单'),
       (Icons.cloud_download_rounded, '采集'),
       (Icons.article_rounded, '内容'),
-      (Icons.widgets_rounded, '工具'),
+      (Icons.palette_rounded, '界面'),
       (Icons.history_rounded, '日志'),
       (Icons.settings_rounded, '配置'),
     ];
@@ -196,7 +206,12 @@ class _AdminPageState extends State<AdminPage>
       height: 52,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.fromLTRB(context.pagePadding, 10, context.pagePadding, 6),
+        padding: EdgeInsets.fromLTRB(
+          context.pagePadding,
+          10,
+          context.pagePadding,
+          6,
+        ),
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
@@ -211,14 +226,16 @@ class _AdminPageState extends State<AdminPage>
                 gradient: sel ? Deco.brandGradient : null,
                 color: sel
                     ? null
-                    : (context.isDark ? Colors.white.withAlpha(12) : Colors.white),
+                    : (context.isDark
+                          ? Colors.white.withAlpha(12)
+                          : Colors.white),
                 borderRadius: BorderRadius.circular(R.full),
                 border: Border.all(
                   color: sel
                       ? Colors.transparent
                       : (context.isDark
-                          ? Colors.white.withAlpha(20)
-                          : Colors.black.withAlpha(8)),
+                            ? Colors.white.withAlpha(20)
+                            : Colors.black.withAlpha(8)),
                 ),
                 boxShadow: sel
                     ? [
@@ -233,15 +250,20 @@ class _AdminPageState extends State<AdminPage>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(items[i].$1,
-                      size: 16,
-                      color: sel ? Colors.white : context.t2),
+                  Icon(
+                    items[i].$1,
+                    size: 16,
+                    color: sel ? Colors.white : context.t2,
+                  ),
                   const SizedBox(width: 6),
-                  Text(items[i].$2,
-                      style: Ty.small.copyWith(
-                          fontSize: 13,
-                          fontWeight: sel ? FontWeight.w900 : FontWeight.w600,
-                          color: sel ? Colors.white : context.t2)),
+                  Text(
+                    items[i].$2,
+                    style: Ty.small.copyWith(
+                      fontSize: 13,
+                      fontWeight: sel ? FontWeight.w900 : FontWeight.w600,
+                      color: sel ? Colors.white : context.t2,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -302,20 +324,42 @@ class _OverviewTabState extends State<_OverviewTab> {
     ];
     // 经营数据（收入 / 订单 / 浏览）
     final biz = [
-      ('累计收入', '¥${_d['total_money'] ?? '0.00'}', C.gold,
-          Icons.account_balance_wallet_rounded),
-      ('今日收入', '¥${_d['today_money'] ?? '0.00'}', C.success,
-          Icons.trending_up_rounded),
-      ('已付订单', '${_d['paid_orders'] ?? 0}', C.brand, Icons.receipt_long_rounded),
-      ('待付订单', '${_d['unpaid_orders'] ?? 0}', C.warning,
-          Icons.pending_actions_rounded),
+      (
+        '累计收入',
+        '¥${_d['total_money'] ?? '0.00'}',
+        C.gold,
+        Icons.account_balance_wallet_rounded,
+      ),
+      (
+        '今日收入',
+        '¥${_d['today_money'] ?? '0.00'}',
+        C.success,
+        Icons.trending_up_rounded,
+      ),
+      (
+        '已付订单',
+        '${_d['paid_orders'] ?? 0}',
+        C.brand,
+        Icons.receipt_long_rounded,
+      ),
+      (
+        '待付订单',
+        '${_d['unpaid_orders'] ?? 0}',
+        C.warning,
+        Icons.pending_actions_rounded,
+      ),
     ];
     final trend = (_d['trend'] as List?) ?? [];
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(context.pagePadding, 10, context.pagePadding, 30),
+        padding: EdgeInsets.fromLTRB(
+          context.pagePadding,
+          10,
+          context.pagePadding,
+          30,
+        ),
         children: [
           GridView.count(
             crossAxisCount: context.isWide ? 4 : 2,
@@ -325,32 +369,36 @@ class _OverviewTabState extends State<_OverviewTab> {
             crossAxisSpacing: 12,
             childAspectRatio: 1.7,
             children: items
-                .map((it) => GlassCard(
-                      radius: R.lg,
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: BoxDecoration(
-                              color: it.$3.withAlpha(context.isDark ? 36 : 24),
-                              borderRadius: BorderRadius.circular(9),
-                            ),
-                            child: Icon(it.$4, size: 16, color: it.$3),
+                .map(
+                  (it) => GlassCard(
+                    radius: R.lg,
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: it.$3.withAlpha(context.isDark ? 36 : 24),
+                            borderRadius: BorderRadius.circular(9),
                           ),
-                          Text('${it.$2 ?? 0}',
-                              style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.0,
-                                  color: context.t1)),
-                          Text(it.$1,
-                              style: Ty.tiny.copyWith(color: context.t3)),
-                        ],
-                      ),
-                    ))
+                          child: Icon(it.$4, size: 16, color: it.$3),
+                        ),
+                        Text(
+                          '${it.$2 ?? 0}',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            height: 1.0,
+                            color: context.t1,
+                          ),
+                        ),
+                        Text(it.$1, style: Ty.tiny.copyWith(color: context.t3)),
+                      ],
+                    ),
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: 20),
@@ -363,41 +411,48 @@ class _OverviewTabState extends State<_OverviewTab> {
             crossAxisSpacing: 12,
             childAspectRatio: 1.7,
             children: biz
-                .map((it) => GlassCard(
-                      radius: R.lg,
-                      padding: const EdgeInsets.all(14),
-                      glow: it.$3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: BoxDecoration(
-                              color: it.$3.withAlpha(context.isDark ? 36 : 24),
-                              borderRadius: BorderRadius.circular(9),
-                            ),
-                            child: Icon(it.$4, size: 16, color: it.$3),
+                .map(
+                  (it) => GlassCard(
+                    radius: R.lg,
+                    padding: const EdgeInsets.all(14),
+                    glow: it.$3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: it.$3.withAlpha(context.isDark ? 36 : 24),
+                            borderRadius: BorderRadius.circular(9),
                           ),
-                          Text(it.$2,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.0,
-                                  color: it.$3)),
-                          Text(it.$1,
-                              style: Ty.tiny.copyWith(color: context.t3)),
-                        ],
-                      ),
-                    ))
+                          child: Icon(it.$4, size: 16, color: it.$3),
+                        ),
+                        Text(
+                          it.$2,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            height: 1.0,
+                            color: it.$3,
+                          ),
+                        ),
+                        Text(it.$1, style: Ty.tiny.copyWith(color: context.t3)),
+                      ],
+                    ),
+                  ),
+                )
                 .toList(),
           ),
           if (trend.isNotEmpty) ...[
             const SizedBox(height: 20),
             SectionHeader(
-                title: '近 7 日趋势', subtitle: '新增用户 / 收入', accent: C.brand),
+              title: '近 7 日趋势',
+              subtitle: '新增用户 / 收入',
+              accent: C.brand,
+            ),
             GlassCard(
               radius: R.lg,
               padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
@@ -410,23 +465,30 @@ class _OverviewTabState extends State<_OverviewTab> {
                         children: [
                           SizedBox(
                             width: 42,
-                            child: Text('${t['date'] ?? ''}',
-                                style: Ty.tiny.copyWith(color: context.t3)),
+                            child: Text(
+                              '${t['date'] ?? ''}',
+                              style: Ty.tiny.copyWith(color: context.t3),
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: _trendBar(
-                                double.tryParse('${t['users'] ?? 0}') ?? 0),
+                              double.tryParse('${t['users'] ?? 0}') ?? 0,
+                            ),
                           ),
                           const SizedBox(width: 8),
-                          Text('+${t['users'] ?? 0}人',
-                              style: Ty.tiny.copyWith(color: C.mint)),
+                          Text(
+                            '+${t['users'] ?? 0}人',
+                            style: Ty.tiny.copyWith(color: C.mint),
+                          ),
                           const SizedBox(width: 10),
                           SizedBox(
                             width: 58,
-                            child: Text('¥${t['money'] ?? '0.00'}',
-                                textAlign: TextAlign.right,
-                                style: Ty.tiny.copyWith(color: C.gold)),
+                            child: Text(
+                              '¥${t['money'] ?? '0.00'}',
+                              textAlign: TextAlign.right,
+                              style: Ty.tiny.copyWith(color: C.gold),
+                            ),
                           ),
                         ],
                       ),

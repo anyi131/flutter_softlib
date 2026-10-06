@@ -1,3 +1,5 @@
+import 'ui_config.dart';
+
 /// App 全局配置（来自 /api/softlib/config/index，后台可远程下发）
 class AppConfig {
   final String placard;
@@ -27,6 +29,7 @@ class AppConfig {
   final String privacy;
   final bool groupBtnOn;
   final bool userBtnOn;
+
   /// 软件列表数据源: all / local / lzy
   final String appSource;
 
@@ -42,11 +45,13 @@ class AppConfig {
   final String aboutWebsite;
   final String aboutUpdateUrl;
   final String aboutExtra;
+
   /// 页脚文案（后台可配，避免写死）
   final String aboutFooter;
 
   /// 注册邮箱域名白名单（空=不限）
   final String emailAllowDomains;
+
   /// 是否允许非 QQ 邮箱注册（false = 仅 QQ 邮箱）
   final bool emailNonQqOn;
 
@@ -58,6 +63,9 @@ class AppConfig {
 
   /// 服务端可切换的 UI 风格（glass / classic / minimal）
   final String appUiStyle;
+
+  /// ★ 全局界面配置（Tab开关/功能开关/主题/深色模式 —— 后台「界面配置」下发）
+  final UiConfig uiConfig;
 
   AppConfig({
     this.placard = '',
@@ -99,76 +107,75 @@ class AppConfig {
     this.appUiStyle = 'glass',
     this.themePalette = 'aurora',
     this.toolHomeStyle = 'group',
+    this.uiConfig = const UiConfig(),
   });
 
-  static bool _b(dynamic v) =>
-      v == true || v == 1 || v == '1' || v == 'true';
+  static bool _b(dynamic v) => v == true || v == 1 || v == '1' || v == 'true';
   static int _i(dynamic v) => int.tryParse((v ?? '').toString()) ?? 0;
   static String _s(dynamic v) => (v ?? '').toString();
 
   factory AppConfig.fromJson(Map json) => AppConfig(
-        placard: _s(json['placard']),
-        feedbackGroup: _s(json['feedback_group']),
-        feedbackUser: _s(json['feedback_user']),
-        splashEnable: json.containsKey('splash_enable')
-            ? _b(json['splash_enable'])
-            : true,
-        splashImage: _s(json['splash_image']),
-        splashSeconds: _i(json['splash_seconds']) <= 0
-            ? 2
-            : _i(json['splash_seconds']),
-        splashUrl: _s(json['splash_url']),
-        splashTitle: _s(json['splash_title']),
-        splashDesc: _s(json['splash_desc']),
-        noticeEnable: _b(json['notice_enable']),
-        noticeTitle: _s(json['notice_title']).isEmpty
-            ? '公告'
-            : _s(json['notice_title']),
-        noticeContent: _s(json['notice_content']),
-        noticeUrl: _s(json['notice_url']),
-        noticeForce: _b(json['notice_force']),
-        maintainEnable: _b(json['maintain_enable']),
-        maintainText: _s(json['maintain_text']),
-        serviceUrl: _s(json['service_url']),
-        agreement: _s(json['agreement']),
-        privacy: _s(json['privacy']),
-        groupBtnOn: json.containsKey('feedback_group_on')
-            ? _b(json['feedback_group_on'])
-            : true,
-        userBtnOn: json.containsKey('feedback_user_on')
-            ? _b(json['feedback_user_on'])
-            : true,
-        appSource: _s(json['app_source']).isEmpty
-            ? 'all'
-            : _s(json['app_source']),
-        aboutEnable: json.containsKey('about_enable')
-            ? _b(json['about_enable'])
-            : true,
-        aboutName: _s(json['about_name']).isEmpty
-            ? '安逸软件库'
-            : _s(json['about_name']),
-        aboutVersion: _s(json['about_version']).isEmpty
-            ? '1.0.0'
-            : _s(json['about_version']),
-        aboutLogo: _s(json['about_logo']),
-        aboutSlogan: _s(json['about_slogan']),
-        aboutDesc: _s(json['about_desc']),
-        aboutCopyright: _s(json['about_copyright']),
-        aboutContact: _s(json['about_contact']),
-        aboutWebsite: _s(json['about_website']),
-        aboutUpdateUrl: _s(json['about_update_url']),
-        aboutExtra: _s(json['about_extra']),
-        aboutFooter: _s(json['about_footer']),
-        emailAllowDomains: _s(json['email_allow_domains']),
-        emailNonQqOn: _b(json['email_nonqq_on']),
-        themePalette: _s(json['theme_palette']).isEmpty
-            ? 'aurora'
-            : _s(json['theme_palette']),
-        toolHomeStyle: _s(json['tool_home_style']).isEmpty
-            ? 'group'
-            : _s(json['tool_home_style']),
-        appUiStyle: _s(json['app_ui_style']).isEmpty
-            ? 'glass'
-            : _s(json['app_ui_style']),
-      );
+    placard: _s(json['placard']),
+    feedbackGroup: _s(json['feedback_group']),
+    feedbackUser: _s(json['feedback_user']),
+    splashEnable: json.containsKey('splash_enable')
+        ? _b(json['splash_enable'])
+        : true,
+    splashImage: _s(json['splash_image']),
+    splashSeconds: _i(json['splash_seconds']) <= 0
+        ? 2
+        : _i(json['splash_seconds']),
+    splashUrl: _s(json['splash_url']),
+    splashTitle: _s(json['splash_title']),
+    splashDesc: _s(json['splash_desc']),
+    noticeEnable: _b(json['notice_enable']),
+    noticeTitle: _s(json['notice_title']).isEmpty
+        ? '公告'
+        : _s(json['notice_title']),
+    noticeContent: _s(json['notice_content']),
+    noticeUrl: _s(json['notice_url']),
+    noticeForce: _b(json['notice_force']),
+    maintainEnable: _b(json['maintain_enable']),
+    maintainText: _s(json['maintain_text']),
+    serviceUrl: _s(json['service_url']),
+    agreement: _s(json['agreement']),
+    privacy: _s(json['privacy']),
+    groupBtnOn: json.containsKey('feedback_group_on')
+        ? _b(json['feedback_group_on'])
+        : true,
+    userBtnOn: json.containsKey('feedback_user_on')
+        ? _b(json['feedback_user_on'])
+        : true,
+    appSource: _s(json['app_source']).isEmpty ? 'all' : _s(json['app_source']),
+    aboutEnable: json.containsKey('about_enable')
+        ? _b(json['about_enable'])
+        : true,
+    aboutName: _s(json['about_name']).isEmpty
+        ? '安逸软件库'
+        : _s(json['about_name']),
+    aboutVersion: _s(json['about_version']).isEmpty
+        ? '1.0.0'
+        : _s(json['about_version']),
+    aboutLogo: _s(json['about_logo']),
+    aboutSlogan: _s(json['about_slogan']),
+    aboutDesc: _s(json['about_desc']),
+    aboutCopyright: _s(json['about_copyright']),
+    aboutContact: _s(json['about_contact']),
+    aboutWebsite: _s(json['about_website']),
+    aboutUpdateUrl: _s(json['about_update_url']),
+    aboutExtra: _s(json['about_extra']),
+    aboutFooter: _s(json['about_footer']),
+    emailAllowDomains: _s(json['email_allow_domains']),
+    emailNonQqOn: _b(json['email_nonqq_on']),
+    themePalette: _s(json['theme_palette']).isEmpty
+        ? 'aurora'
+        : _s(json['theme_palette']),
+    toolHomeStyle: _s(json['tool_home_style']).isEmpty
+        ? 'group'
+        : _s(json['tool_home_style']),
+    appUiStyle: _s(json['app_ui_style']).isEmpty
+        ? 'glass'
+        : _s(json['app_ui_style']),
+    uiConfig: UiConfig.fromLegacy(json),
+  );
 }

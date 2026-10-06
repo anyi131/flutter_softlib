@@ -10,6 +10,7 @@ import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
 import '../../../design/app_style.dart';
 import '../../../design/app_style_controller.dart';
+import '../../../design/app_anim.dart';
 import '../../../design/theme_controller.dart';
 import '../../../design/ui.dart';
 import '../../../models/app_cat.dart';
@@ -37,6 +38,7 @@ class _AppComponentState extends State<AppComponent> {
   List<AppItem> _apps = [];
   int _cat = 0;
   bool _loading = true;
+
   /// 列表正在加载更多（不遮全屏，只在底部转圈）
   bool _loadingMore = false;
   bool _hasMore = true;
@@ -78,9 +80,9 @@ class _AppComponentState extends State<AppComponent> {
     });
     // ★ 应用后台下发的默认列表样式（用户本地选过则不覆盖）—— 需求 #9
     if (cfg != null) {
-      AppStyleController.instance.applyServerDefault(cfg.appUiStyle);
-      // ★ 主题配色由管理员在后台下发（用户不可自行切换）
-      ThemeController.instance.applyServerPalette(cfg.themePalette);
+      // ★ v52：列表样式与主题统一由后台「界面配置」下发
+      AppStyleController.instance.applyServerDefault(cfg.uiConfig.listStyle);
+      ThemeController.instance.applyServerPalette(cfg.uiConfig.themePalette);
     }
     // 若配置指定了数据源筛选，且与「全部」结果不同，再静默重取一次
     if (src != 'all') {
@@ -97,10 +99,12 @@ class _AppComponentState extends State<AppComponent> {
   Future<void> _loadCats() async {
     final c = await _svc.fetchCats();
     if (!mounted) return;
-    setState(() => _cats = [
-          AppCat(id: 0, title: '全部', count: 0),
-          ...c.where((e) => e.id != 0),
-        ]);
+    setState(
+      () => _cats = [
+        AppCat(id: 0, title: '全部', count: 0),
+        ...c.where((e) => e.id != 0),
+      ],
+    );
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -152,16 +156,18 @@ class _AppComponentState extends State<AppComponent> {
       final all = (folderItems != null)
           ? folderItems
           : ((cat != null && cat.isFolder)
-              ? await _svc.fetchFolder(cat.url, pwd: cat.pwd, pgs: _page)
-              : await _svc.fetchApps(
-              catId: _cat,
-              keyword: _kw,
-              provider: _source == 'all' ? '' : _source,
-              force: reset,
-            ));
+                ? await _svc.fetchFolder(cat.url, pwd: cat.pwd, pgs: _page)
+                : await _svc.fetchApps(
+                    catId: _cat,
+                    keyword: _kw,
+                    provider: _source == 'all' ? '' : _source,
+                    force: reset,
+                  ));
       final isFolderMode = cat != null && cat.isFolder;
-      debugPrint('[Softlib] _load: cat=${cat?.title} isFolder=$isFolderMode '
-          'folderItems=${folderItems?.length} all=${all.length} page=$_page reset=$reset');
+      debugPrint(
+        '[Softlib] _load: cat=${cat?.title} isFolder=$isFolderMode '
+        'folderItems=${folderItems?.length} all=${all.length} page=$_page reset=$reset',
+      );
       List<AppItem> slice;
       bool hasMore;
       if (isFolderMode) {
@@ -217,10 +223,9 @@ class _AppComponentState extends State<AppComponent> {
   }
 
   /// 当前分类（用于判断是否蓝奏云文件夹）
-  AppCat? get _currentCat =>
-      _cats.where((c) => c.id == _cat).isEmpty
-          ? null
-          : _cats.firstWhere((c) => c.id == _cat);
+  AppCat? get _currentCat => _cats.where((c) => c.id == _cat).isEmpty
+      ? null
+      : _cats.firstWhere((c) => c.id == _cat);
 
   void _switch(int id) {
     if (_cat == id) return;
@@ -237,9 +242,13 @@ class _AppComponentState extends State<AppComponent> {
     final ctrl = TextEditingController(text: _kw);
     final v = await Get.dialog<String>(
       AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.lg)),
-        title: const Text('搜索软件',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(R.lg),
+        ),
+        title: const Text(
+          '搜索软件',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+        ),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -251,10 +260,13 @@ class _AppComponentState extends State<AppComponent> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Get.back(result: ''), child: const Text('重置')),
+            onPressed: () => Get.back(result: ''),
+            child: const Text('重置'),
+          ),
           FilledButton(
-              onPressed: () => Get.back(result: ctrl.text.trim()),
-              child: const Text('搜索')),
+            onPressed: () => Get.back(result: ctrl.text.trim()),
+            child: const Text('搜索'),
+          ),
         ],
       ),
     );
@@ -324,41 +336,44 @@ class _AppComponentState extends State<AppComponent> {
               }
             },
           ),
-          _circleBtn(Icons.download_rounded, () => Get.toNamed(Routes.appDownload)),
+          _circleBtn(
+            Icons.download_rounded,
+            () => Get.toNamed(Routes.appDownload),
+          ),
         ],
       ),
     );
   }
 
   Widget _circleBtn(IconData i, VoidCallback f) => Padding(
-        padding: const EdgeInsets.only(left: 8),
-        child: GestureDetector(
-          onTap: f,
-          child: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: context.isDark ? Colors.white.withAlpha(14) : Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: context.isDark
-                    ? Colors.white.withAlpha(22)
-                    : Colors.black.withAlpha(8),
-              ),
-              boxShadow: context.isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: const Color(0xFF2C3550).withAlpha(18),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-            ),
-            child: Icon(i, size: 20, color: context.t2),
+    padding: const EdgeInsets.only(left: 8),
+    child: GestureDetector(
+      onTap: f,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: context.isDark ? Colors.white.withAlpha(14) : Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: context.isDark
+                ? Colors.white.withAlpha(22)
+                : Colors.black.withAlpha(8),
           ),
+          boxShadow: context.isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: const Color(0xFF2C3550).withAlpha(18),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
-      );
+        child: Icon(i, size: 20, color: context.t2),
+      ),
+    ),
+  );
 
   // ───── 分类 ─────
   Widget _catBar() {
@@ -368,7 +383,11 @@ class _AppComponentState extends State<AppComponent> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.fromLTRB(
-            context.pagePadding, 14, context.pagePadding, 8),
+          context.pagePadding,
+          14,
+          context.pagePadding,
+          8,
+        ),
         itemCount: _cats.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
@@ -384,14 +403,16 @@ class _AppComponentState extends State<AppComponent> {
                 gradient: sel ? Deco.brandGradient : null,
                 color: sel
                     ? null
-                    : (context.isDark ? Colors.white.withAlpha(12) : Colors.white),
+                    : (context.isDark
+                          ? Colors.white.withAlpha(12)
+                          : Colors.white),
                 borderRadius: BorderRadius.circular(R.full),
                 border: Border.all(
                   color: sel
                       ? Colors.transparent
                       : (context.isDark
-                          ? Colors.white.withAlpha(20)
-                          : Colors.black.withAlpha(8)),
+                            ? Colors.white.withAlpha(20)
+                            : Colors.black.withAlpha(8)),
                 ),
                 boxShadow: sel
                     ? [
@@ -402,14 +423,14 @@ class _AppComponentState extends State<AppComponent> {
                         ),
                       ]
                     : (context.isDark
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: const Color(0xFF2C3550).withAlpha(14),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ]),
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: const Color(0xFF2C3550).withAlpha(14),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ]),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -445,9 +466,10 @@ class _AppComponentState extends State<AppComponent> {
     if (_loading) {
       // 文件夹解析时展示实时进度，其它情况用统一加载态
       return LoadingState(
-          text: _folderParsing
-              ? (_folderProgress.isEmpty ? '正在解析蓝奏云文件夹…' : _folderProgress)
-              : null);
+        text: _folderParsing
+            ? (_folderProgress.isEmpty ? '正在解析蓝奏云文件夹…' : _folderProgress)
+            : null,
+      );
     }
     if (_apps.isEmpty) {
       return EmptyState(
@@ -471,7 +493,8 @@ class _AppComponentState extends State<AppComponent> {
         }
         await _load();
         _refreshCtrl.finishLoad(
-            _hasMore ? IndicatorResult.success : IndicatorResult.noMore);
+          _hasMore ? IndicatorResult.success : IndicatorResult.noMore,
+        );
       },
       child: Obx(() {
         final style = AppStyleController.instance.listStyle.value;
@@ -479,9 +502,14 @@ class _AppComponentState extends State<AppComponent> {
         if (style == AppListStyle.grid) {
           return GridView.builder(
             physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics()),
-            padding: EdgeInsets.fromLTRB(context.pagePadding, 8,
-                context.pagePadding, tabBottomPadding(context) + 12),
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              context.pagePadding,
+              8,
+              context.pagePadding,
+              tabBottomPadding(context) + 12,
+            ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 12,
@@ -491,24 +519,30 @@ class _AppComponentState extends State<AppComponent> {
             itemCount: _apps.length,
             itemBuilder: (context, i) => RepaintBoundary(
               key: ValueKey('g_${_apps[i].id}'),
-              child: _gridCard(_apps[i]),
+              child: AppStaggerIn(index: i, child: _gridCard(_apps[i])),
             ),
           );
         }
         return ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics()),
+            parent: BouncingScrollPhysics(),
+          ),
           padding: EdgeInsets.only(
-              top: 8, bottom: tabBottomPadding(context) + 12),
+            top: 8,
+            bottom: tabBottomPadding(context) + 12,
+          ),
           itemCount: _apps.length + (_loadingMore ? 1 : 0),
           itemBuilder: (context, i) {
             if (i >= _apps.length) return _loadMoreFooter();
             final a = _apps[i];
             return RepaintBoundary(
               key: ValueKey('l_${a.id}'),
-              child: style == AppListStyle.compact
-                  ? _compactCard(a)
-                  : _card(a),
+              child: AppStaggerIn(
+                index: i,
+                child: style == AppListStyle.compact
+                    ? _compactCard(a)
+                    : _card(a),
+              ),
             );
           },
         );
@@ -521,12 +555,18 @@ class _AppComponentState extends State<AppComponent> {
     final vip = a.isVipItem;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          context.pagePadding, 3, context.pagePadding, 3),
+        context.pagePadding,
+        3,
+        context.pagePadding,
+        3,
+      ),
       child: KitCard(
         radius: R.md,
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-        onTap: () => Get.toNamed(Routes.appDetails,
-            arguments: {'appId': a.id.toString(), 'item': a}),
+        onTap: () => Get.toNamed(
+          Routes.appDetails,
+          arguments: {'appId': a.id.toString(), 'item': a},
+        ),
         child: Row(
           children: [
             ClipRRect(
@@ -549,13 +589,16 @@ class _AppComponentState extends State<AppComponent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(a.title.isEmpty ? '未知应用' : a.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: context.t1)),
+                  Text(
+                    a.title.isEmpty ? '未知应用' : a.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: context.t1,
+                    ),
+                  ),
                   const SizedBox(height: 3),
                   Text(
                     [
@@ -570,8 +613,7 @@ class _AppComponentState extends State<AppComponent> {
               ),
             ),
             const SizedBox(width: 6),
-            Pill(vip ? '会员' : '免费',
-                color: vip ? C.amber : C.mint, small: true),
+            Pill(vip ? '会员' : '免费', color: vip ? C.amber : C.mint, small: true),
           ],
         ),
       ),
@@ -584,8 +626,10 @@ class _AppComponentState extends State<AppComponent> {
     return KitCard(
       radius: R.lg,
       padding: const EdgeInsets.all(12),
-      onTap: () => Get.toNamed(Routes.appDetails,
-          arguments: {'appId': a.id.toString(), 'item': a}),
+      onTap: () => Get.toNamed(
+        Routes.appDetails,
+        arguments: {'appId': a.id.toString(), 'item': a},
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -625,49 +669,63 @@ class _AppComponentState extends State<AppComponent> {
                     top: -2,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 1.5),
+                        horizontal: 5,
+                        vertical: 1.5,
+                      ),
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                            colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
+                          colors: [Color(0xFFFF6B35), Color(0xFFFB923C)],
+                        ),
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(8),
                           bottomRight: Radius.circular(8),
                         ),
                       ),
-                      child: const Text('NEW',
-                          style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              height: 1.1)),
+                      child: const Text(
+                        'NEW',
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1.1,
+                        ),
+                      ),
                     ),
                   ),
               ],
             ),
           ),
           const SizedBox(height: 9),
-          Text(a.title.isEmpty ? '未知应用' : a.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w800,
-                  color: context.t1)),
+          Text(
+            a.title.isEmpty ? '未知应用' : a.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: context.t1,
+            ),
+          ),
           const SizedBox(height: 5),
           Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Pill(vip ? '会员' : '免费',
-                    color: vip ? C.amber : C.mint, small: true),
+                Pill(
+                  vip ? '会员' : '免费',
+                  color: vip ? C.amber : C.mint,
+                  small: true,
+                ),
                 if (a.size.isNotEmpty) ...[
                   const SizedBox(width: 6),
                   Flexible(
-                    child: Text(a.size,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 10.5, color: context.t3)),
+                    child: Text(
+                      a.size,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 10.5, color: context.t3),
+                    ),
                   ),
                 ],
               ],
@@ -679,13 +737,14 @@ class _AppComponentState extends State<AppComponent> {
   }
 
   Widget _phSmall() => Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-              colors: [C.brand.withAlpha(50), C.violet.withAlpha(50)]),
-        ),
-      );
+    width: 42,
+    height: 42,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [C.brand.withAlpha(50), C.violet.withAlpha(50)],
+      ),
+    ),
+  );
 
   /// 底部「加载更多」指示（文件夹模式分批加载时显示）
   Widget _loadMoreFooter() {
@@ -697,8 +756,7 @@ class _AppComponentState extends State<AppComponent> {
           SizedBox(
             width: 15,
             height: 15,
-            child: CircularProgressIndicator(
-                strokeWidth: 2, color: C.brand),
+            child: CircularProgressIndicator(strokeWidth: 2, color: C.brand),
           ),
           const SizedBox(width: 10),
           Text('正在加载更多…', style: Ty.tiny.copyWith(color: context.t3)),
@@ -712,11 +770,17 @@ class _AppComponentState extends State<AppComponent> {
     final vip = a.isVipItem;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          context.pagePadding, 5, context.pagePadding, 5),
+        context.pagePadding,
+        5,
+        context.pagePadding,
+        5,
+      ),
       child: KitCard(
         radius: R.lg,
-        onTap: () => Get.toNamed(Routes.appDetails,
-            arguments: {'appId': a.id.toString(), 'item': a}),
+        onTap: () => Get.toNamed(
+          Routes.appDetails,
+          arguments: {'appId': a.id.toString(), 'item': a},
+        ),
         padding: const EdgeInsets.all(12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -756,10 +820,13 @@ class _AppComponentState extends State<AppComponent> {
                       top: -2,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1.5),
+                          horizontal: 5,
+                          vertical: 1.5,
+                        ),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                              colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
+                            colors: [Color(0xFFFF6B35), Color(0xFFFB923C)],
+                          ),
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(8),
                             bottomRight: Radius.circular(8),
@@ -772,20 +839,24 @@ class _AppComponentState extends State<AppComponent> {
                             ),
                           ],
                         ),
-                        child: const Text('NEW',
-                            style: TextStyle(
-                                fontSize: 8,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 0.4,
-                                height: 1.1)),
+                        child: const Text(
+                          'NEW',
+                          style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 0.4,
+                            height: 1.1,
+                          ),
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(              child: Column(
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -807,9 +878,10 @@ class _AppComponentState extends State<AppComponent> {
                       ),
                       if (a.version.isNotEmpty) ...[
                         const SizedBox(width: 6),
-                        Text(a.version,
-                            style: TextStyle(
-                                fontSize: 10.5, color: context.t3)),
+                        Text(
+                          a.version,
+                          style: TextStyle(fontSize: 10.5, color: context.t3),
+                        ),
                       ],
                     ],
                   ),
@@ -817,26 +889,37 @@ class _AppComponentState extends State<AppComponent> {
                   // 一行装完：会员/免费 + 评分 + 大小
                   Row(
                     children: [
-                      Pill(vip ? '会员' : '免费',
-                          color: vip ? C.amber : C.mint, small: true),
+                      Pill(
+                        vip ? '会员' : '免费',
+                        color: vip ? C.amber : C.mint,
+                        small: true,
+                      ),
                       const SizedBox(width: 7),
                       if (a.scoreCount > 0) ...[
-                        const Icon(Icons.star_rounded, size: 12, color: C.amber),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 12,
+                          color: C.amber,
+                        ),
                         const SizedBox(width: 2),
-                        Text(a.scoreAvg.toStringAsFixed(1),
-                            style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: C.amber)),
+                        Text(
+                          a.scoreAvg.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: C.amber,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                       ],
                       if (a.size.isNotEmpty)
                         Flexible(
-                          child: Text(a.size,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 11, color: context.t3)),
+                          child: Text(
+                            a.size,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 11, color: context.t3),
+                          ),
                         ),
                     ],
                   ),
@@ -861,13 +944,13 @@ class _AppComponentState extends State<AppComponent> {
   }
 
   Widget _ph() => Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [C.brand.withAlpha(50), C.violet.withAlpha(50)],
-          ),
-        ),
-        child: const Icon(Icons.android_rounded, color: Colors.white, size: 28),
-      );
+    width: 60,
+    height: 60,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [C.brand.withAlpha(50), C.violet.withAlpha(50)],
+      ),
+    ),
+    child: const Icon(Icons.android_rounded, color: Colors.white, size: 28),
+  );
 }

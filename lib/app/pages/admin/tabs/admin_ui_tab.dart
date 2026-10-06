@@ -1,0 +1,445 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../../api/admin_service.dart';
+import '../../../design/app_anim.dart';
+import '../../../design/theme_palette.dart';
+import '../../../design/ui.dart';
+import '../../../utils/toast_util.dart';
+
+/// ═══════════════════════════════════════════════════════════════
+/// 界面配置 Tab（v52 #6 / #10）
+///
+/// 后台统一管理全局界面：
+///   · 主题配色方案（8 套）  · 明暗模式（浅/深/跟随系统）
+///   · 底部 Tab 开关         · 功能开关（签到/兑换/排行/邀请…）
+///   · 软件列表默认样式
+/// 保存到 ui_config JSON，App 启动时 applyUiConfig() 应用。
+/// ═══════════════════════════════════════════════════════════════
+class AdminUiTab extends StatefulWidget {
+  const AdminUiTab({super.key});
+
+  @override
+  State<AdminUiTab> createState() => _AdminUiTabState();
+}
+
+class _AdminUiTabState extends State<AdminUiTab> {
+  final _svc = AdminService.instance;
+
+  // 主题
+  String _palette = 'aurora';
+  String _mode = 'light'; // light / dark / system
+  bool _userToggle = false;
+  // Tab
+  bool _tabHome = true, _tabSquare = true, _tabTips = true, _tabMine = true;
+  // 功能
+  bool _checkin = true, _exchange = true, _donate = true, _invite = true;
+  bool _notice = true, _referral = true;
+  // 列表样式
+  String _listStyle = 'glass';
+
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final cfg = await _svc.config();
+      final raw = cfg['ui_config'];
+      Map<String, dynamic> ui = {};
+      if (raw is Map) {
+        ui = Map<String, dynamic>.from(raw);
+      } else if (raw is String && raw.trim().startsWith('{')) {
+        // JSON 字符串容错
+        try {
+          ui = Map<String, dynamic>.from(jsonDecode(raw));
+        } catch (_) {}
+      }
+      final theme = (ui['theme'] is Map)
+          ? Map<String, dynamic>.from(ui['theme'] as Map)
+          : <String, dynamic>{};
+      final tabs = (ui['tabs'] is Map)
+          ? Map<String, dynamic>.from(ui['tabs'] as Map)
+          : <String, dynamic>{};
+      final feat = (ui['features'] is Map)
+          ? Map<String, dynamic>.from(ui['features'] as Map)
+          : <String, dynamic>{};
+      final home = (ui['home'] is Map)
+          ? Map<String, dynamic>.from(ui['home'] as Map)
+          : <String, dynamic>{};
+      if (!mounted) return;
+      setState(() {
+        _palette = '${theme['palette'] ?? cfg['theme_palette'] ?? 'aurora'}';
+        _mode = '${theme['mode'] ?? 'light'}';
+        _userToggle = '${theme['user_toggle'] ?? 0}' == '1';
+        _tabHome = '${tabs['home'] ?? 1}' == '1';
+        _tabSquare = '${tabs['square'] ?? 1}' == '1';
+        _tabTips = '${tabs['tips'] ?? 1}' == '1';
+        _tabMine = '${tabs['mine'] ?? 1}' == '1';
+        _checkin = '${feat['checkin'] ?? 1}' == '1';
+        _exchange = '${feat['exchange'] ?? 1}' == '1';
+        _donate = '${feat['donate_rank'] ?? 1}' == '1';
+        _invite = '${feat['invite'] ?? 1}' == '1';
+        _notice = '${feat['notice'] ?? 1}' == '1';
+        _referral = '${feat['referral'] ?? 1}' == '1';
+        _listStyle = '${home['list_style'] ?? cfg['app_ui_style'] ?? 'glass'}';
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+      }
+    }
+  }
+
+  Map<String, dynamic> _payload() => {
+    'ui_config': {
+      'theme': {
+        'palette': _palette,
+        'mode': _mode,
+        'user_toggle': _userToggle ? 1 : 0,
+      },
+      'tabs': {
+        'home': _tabHome ? 1 : 0,
+        'square': _tabSquare ? 1 : 0,
+        'tips': _tabTips ? 1 : 0,
+        'mine': _tabMine ? 1 : 0,
+      },
+      'features': {
+        'checkin': _checkin ? 1 : 0,
+        'exchange': _exchange ? 1 : 0,
+        'donate_rank': _donate ? 1 : 0,
+        'invite': _invite ? 1 : 0,
+        'notice': _notice ? 1 : 0,
+        'referral': _referral ? 1 : 0,
+      },
+      'home': {'list_style': _listStyle},
+    },
+  };
+
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await _svc.saveConfig(_payload());
+      if (mounted) {
+        ToastUtil.success('界面配置已保存，App 下次启动生效');
+      }
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2.4));
+    }
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 40),
+      children: [
+        _card('主题配色', _palettePicker()),
+        _card('明暗模式', _modePicker()),
+        _card('底部导航开关', _tabSwitches()),
+        _card('功能开关', _featureSwitches()),
+        _card('软件列表默认样式', _listStylePicker()),
+        const SizedBox(height: 16),
+        AppPressable(
+          onTap: _saving ? null : _save,
+          child: Container(
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: C.brandGradient,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: _saving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    '保存界面配置',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Center(
+          child: Text(
+            '保存后 App 下次启动时自动应用（用户端不可自行修改）',
+            style: TextStyle(fontSize: 11, color: context.t3),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _card(String title, Widget child) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: context.isDark
+              ? Colors.white.withAlpha(16)
+              : Colors.black.withAlpha(10),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w900,
+              color: context.t1,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _palettePicker() {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final p in ThemePalette.all)
+          AppPressable(
+            onTap: () => setState(() => _palette = p.key),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: _palette == p.key
+                    ? p.brand.withAlpha(30)
+                    : context.isDark
+                    ? Colors.white.withAlpha(10)
+                    : Colors.black.withAlpha(5),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: _palette == p.key ? p.brand : Colors.transparent,
+                  width: 1.4,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(colors: [p.brand, p.accent]),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    p.name,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: context.t1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _modePicker() {
+    const opts = [
+      ('light', '浅色', Icons.light_mode_rounded),
+      ('dark', '深色', Icons.dark_mode_rounded),
+      ('system', '跟随系统', Icons.settings_brightness_rounded),
+    ];
+    return Row(
+      children: [
+        for (final o in opts) ...[
+          Expanded(
+            child: AppPressable(
+              onTap: () => setState(() => _mode = o.$1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                decoration: BoxDecoration(
+                  color: _mode == o.$1
+                      ? C.brand.withAlpha(26)
+                      : context.isDark
+                      ? Colors.white.withAlpha(8)
+                      : Colors.black.withAlpha(4),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: _mode == o.$1
+                        ? C.brand.withAlpha(140)
+                        : Colors.transparent,
+                    width: 1.3,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      o.$2,
+                      size: 19,
+                      color: _mode == o.$1 ? C.brand : context.t3,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      o.$2,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: context.t2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (o != opts.last) const SizedBox(width: 9),
+        ],
+      ],
+    );
+  }
+
+  Widget _tabSwitches() {
+    final items = [
+      ('首页', _tabHome, (v) => _tabHome = v),
+      ('广场', _tabSquare, (v) => _tabSquare = v),
+      ('线报', _tabTips, (v) => _tabTips = v),
+      ('我的', _tabMine, (v) => _tabMine = v),
+    ];
+    return Wrap(
+      spacing: 9,
+      runSpacing: 9,
+      children: [
+        for (final it in items)
+          _chipToggle(it.$1, it.$2, (v) => setState(() => it.$3(v))),
+      ],
+    );
+  }
+
+  Widget _featureSwitches() {
+    final items = [
+      ('每日签到', _checkin, (v) => _checkin = v),
+      ('积分兑换', _exchange, (v) => _exchange = v),
+      ('赞助排行', _donate, (v) => _donate = v),
+      ('邀请码', _invite, (v) => _invite = v),
+      ('公告弹窗', _notice, (v) => _notice = v),
+      ('首页推荐', _referral, (v) => _referral = v),
+    ];
+    return Wrap(
+      spacing: 9,
+      runSpacing: 9,
+      children: [
+        for (final it in items)
+          _chipToggle(it.$1, it.$2, (v) => setState(() => it.$3(v))),
+      ],
+    );
+  }
+
+  Widget _chipToggle(String label, bool on, ValueChanged<bool> onChanged) {
+    return AppPressable(
+      onTap: () => onChanged(!on),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+        decoration: BoxDecoration(
+          color: on ? C.brand.withAlpha(26) : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: on ? C.brand.withAlpha(150) : context.t3.withAlpha(70),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              on ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 14,
+              color: on ? C.brand : context.t3,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: on ? C.brand : context.t2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _listStylePicker() {
+    const opts = [('glass', '玻璃卡片'), ('compact', '紧凑列表'), ('grid', '双列网格')];
+    return Row(
+      children: [
+        for (final o in opts) ...[
+          Expanded(
+            child: AppPressable(
+              onTap: () => setState(() => _listStyle = o.$1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _listStyle == o.$1
+                      ? C.brand.withAlpha(26)
+                      : context.isDark
+                      ? Colors.white.withAlpha(8)
+                      : Colors.black.withAlpha(4),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: _listStyle == o.$1
+                        ? C.brand.withAlpha(140)
+                        : Colors.transparent,
+                    width: 1.3,
+                  ),
+                ),
+                child: Text(
+                  o.$2,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: _listStyle == o.$1 ? C.brand : context.t2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (o != opts.last) const SizedBox(width: 9),
+        ],
+      ],
+    );
+  }
+}

@@ -6,12 +6,15 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:flutter/material.dart';
 
+import 'resolve_overlay.dart';
+
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
 
 import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
 import '../../api/unlock_service.dart';
+
 import 'dart:ui';
 
 import '../../config.dart';
@@ -61,8 +64,12 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                 final topInset = MediaQuery.of(context).padding.top;
                 return ListView(
                   physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(context.pagePadding,
-                      topInset + 56, context.pagePadding, 30),
+                  padding: EdgeInsets.fromLTRB(
+                    context.pagePadding,
+                    topInset + 56,
+                    context.pagePadding,
+                    30,
+                  ),
                   children: [
                     // 主卡（图标 + 标题 + 标签）
                     KitCard(
@@ -115,7 +122,11 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               return ListView(
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(
-                    context.pagePadding, topInset + 56, context.pagePadding, 30),
+                  context.pagePadding,
+                  topInset + 56,
+                  context.pagePadding,
+                  30,
+                ),
                 children: [
                   _hero(),
                   const SizedBox(height: 14),
@@ -167,8 +178,10 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   style: Ty.h3.copyWith(color: context.t1, fontSize: 15),
                 ),
                 const Spacer(),
-                _topBtn(Icons.ios_share_rounded,
-                    () => logic.showSharePopUps(context)),
+                _topBtn(
+                  Icons.ios_share_rounded,
+                  () => logic.showSharePopUps(context),
+                ),
               ],
             ),
           ),
@@ -178,22 +191,22 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   }
 
   Widget _topBtn(IconData i, VoidCallback f) => GestureDetector(
-        onTap: f,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: context.isDark ? Colors.white.withAlpha(14) : Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: context.isDark
-                  ? Colors.white.withAlpha(20)
-                  : Colors.black.withAlpha(8),
-            ),
-          ),
-          child: Icon(i, size: 16, color: context.t1),
+    onTap: f,
+    child: Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: context.isDark ? Colors.white.withAlpha(14) : Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: context.isDark
+              ? Colors.white.withAlpha(20)
+              : Colors.black.withAlpha(8),
         ),
-      );
+      ),
+      child: Icon(i, size: 16, color: context.t1),
+    ),
+  );
 
   // ═════════ 主卡 ═════════
   Widget _hero() {
@@ -206,12 +219,12 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     final String topLabel = hasP
         ? '¥$priceTxt 购买'
         : (isVipItem ? '会员专享' : '免费下载');
-    final Color topColor = hasP
-        ? C.mint
-        : (isVipItem ? C.amber : C.mint);
+    final Color topColor = hasP ? C.mint : (isVipItem ? C.amber : C.mint);
     final IconData topIcon = hasP
         ? Icons.paid_rounded
-        : (isVipItem ? Icons.workspace_premium_rounded : Icons.download_done_rounded);
+        : (isVipItem
+              ? Icons.workspace_premium_rounded
+              : Icons.download_done_rounded);
     final icon = info?.fileIcon ?? '';
     // ★ 详情页美化（需求 #7）：顶部加品牌渐变头图 + 更大的图标 + 光晕
     return Column(
@@ -311,11 +324,14 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                 left: 14,
                 bottom: 66,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2.5,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                        colors: [Color(0xFFFF6B35), Color(0xFFFB923C)]),
+                      colors: [Color(0xFFFF6B35), Color(0xFFFB923C)],
+                    ),
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
@@ -325,13 +341,16 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       ),
                     ],
                   ),
-                  child: const Text('NEW',
-                      style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                          height: 1.1)),
+                  child: const Text(
+                    'NEW',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                      height: 1.1,
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -357,20 +376,24 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   _chip('人工亲测', C.brandBright, Icons.verified_rounded),
                   const SizedBox(width: 6),
                   if (isVipItem && !hasP)
-                    _chip('会员专享', C.amber,
-                        Icons.workspace_premium_rounded),
+                    _chip('会员专享', C.amber, Icons.workspace_premium_rounded),
                   const Spacer(),
                   if ((it?.scoreCount ?? 0) > 0) ...[
                     const Icon(Icons.star_rounded, size: 16, color: C.amber),
                     const SizedBox(width: 3),
-                    Text(it!.scoreAvg.toStringAsFixed(1),
-                        style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: C.amber)),
+                    Text(
+                      it!.scoreAvg.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: C.amber,
+                      ),
+                    ),
                     const SizedBox(width: 3),
-                    Text('(${it.scoreCount})',
-                        style: Ty.tiny.copyWith(color: context.t3)),
+                    Text(
+                      '(${it.scoreCount})',
+                      style: Ty.tiny.copyWith(color: context.t3),
+                    ),
                   ] else
                     Text(
                       '版本 ${it?.version.isNotEmpty == true ? it!.version : '未知'}',
@@ -404,17 +427,21 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   color: C.mint.withAlpha(40),
                   shape: BoxShape.circle,
                 ),
-                child:
-                    const Icon(Icons.shield_rounded, size: 13, color: C.mint),
+                child: const Icon(
+                  Icons.shield_rounded,
+                  size: 13,
+                  color: C.mint,
+                ),
               ),
               const SizedBox(width: 9),
               Expanded(
                 child: Text(
                   '已通过安全检测 · 无病毒 · 无恶意插件',
                   style: TextStyle(
-                      fontSize: 11.5,
-                      color: C.mint,
-                      fontWeight: FontWeight.w700),
+                    fontSize: 11.5,
+                    color: C.mint,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -424,39 +451,47 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     );
   }
 
-
   Widget _chip(String text, Color color, IconData icon) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-        decoration: BoxDecoration(
-          color: color.withAlpha(context.isDark ? 36 : 24),
-          borderRadius: BorderRadius.circular(R.full),
-          border: Border.all(color: color.withAlpha(75), width: 0.7),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+    decoration: BoxDecoration(
+      color: color.withAlpha(context.isDark ? 36 : 24),
+      borderRadius: BorderRadius.circular(R.full),
+      border: Border.all(color: color.withAlpha(75), width: 0.7),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 11.5, color: color),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 11.5, color: color),
-            const SizedBox(width: 4),
-            Text(text,
-                style: TextStyle(
-                    fontSize: 10.5, fontWeight: FontWeight.w800, color: color)),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 
   // ═════════ 数据卡 ═════════
   Widget _info() {
     final it = item;
     final info = logic.appInfo;
     final cells = [
-      (Icons.sd_storage_rounded, info?.fileSize ?? it?.size ?? '-', '大小',
-          C.brandBright),
+      (
+        Icons.sd_storage_rounded,
+        info?.fileSize ?? it?.size ?? '-',
+        '大小',
+        C.brandBright,
+      ),
       (Icons.visibility_rounded, '${it?.views ?? 0}', '浏览', C.cyan),
       (
         Icons.schedule_rounded,
         it?.uploadDate.isNotEmpty == true ? it!.uploadDate : '-',
         '上传',
-        C.violet
+        C.violet,
       ),
       (Icons.face_rounded, it?.ageRating ?? '16+', '年龄', C.mint),
     ];
@@ -481,13 +516,14 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                 children: [
                   Icon(cells[i].$1, size: 17, color: cells[i].$4),
                   const SizedBox(height: 7),
-                  Text(cells[i].$2,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Ty.h3.copyWith(color: context.t1, fontSize: 13.5)),
+                  Text(
+                    cells[i].$2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Ty.h3.copyWith(color: context.t1, fontSize: 13.5),
+                  ),
                   const SizedBox(height: 3),
-                  Text(cells[i].$3,
-                      style: Ty.tiny.copyWith(color: context.t3)),
+                  Text(cells[i].$3, style: Ty.tiny.copyWith(color: context.t3)),
                 ],
               ),
             ),
@@ -503,7 +539,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
         color: isDark ? Colors.white.withAlpha(14) : Colors.white,
         borderRadius: BorderRadius.circular(R.lg),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(18) : Colors.black.withAlpha(8),
+          color: isDark
+              ? Colors.white.withAlpha(18)
+              : Colors.black.withAlpha(8),
           width: 0.8,
         ),
       ),
@@ -518,12 +556,19 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               indicatorColor: C.brand,
               labelColor: C.brand,
               unselectedLabelColor: Colors.grey[500],
-              labelStyle:
-                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-              unselectedLabelStyle:
-                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              labelStyle: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
               dividerColor: Colors.transparent,
-              tabs: const [Tab(text: '详情'), Tab(text: '评论')],
+              tabs: const [
+                Tab(text: '详情'),
+                Tab(text: '评论'),
+              ],
             ),
           ),
           Divider(height: 1, thickness: 0.5, color: Colors.grey.withAlpha(30)),
@@ -545,11 +590,15 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               width: 3.5,
               height: 15,
               decoration: BoxDecoration(
-                  color: C.brand, borderRadius: BorderRadius.circular(2)),
+                color: C.brand,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
             const SizedBox(width: 8),
-            const Text('软件介绍',
-                style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
+            const Text(
+              '软件介绍',
+              style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800),
+            ),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -557,11 +606,14 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                 color: C.brand.withAlpha(20),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text('官方详情',
-                  style: TextStyle(
-                      fontSize: 10.5,
-                      color: C.brand,
-                      fontWeight: FontWeight.w700)),
+              child: Text(
+                '官方详情',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  color: C.brand,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
@@ -577,8 +629,10 @@ class _AppDetailsPageState extends State<AppDetailsPage>
         ),
         if (shots.isNotEmpty) ...[
           const SizedBox(height: 24),
-          const Text('应用截图',
-              style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
+          const Text(
+            '应用截图',
+            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 12),
           SizedBox(
             height: 240,
@@ -595,14 +649,16 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                     width: 130,
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(
-                        width: 130,
-                        color: Colors.black12,
-                        child: const Center(
-                            child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2)))),
+                      width: 130,
+                      color: Colors.black12,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
                     errorWidget: (_, __, ___) => Container(
                       width: 130,
                       color: Colors.black12,
@@ -614,8 +670,10 @@ class _AppDetailsPageState extends State<AppDetailsPage>
             ),
           ),
           const SizedBox(height: 8),
-          Text('共 ${shots.length} 张 · 点击可放大查看',
-              style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+          Text(
+            '共 ${shots.length} 张 · 点击可放大查看',
+            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+          ),
         ],
         const SizedBox(height: 20),
         Container(
@@ -627,14 +685,20 @@ class _AppDetailsPageState extends State<AppDetailsPage>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.tips_and_updates_outlined,
-                  size: 14, color: Colors.grey[500]),
+              Icon(
+                Icons.tips_and_updates_outlined,
+                size: 14,
+                color: Colors.grey[500],
+              ),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
                   '下载前请确认软件名称与更新时间，安装包以当前详情页为准。',
                   style: TextStyle(
-                      fontSize: 11.5, color: Colors.grey[600], height: 1.7),
+                    fontSize: 11.5,
+                    color: Colors.grey[600],
+                    height: 1.7,
+                  ),
                 ),
               ),
             ],
@@ -663,17 +727,22 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   width: 3.5,
                   height: 15,
                   decoration: BoxDecoration(
-                      color: C.brand, borderRadius: BorderRadius.circular(2)),
+                    color: C.brand,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
                 const SizedBox(width: 8),
-                const Text('精品推荐',
-                    style:
-                        TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
+                const Text(
+                  '精品推荐',
+                  style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800),
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            Text('为你精选更多实用应用',
-                style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+            Text(
+              '为你精选更多实用应用',
+              style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+            ),
             const SizedBox(height: 12),
             SizedBox(
               height: 118,
@@ -684,8 +753,10 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                 itemBuilder: (context, i) {
                   final a = others[i];
                   return GestureDetector(
-                    onTap: () => Get.offAndToNamed(Routes.appDetails,
-                        arguments: {'appId': a.id.toString(), 'item': a}),
+                    onTap: () => Get.offAndToNamed(
+                      Routes.appDetails,
+                      arguments: {'appId': a.id.toString(), 'item': a},
+                    ),
                     child: SizedBox(
                       width: 72,
                       child: Column(
@@ -697,8 +768,11 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                                     width: 58,
                                     height: 58,
                                     color: C.brand.withAlpha(28),
-                                    child: Icon(Icons.android,
-                                        color: C.brand, size: 27),
+                                    child: Icon(
+                                      Icons.android,
+                                      color: C.brand,
+                                      size: 27,
+                                    ),
                                   )
                                 : CachedNetworkImage(
                                     imageUrl: a.icon,
@@ -706,15 +780,20 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                                     height: 58,
                                     fit: BoxFit.cover,
                                     placeholder: (_, __) => Container(
-                                        width: 58,
-                                        height: 58,
-                                        color: Colors.black12),
+                                      width: 58,
+                                      height: 58,
+                                      color: Colors.black12,
+                                    ),
                                     errorWidget: (_, __, ___) => Container(
-                                        width: 58,
-                                        height: 58,
-                                        color: C.brand.withAlpha(28),
-                                        child: Icon(Icons.android,
-                                            color: C.brand, size: 27)),
+                                      width: 58,
+                                      height: 58,
+                                      color: C.brand.withAlpha(28),
+                                      child: Icon(
+                                        Icons.android,
+                                        color: C.brand,
+                                        size: 27,
+                                      ),
+                                    ),
                                   ),
                           ),
                           const SizedBox(height: 6),
@@ -737,7 +816,6 @@ class _AppDetailsPageState extends State<AppDetailsPage>
       },
     );
   }
-
 
   // ============ 底部：单个下载按钮（无左右双栏） ============
   Widget _bottom() {
@@ -770,8 +848,11 @@ class _AppDetailsPageState extends State<AppDetailsPage>
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _bottomHint(Icons.check_circle_outline_rounded,
-                      '下载完成 · 点击即可安装', C.success),
+                  _bottomHint(
+                    Icons.check_circle_outline_rounded,
+                    '下载完成 · 点击即可安装',
+                    C.success,
+                  ),
                   const SizedBox(height: 9),
                   PrimaryButton(
                     label: '安装',
@@ -833,7 +914,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   color: color,
                   icon: icon,
                   gold: needUnlock && !hasP,
-                  onPressed: () async => await _onDownload(needUnlock, loggedIn, isVipUser),
+                  onPressed: () async =>
+                      await _onDownload(needUnlock, loggedIn, isVipUser),
                 ),
               ],
             );
@@ -872,11 +954,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     final isPaused = task.status == DownloadTaskStatus.paused;
     final isFailed = task.status == DownloadTaskStatus.failed;
 
-    final Color accent = isFailed
-        ? C.danger
-        : (isPaused ? C.warning : C.brand);
-    final String title =
-        isFailed ? '下载失败' : (isPaused ? '已暂停' : '正在下载中');
+    final Color accent = isFailed ? C.danger : (isPaused ? C.warning : C.brand);
+    final String title = isFailed ? '下载失败' : (isPaused ? '已暂停' : '正在下载中');
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -894,22 +973,26 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                 isFailed
                     ? Icons.error_outline_rounded
                     : (isPaused
-                        ? Icons.pause_rounded
-                        : Icons.downloading_rounded),
+                          ? Icons.pause_rounded
+                          : Icons.downloading_rounded),
                 size: 14,
                 color: accent,
               ),
             ),
             const SizedBox(width: 8),
-            Text(title,
-                style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                    color: accent)),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                color: accent,
+              ),
+            ),
             const Spacer(),
-            Text('${task.progress}%',
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w900)),
+            Text(
+              '${task.progress}%',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
           ],
         ),
         const SizedBox(height: 9),
@@ -917,33 +1000,39 @@ class _AppDetailsPageState extends State<AppDetailsPage>
         const SizedBox(height: 9),
         Row(
           children: [
-            Text('$done / ${total.isEmpty ? '未知' : total}',
-                style: TextStyle(fontSize: 11.5, color: context.t2)),
+            Text(
+              '$done / ${total.isEmpty ? '未知' : total}',
+              style: TextStyle(fontSize: 11.5, color: context.t2),
+            ),
             const Spacer(),
             if (isFailed)
               MiniAction(
-                  label: '重试',
-                  icon: Icons.refresh_rounded,
-                  onTap: download.retryDownload,
-                  color: accent)
+                label: '重试',
+                icon: Icons.refresh_rounded,
+                onTap: download.retryDownload,
+                color: accent,
+              )
             else if (isPaused)
               MiniAction(
-                  label: '继续',
-                  icon: Icons.play_arrow_rounded,
-                  onTap: download.resumeDownload,
-                  color: accent)
+                label: '继续',
+                icon: Icons.play_arrow_rounded,
+                onTap: download.resumeDownload,
+                color: accent,
+              )
             else
               MiniAction(
-                  label: '暂停',
-                  icon: Icons.pause_rounded,
-                  onTap: download.pauseDownload,
-                  color: accent),
+                label: '暂停',
+                icon: Icons.pause_rounded,
+                onTap: download.pauseDownload,
+                color: accent,
+              ),
             const SizedBox(width: 8),
             MiniAction(
-                label: '取消',
-                icon: Icons.close_rounded,
-                onTap: download.cancelDownload,
-                color: const Color(0xFF6B7280)),
+              label: '取消',
+              icon: Icons.close_rounded,
+              onTap: download.cancelDownload,
+              color: const Color(0xFF6B7280),
+            ),
           ],
         ),
       ],
@@ -964,7 +1053,11 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   /// ★ 现在以「服务端为唯一权威」：
   ///   已登录用户一律先问服务端（本地数据可能过期/被改）；
   ///   未登录用户只在「看起来免费」时直接下载，涉及付费则引导登录。
-  Future<void> _onDownload(bool isVipItem, bool loggedIn, bool isVipUser) async {
+  Future<void> _onDownload(
+    bool isVipItem,
+    bool loggedIn,
+    bool isVipUser,
+  ) async {
     // appInfo 是解析后的文件信息，没有 id；id 在 item 上
     final appId = logic.item?.id ?? 0;
     final fileName = logic.appInfo?.fileName ?? '未知文件名';
@@ -975,7 +1068,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     // 未登录：只有「确认免费」才允许直接下载
     if (!loggedIn) {
       if (!localNeedPay) {
-        logic.addDownload(fileName);
+        runDownloadWithOverlay(() => logic.addDownload(fileName));
       } else {
         _dialog('需要登录', '该资源为付费资源，请先登录账号', '去登录', Routes.login);
       }
@@ -986,9 +1079,11 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     // ★ 没有有效 id 时（如蓝奏云文件夹里的软件）退回本地判断
     if (appId <= 0) {
       if (!localNeedPay) {
-        logic.addDownload(fileName);
+        runDownloadWithOverlay(() => logic.addDownload(fileName));
       } else {
-        logic.addDownload(fileName); // 无 id 无法校验，放行
+        runDownloadWithOverlay(
+          () => logic.addDownload(fileName),
+        ); // 无 id 无法校验，放行
       }
       return;
     }
@@ -999,7 +1094,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     } catch (e) {
       // 服务端不可达时：本地判定免费就放行，否则提示（避免网络抖动卡死下载）
       if (!localNeedPay) {
-        logic.addDownload(fileName);
+        runDownloadWithOverlay(() => logic.addDownload(fileName));
       } else {
         ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
       }
@@ -1008,7 +1103,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     if (!mounted) return;
 
     if (st.canDownload) {
-      logic.addDownload(fileName);
+      runDownloadWithOverlay(() => logic.addDownload(fileName));
       return;
     }
 
@@ -1018,134 +1113,162 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     //   这里若价格为空或为 0，说明是「会员专享但未设价」，只引导开会员
     final hasPrice = price.isNotEmpty && (double.tryParse(price) ?? 0) > 0;
     if (!hasPrice) {
-      await Get.dialog(AlertDialog(
-        title: const Text('会员专享资源',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-        content: const Text('该资源需要开通会员后才能下载。',
-            style: TextStyle(fontSize: 13, height: 1.5)),
+      await Get.dialog(
+        AlertDialog(
+          title: const Text(
+            '会员专享资源',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          content: const Text(
+            '该资源需要开通会员后才能下载。',
+            style: TextStyle(fontSize: 13, height: 1.5),
+          ),
+          actions: [
+            TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+            FilledButton(
+              onPressed: () {
+                Get.back();
+                Get.toNamed(Routes.vip);
+              },
+              child: const Text('开通会员'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final balance = st.balance;
+    final enough =
+        (double.tryParse(balance) ?? 0) >= (double.tryParse(price) ?? 0);
+    final title = isVipUser ? '会员专享资源' : '付费资源';
+    await Get.dialog(
+      AlertDialog(
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '该软件需支付 ¥$price 后下载。',
+              style: const TextStyle(fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: C.mint.withAlpha(22),
+                borderRadius: BorderRadius.circular(R.sm),
+              ),
+              child: Text(
+                '当前余额 ¥$balance',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: C.mint,
+                ),
+              ),
+            ),
+            if (!enough) ...[
+              const SizedBox(height: 8),
+              const Text(
+                '余额不足，请先充值后再购买。',
+                style: TextStyle(fontSize: 12, color: C.warning),
+              ),
+            ],
+            const SizedBox(height: 8),
+            const Text(
+              '会员用户可直接免费下载。',
+              style: TextStyle(fontSize: 11.5, color: Colors.grey),
+            ),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('取消')),
-          FilledButton(
+          TextButton(
             onPressed: () {
               Get.back();
               Get.toNamed(Routes.vip);
             },
             child: const Text('开通会员'),
           ),
-        ],
-      ));
-      return;
-    }
-
-    final balance = st.balance;
-    final enough = (double.tryParse(balance) ?? 0) >= (double.tryParse(price) ?? 0);
-    final title = isVipUser ? '会员专享资源' : '付费资源';
-    await Get.dialog(AlertDialog(
-      title: Text(title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('该软件需支付 ¥$price 后下载。',
-              style: const TextStyle(fontSize: 13, height: 1.5)),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            decoration: BoxDecoration(
-              color: C.mint.withAlpha(22),
-              borderRadius: BorderRadius.circular(R.sm),
-            ),
-            child: Text('当前余额 ¥$balance',
-                style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: C.mint)),
+          FilledButton(
+            onPressed: () {
+              Get.back();
+              if (enough) {
+                _buyWithBalance(appId, fileName, price);
+              } else {
+                Get.toNamed(Routes.recharge);
+              }
+            },
+            child: Text(enough ? '余额支付 ¥$price' : '去充值'),
           ),
-          if (!enough) ...[
-            const SizedBox(height: 8),
-            const Text('余额不足，请先充值后再购买。',
-                style: TextStyle(fontSize: 12, color: C.warning)),
-          ],
-          const SizedBox(height: 8),
-          const Text('会员用户可直接免费下载。',
-              style: TextStyle(fontSize: 11.5, color: Colors.grey)),
         ],
       ),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('取消')),
-        TextButton(
-          onPressed: () {
-            Get.back();
-            Get.toNamed(Routes.vip);
-          },
-          child: const Text('开通会员'),
-        ),
-        FilledButton(
-          onPressed: () {
-            Get.back();
-            if (enough) {
-              _buyWithBalance(appId, fileName, price);
-            } else {
-              Get.toNamed(Routes.recharge);
-            }
-          },
-          child: Text(enough ? '余额支付 ¥$price' : '去充值'),
-        ),
-      ],
-    ));
+    );
   }
 
   /// 用余额购买并解锁
   Future<void> _buyWithBalance(int appId, String fileName, String price) async {
-    final ok = await Get.dialog<bool>(AlertDialog(
-      title: const Text('确认支付'),
-      content: Text('将使用账户余额支付 ¥$price 购买该软件。\n'
-          '购买后可永久下载，不再重复扣费。'),
-      actions: [
-        TextButton(
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('确认支付'),
+        content: Text(
+          '将使用账户余额支付 ¥$price 购买该软件。\n'
+          '购买后可永久下载，不再重复扣费。',
+        ),
+        actions: [
+          TextButton(
             onPressed: () => Get.back(result: false),
-            child: const Text('取消')),
-        FilledButton(
+            child: const Text('取消'),
+          ),
+          FilledButton(
             onPressed: () => Get.back(result: true),
-            child: Text('支付 ¥$price')),
-      ],
-    ));
+            child: Text('支付 ¥$price'),
+          ),
+        ],
+      ),
+    );
     if (ok != true) return;
     try {
       await UnlockService.instance.buy(appId);
       await UserService.instance.refreshProfile();
       if (!mounted) return;
       ToastUtil.success('购买成功，开始下载');
-      logic.addDownload(fileName);
+      runDownloadWithOverlay(() => logic.addDownload(fileName));
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
   void _dialog(String title, String msg, String okText, String route) {
-    Get.dialog(AlertDialog(
-      title: Text(title),
-      content: Text(msg),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('取消')),
-        FilledButton(
+    Get.dialog(
+      AlertDialog(
+        title: Text(title),
+        content: Text(msg),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+          FilledButton(
             onPressed: () {
               Get.back();
               Get.toNamed(route);
             },
-            child: Text(okText)),
-      ],
-    ));
+            child: Text(okText),
+          ),
+        ],
+      ),
+    );
   }
 
-
   Widget _phIcon() => Container(
-        width: 80,
-        height: 80,
-        color: C.brand.withAlpha(35),
-        child: Icon(Icons.android, color: C.brand, size: 38),
-      );
+    width: 80,
+    height: 80,
+    color: C.brand.withAlpha(35),
+    child: Icon(Icons.android, color: C.brand, size: 38),
+  );
 
   /// 截图画廊：左右滑动切换 + 保存到相册
   void _previewGallery(List<String> images, int start) {
@@ -1170,8 +1293,7 @@ class _GalleryDialog extends StatefulWidget {
 }
 
 class _GalleryDialogState extends State<_GalleryDialog> {
-  late final PageController _pc =
-      PageController(initialPage: widget.initial);
+  late final PageController _pc = PageController(initialPage: widget.initial);
   late int _cur = widget.initial;
 
   @override
@@ -1183,8 +1305,10 @@ class _GalleryDialogState extends State<_GalleryDialog> {
   Future<void> _save() async {
     try {
       final url = widget.images[_cur];
-      final resp = await Dio().get<List<int>>(url,
-          options: Options(responseType: ResponseType.bytes));
+      final resp = await Dio().get<List<int>>(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
       final data = resp.data;
       if (data == null) {
         ToastUtil.error('保存失败');
@@ -1221,11 +1345,13 @@ class _GalleryDialogState extends State<_GalleryDialog> {
                     imageUrl: widget.images[i],
                     fit: BoxFit.contain,
                     placeholder: (_, __) => const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2)),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                     errorWidget: (_, __, ___) => const Icon(
-                        Icons.broken_image_outlined,
-                        color: Colors.white38,
-                        size: 48),
+                      Icons.broken_image_outlined,
+                      color: Colors.white38,
+                      size: 48,
+                    ),
                   ),
                 ),
               ),
@@ -1243,21 +1369,30 @@ class _GalleryDialogState extends State<_GalleryDialog> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
-                        color: Colors.black45, shape: BoxShape.circle),
-                    child: const Icon(Icons.close,
-                        color: Colors.white, size: 20),
+                      color: Colors.black45,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
-                      color: Colors.black45,
-                      borderRadius: BorderRadius.circular(20)),
-                  child: Text('${_cur + 1} / ${widget.images.length}',
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 12.5)),
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_cur + 1} / ${widget.images.length}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                  ),
                 ),
               ],
             ),
@@ -1272,7 +1407,9 @@ class _GalleryDialogState extends State<_GalleryDialog> {
                 onTap: _save,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 22, vertical: 11),
+                    horizontal: 22,
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
                     color: C.brand,
                     borderRadius: BorderRadius.circular(24),
@@ -1280,14 +1417,20 @@ class _GalleryDialogState extends State<_GalleryDialog> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.download_rounded,
-                          color: Colors.white, size: 18),
+                      Icon(
+                        Icons.download_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       SizedBox(width: 6),
-                      Text('保存图片',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700)),
+                      Text(
+                        '保存图片',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -4,6 +4,9 @@ import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+
+import 'resolve_overlay.dart';
+
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
@@ -89,7 +92,7 @@ class AppDetailsLogic extends GetxController {
         final status = data[1] is int ? data[1] as int : 0;
         getTaskInfo();
         // 下载完成 → 弹窗确认安装
-        if (status == 3 /* complete */) {
+        if (status == 3 /* complete */ ) {
           _onDownloadComplete();
         }
       }
@@ -132,7 +135,8 @@ class AppDetailsLogic extends GetxController {
     // ① 立即用本地已有数据构造（不等待任何网络）
     if (item != null) {
       final it = item!;
-      final hasLocalInfo = it.description.isNotEmpty ||
+      final hasLocalInfo =
+          it.description.isNotEmpty ||
           it.size.isNotEmpty ||
           it.icon.isNotEmpty ||
           it.title.isNotEmpty;
@@ -159,8 +163,8 @@ class AppDetailsLogic extends GetxController {
     final needFetch = item == null
         ? dowUrl.isNotEmpty
         : (!item!.isLocal &&
-            item!.url.isNotEmpty &&
-            (item!.description.isEmpty || item!.size.isEmpty));
+              item!.url.isNotEmpty &&
+              (item!.description.isEmpty || item!.size.isEmpty));
     if (!needFetch) return;
 
     try {
@@ -210,8 +214,10 @@ class AppDetailsLogic extends GetxController {
           children: [
             Icon(Icons.link_off_rounded, color: C.danger, size: 22),
             SizedBox(width: 8),
-            Text('直链解析失败',
-                style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800)),
+            Text(
+              '直链解析失败',
+              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
         content: Column(
@@ -226,7 +232,10 @@ class AppDetailsLogic extends GetxController {
             if (originUrl.isNotEmpty) ...[
               const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: C.brand.withAlpha(20),
                   borderRadius: BorderRadius.circular(8),
@@ -284,11 +293,16 @@ class AppDetailsLogic extends GetxController {
           children: [
             Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 22),
             SizedBox(width: 8),
-            Text('下载完成', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            Text(
+              '下载完成',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
-        content: Text('$name 已下载完成，是否立即安装？',
-            style: const TextStyle(fontSize: 14, height: 1.5)),
+        content: Text(
+          '$name 已下载完成，是否立即安装？',
+          style: const TextStyle(fontSize: 14, height: 1.5),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
@@ -350,6 +364,8 @@ class AppDetailsLogic extends GetxController {
   /// ★ 需求 #2：直链解析失败时，不只是 Toast 提示，
   ///   要弹窗让用户选择「用浏览器打开原链接下载」。
   Future<void> addDownload(String fileName, [String? lzyUrl]) async {
+    // v52 #3：解析阶段显示加载浮层，任务创建成功/失败后关闭
+    ResolveOverlay.show(stage: ResolveStages.resolving);
     if (await Permission.notification.isDenied) {
       await Permission.notification.request();
     }
@@ -365,6 +381,7 @@ class AppDetailsLogic extends GetxController {
           : (item?.url ?? dowUrl);
       originUrl = target;
       if (target.isEmpty) {
+        ResolveOverlay.dismiss();
         ToastUtil.error('下载地址为空');
         return;
       }
@@ -378,18 +395,21 @@ class AppDetailsLogic extends GetxController {
         }
         if (parseUrl != null && parseUrl.isNotEmpty) break;
         if (attempt == 0) {
+          ResolveOverlay.stage(ResolveStages.retrying);
           await Future.delayed(const Duration(milliseconds: 600));
         }
       }
       // ★ 解析失败不再「用原链接硬下」（会下到 0 字节网页文件），
       //   改为弹窗让用户选择用浏览器打开原链接（需求 #2）
       if (parseUrl == null || parseUrl.isEmpty) {
+        ResolveOverlay.dismiss();
         await _showParseFailedDialog(originUrl);
         return;
       }
     }
 
     if (parseUrl.isEmpty) {
+      ResolveOverlay.dismiss();
       ToastUtil.error('下载地址无效');
       return;
     }
@@ -410,9 +430,13 @@ class AppDetailsLogic extends GetxController {
       openFileFromNotification: true,
     );
     if (newTaskId == null) {
+      ResolveOverlay.dismiss();
       ToastUtil.error('下载失败，请稍后重试');
       return;
     }
+    // ★ 下载真正开始 → 自动取消加载动画
+    ResolveOverlay.stage(ResolveStages.starting);
+    ResolveOverlay.dismiss();
     // 记录任务（失败也不能中断后续流程，否则进度条不会出现）
     try {
       await downloadTaskDao.setDownloadTask(
@@ -434,7 +458,9 @@ class AppDetailsLogic extends GetxController {
   /// 轮询下载进度（保证进度条实时更新）
   void _startProgressPolling() {
     _progressTimer?.cancel();
-    _progressTimer = Timer.periodic(const Duration(milliseconds: 700), (t) async {
+    _progressTimer = Timer.periodic(const Duration(milliseconds: 700), (
+      t,
+    ) async {
       // 交给 getTaskInfo 处理（内含 DB + 文件名兜底），它同时负责 update
       await getTaskInfo();
       final t0 = downloadTask;
@@ -520,11 +546,13 @@ class AppDetailsLogic extends GetxController {
             content: const Text('安装应用需要您允许「安装未知应用」权限，前往设置开启？'),
             actions: [
               TextButton(
-                  onPressed: () => Get.back(result: false),
-                  child: const Text('取消')),
+                onPressed: () => Get.back(result: false),
+                child: const Text('取消'),
+              ),
               FilledButton(
-                  onPressed: () => Get.back(result: true),
-                  child: const Text('去设置')),
+                onPressed: () => Get.back(result: true),
+                child: const Text('去设置'),
+              ),
             ],
           ),
         );
@@ -549,8 +577,10 @@ class AppDetailsLogic extends GetxController {
 
     // 4) 兜底：open_filex
     try {
-      await OpenFilex.open(path,
-          type: 'application/vnd.android.package-archive');
+      await OpenFilex.open(
+        path,
+        type: 'application/vnd.android.package-archive',
+      );
       return;
     } catch (_) {}
 
@@ -580,8 +610,10 @@ class AppDetailsLogic extends GetxController {
                 .where((f) => f.path.toLowerCase().endsWith('.apk'))
                 .toList();
             if (apks.isNotEmpty) {
-              apks.sort((a, b) =>
-                  b.statSync().modified.compareTo(a.statSync().modified));
+              apks.sort(
+                (a, b) =>
+                    b.statSync().modified.compareTo(a.statSync().modified),
+              );
               return apks.first.path;
             }
           }
@@ -605,13 +637,13 @@ class AppDetailsLogic extends GetxController {
             .toList();
         if (apks.isEmpty) continue;
         apks.sort(
-            (a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+          (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
+        );
         return apks.first.path;
       } catch (_) {}
     }
     return null;
   }
-
 
   /// 分享：会员资源不允许分享下载链接（防止绕过会员校验）
   void showSharePopUps(BuildContext context) {
@@ -623,7 +655,9 @@ class AppDetailsLogic extends GetxController {
           content: const Text('该资源为会员专享，不支持分享下载链接。\n如需分享，请在广场发帖推荐。'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context), child: const Text('我知道了')),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('我知道了'),
+            ),
           ],
         ),
       );
