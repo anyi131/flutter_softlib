@@ -326,7 +326,7 @@ class _UpdateCardState extends State<_UpdateCard> {
                   ),
                   Text(
                     '$_progress%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 9.5,
                       fontWeight: FontWeight.w900,
                       color: C.brand,
