@@ -306,7 +306,7 @@ class _AdminUiTabState extends State<AdminUiTab> {
                 child: Column(
                   children: [
                     Icon(
-                      o.$2,
+                      o.$3,
                       size: 19,
                       color: _mode == o.$1 ? C.brand : context.t3,
                     ),

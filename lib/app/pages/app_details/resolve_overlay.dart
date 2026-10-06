@@ -172,13 +172,10 @@ class ResolveStages {
   static const starting = '解析成功，正在创建下载任务…';
 }
 
-/// 带加载动画的下载流程包装
-/// [job] 返回 true 表示下载任务已创建（浮层自动关闭）；false/抛异常表示失败
-Future<bool> runDownloadWithOverlay(Future<bool> Function() job) async {
-  ResolveOverlay.show();
+/// 带加载动画的下载流程包装（addDownload 返回 void：浮层由 logic 内部管理）
+Future<void> runDownloadWithOverlay(Future<void> Function() job) async {
   try {
-    final ok = await job();
-    return ok;
+    await job();
   } finally {
     ResolveOverlay.dismiss();
   }

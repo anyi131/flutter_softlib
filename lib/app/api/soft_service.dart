@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+
 import 'api_host.dart';
 
 import '../models/app_cat.dart';
@@ -99,16 +100,21 @@ class SoftService {
       if (hit != null && !hit.expired) return hit.data as List<AppItem>;
     }
     final t0 = DateTime.now();
-    final resp = await _dio.get('/api/softlib/app/index', queryParameters: {
-      if (catId > 0) 'cat_id': catId,
-      if (keyword.trim().isNotEmpty) 'keyword': keyword.trim(),
-      if (provider.isNotEmpty) 'provider': provider,
-    });
+    final resp = await _dio.get(
+      '/api/softlib/app/index',
+      queryParameters: {
+        if (catId > 0) 'cat_id': catId,
+        if (keyword.trim().isNotEmpty) 'keyword': keyword.trim(),
+        if (provider.isNotEmpty) 'provider': provider,
+      },
+    );
     final data = resp.data;
     if (data is Map && data['code'] == 1) {
       final list = AppItem.listFrom(data['data']);
       _cache[key] = _CacheEntry(list);
-      debugPrint('[Softlib] fetchApps ${DateTime.now().difference(t0).inMilliseconds}ms (${list.length}条)');
+      debugPrint(
+        '[Softlib] fetchApps ${DateTime.now().difference(t0).inMilliseconds}ms (${list.length}条)',
+      );
       return list;
     }
     throw Exception((data is Map ? data['msg'] : '获取软件列表失败') ?? '获取失败');
@@ -121,8 +127,10 @@ class SoftService {
   /// 返回：null=已是最新；Map=有新版本
   Future<Map<String, dynamic>?> checkVersion(String currentVersion) async {
     try {
-      final resp = await _dio.get('/api/softlib/version/index',
-          queryParameters: {'oldversion': currentVersion});
+      final resp = await _dio.get(
+        '/api/softlib/version/index',
+        queryParameters: {'oldversion': currentVersion},
+      );
       final d = resp.data;
       if (d is! Map || d['code'] != 1) return null;
       final data = d['data'];
@@ -148,7 +156,8 @@ class SoftService {
     try {
       final resp = await _dio.get('/api/softlib/app/cats');
       final data = resp.data;
-      if (data is Map && data['code'] == 1) return AppCat.listFrom(data['data']);
+      if (data is Map && data['code'] == 1)
+        return AppCat.listFrom(data['data']);
     } catch (e) {
       debugPrint('[Softlib] $e');
     }
@@ -156,15 +165,16 @@ class SoftService {
   }
 
   /// 拉取蓝奏云文件夹里的软件列表
-  Future<List<AppItem>> fetchFolder(String url,
-      {String pwd = '', int pgs = 1}) async {
-    final resp = await _dio.get('/api/softlib/app/folder',
-        queryParameters: {
-          'url': url,
-          'pgs': pgs,
-          if (pwd.isNotEmpty) 'pwd': pwd,
-        },
-        options: Options(receiveTimeout: const Duration(seconds: 50)));
+  Future<List<AppItem>> fetchFolder(
+    String url, {
+    String pwd = '',
+    int pgs = 1,
+  }) async {
+    final resp = await _dio.get(
+      '/api/softlib/app/folder',
+      queryParameters: {'url': url, 'pgs': pgs, if (pwd.isNotEmpty) 'pwd': pwd},
+      options: Options(receiveTimeout: const Duration(seconds: 50)),
+    );
     final data = resp.data;
     if (data is Map && data['code'] == 1) return AppItem.listFrom(data['data']);
     throw Exception((data is Map ? data['msg'] : '获取文件夹失败') ?? '获取失败');
@@ -172,10 +182,10 @@ class SoftService {
 
   /// 软件详情
   Future<AppItem?> fetchAppDetail({int id = 0, String url = ''}) async {
-    final resp = await _dio.get('/api/softlib/app/detail', queryParameters: {
-      if (id > 0) 'id': id,
-      if (url.isNotEmpty) 'url': url,
-    });
+    final resp = await _dio.get(
+      '/api/softlib/app/detail',
+      queryParameters: {if (id > 0) 'id': id, if (url.isNotEmpty) 'url': url},
+    );
     final data = resp.data;
     if (data is Map && data['code'] == 1 && data['data'] is Map) {
       return AppItem.fromJson(Map<String, dynamic>.from(data['data']));
@@ -200,14 +210,25 @@ class SoftService {
         final okCode = d['code'] == 200 || d['code'] == 1 || d['code'] == '200';
         if (okCode) {
           for (final k in [
-            'downUrl', 'downurl', 'downURL', 'url', 'Url', 'URL',
-            'download', 'link', 'data',
+            'downUrl',
+            'downurl',
+            'downURL',
+            'url',
+            'Url',
+            'URL',
+            'download',
+            'link',
+            'data',
           ]) {
             final v = d[k];
             if (v is String && v.startsWith('http')) return v;
             if (v is Map) {
               for (final k2 in [
-                'downUrl', 'downurl', 'url', 'download', 'link',
+                'downUrl',
+                'downurl',
+                'url',
+                'download',
+                'link',
               ]) {
                 final v2 = v[k2];
                 if (v2 is String && v2.startsWith('http')) return v2;
@@ -286,6 +307,56 @@ class SoftService {
     if (item.url.isNotEmpty) return resolveLzy(item.url);
     return null;
   }
-
 }
 
+class _CacheEntry {
+  final dynamic data;
+  final DateTime at;
+  _CacheEntry(this.data) : at = DateTime.now();
+  bool get expired => DateTime.now().difference(at) > SoftService._cacheTtl;
+}
+
+/// 自动重试拦截器
+/// 对「连接超时 / 连接错误 / 5xx」自动重试一次（第二次仍失败才抛错），
+/// 显著降低弱网下的加载失败率。
+class _RetryInterceptor extends Interceptor {
+  static const _maxRetry = 1;
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final opt = err.requestOptions;
+    final tried = (opt.extra['_retry'] as int?) ?? 0;
+    final retriable =
+        err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.sendTimeout ||
+        err.type == DioExceptionType.connectionError ||
+        (err.response != null && (err.response!.statusCode ?? 0) >= 500);
+
+    if (retriable && tried < _maxRetry) {
+      opt.extra['_retry'] = tried + 1;
+      await Future.delayed(Duration(milliseconds: 400 * (tried + 1)));
+      try {
+        final resp =
+            await Dio(
+              BaseOptions(
+                baseUrl: opt.baseUrl,
+                connectTimeout: opt.connectTimeout,
+                receiveTimeout: opt.receiveTimeout,
+                headers: opt.headers,
+                persistentConnection: true,
+              ),
+            ).request<dynamic>(
+              opt.path,
+              data: opt.data,
+              queryParameters: opt.queryParameters,
+              options: Options(method: opt.method),
+            );
+        return handler.resolve(resp);
+      } catch (_) {
+        // 重试仍失败 → 走原始错误
+      }
+    }
+    handler.next(err);
+  }
+}

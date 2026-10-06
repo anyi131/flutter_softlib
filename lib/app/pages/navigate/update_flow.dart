@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
 
 import '../../api/soft_service.dart';
@@ -350,7 +351,7 @@ class _UpdateCardState extends State<_UpdateCard> {
                   const SizedBox(height: 3),
                   Text(
                     _total > 0
-                        ? '${_sizeText(_progress / 100 * _total)} / ${_sizeText(_total)}'
+                        ? '${_sizeText((_progress * _total / 100).round())} / ${_sizeText(_total)}'
                         : '已下载 $_progress%',
                     style: TextStyle(fontSize: 11.5, color: context.t3),
                   ),
