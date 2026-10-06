@@ -322,7 +322,7 @@ class _UpdateCardState extends State<_UpdateCard> {
                     value: _progress / 100,
                     strokeWidth: 3,
                     backgroundColor: C.brand.withAlpha(isDark ? 46 : 28),
-                    valueColor: const AlwaysStoppedAnimation(C.brand),
+                    valueColor: AlwaysStoppedAnimation(C.brand),
                   ),
                   Text(
                     '$_progress%',
@@ -371,7 +371,7 @@ class _UpdateCardState extends State<_UpdateCard> {
               value: v,
               minHeight: 8,
               backgroundColor: C.brand.withAlpha(isDark ? 36 : 22),
-              valueColor: const AlwaysStoppedAnimation(C.brand),
+              valueColor: AlwaysStoppedAnimation(C.brand),
             ),
           ),
         ),
