@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../../api/api_host.dart';
+
 import 'drama_page.dart';
 import 'movie_page.dart';
 import 'quote_music_page.dart';
@@ -10,8 +12,12 @@ import 'tools_v2.dart';
 Function? toolRoute(String title, {String target = '', String route = ''}) {
   switch (route) {
     case 'hotsearch':
-      return () => Get.to(() => V2ListPage(
-          title: title, fallbackUrl: 'https://60s-api.viki.moe/v2/weibo'));
+      return () => Get.to(
+        () => V2ListPage(
+          title: title,
+          fallbackUrl: 'https://60s-api.viki.moe/v2/weibo',
+        ),
+      );
     case 'news':
       return () => Get.to(() => const V2DailyNewsPage());
     case 'translate':
@@ -19,8 +25,12 @@ Function? toolRoute(String title, {String target = '', String route = ''}) {
     case 'exchange':
       return () => Get.to(() => const V2ExchangePage());
     case 'earthquake':
-      return () => Get.to(() => V2ListPage(
-          title: title, fallbackUrl: 'https://api.wrdan.com/earthquake'));
+      return () => Get.to(
+        () => V2ListPage(
+          title: title,
+          fallbackUrl: '${ApiHost.base}/api/softlib/media/earthquake',
+        ),
+      );
     case 'ipquery':
       return () => Get.to(() => const V2IpPage());
     case 'qrcode':
@@ -40,8 +50,12 @@ Function? toolRoute(String title, {String target = '', String route = ''}) {
   // 名称兜底
   final t = title.toLowerCase();
   if (t.contains('热搜') || t.contains('热榜')) {
-    return () => Get.to(() => V2ListPage(
-        title: title, fallbackUrl: 'https://60s-api.viki.moe/v2/weibo'));
+    return () => Get.to(
+      () => V2ListPage(
+        title: title,
+        fallbackUrl: 'https://60s-api.viki.moe/v2/weibo',
+      ),
+    );
   }
   if (t.contains('60秒') || t.contains('日报')) {
     return () => Get.to(() => const V2DailyNewsPage());
@@ -49,8 +63,12 @@ Function? toolRoute(String title, {String target = '', String route = ''}) {
   if (t.contains('翻译')) return () => Get.to(() => const V2TranslatePage());
   if (t.contains('汇率')) return () => Get.to(() => const V2ExchangePage());
   if (t.contains('地震')) {
-    return () => Get.to(() => V2ListPage(
-        title: title, fallbackUrl: 'https://api.wrdan.com/earthquake'));
+    return () => Get.to(
+      () => V2ListPage(
+        title: title,
+        fallbackUrl: '${ApiHost.base}/api/softlib/media/earthquake',
+      ),
+    );
   }
   if (t.contains('二维码')) return () => Get.to(() => const V2QrcodePage());
   if (t.contains('秒表')) return () => Get.to(() => const V2StopwatchPage());
