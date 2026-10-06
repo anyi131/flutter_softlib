@@ -1,10 +1,12 @@
 import 'dart:convert';
+
 import 'api_host.dart';
 
 import 'package:dio/dio.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/device_info_util.dart';
 
+import '../utils/device_info_util.dart';
 
 /// 用户信息模型
 class UserInfo {
@@ -23,8 +25,10 @@ class UserInfo {
   final String inviteCode;
   final String jointime;
   final bool isAdmin;
+
   /// 自定义称号
   final String title;
+
   /// 用户自定义开屏图
   final String splashImage;
 
@@ -65,7 +69,10 @@ class UserInfo {
       vipExpire: s('vip_expire'),
       inviteCode: s('invite_code'),
       jointime: s('jointime'),
-      isAdmin: json['is_admin'] == true || s('is_admin') == 'true' || s('is_admin') == '1',
+      isAdmin:
+          json['is_admin'] == true ||
+          s('is_admin') == 'true' ||
+          s('is_admin') == '1',
       title: s('title'),
       splashImage: s('splash_image'),
     );
@@ -82,24 +89,24 @@ class UserInfo {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'username': username,
-        'nickname': nickname,
-        'email': email,
-        'avatar': avatar,
-        'qq': qq,
-        'gender': gender,
-        'bio': bio,
-        'score': score,
-        'money': money,
-        'is_vip': isVip,
-        'vip_expire': vipExpire,
-        'invite_code': inviteCode,
-        'jointime': jointime,
-        'is_admin': isAdmin,
-        'title': title,
-        'splash_image': splashImage,
-      };
+    'id': id,
+    'username': username,
+    'nickname': nickname,
+    'email': email,
+    'avatar': avatar,
+    'qq': qq,
+    'gender': gender,
+    'bio': bio,
+    'score': score,
+    'money': money,
+    'is_vip': isVip,
+    'vip_expire': vipExpire,
+    'invite_code': inviteCode,
+    'jointime': jointime,
+    'is_admin': isAdmin,
+    'title': title,
+    'splash_image': splashImage,
+  };
 }
 
 /// 用户服务：注册 / 登录 / 找回 / 资料 / QQ头像
@@ -111,12 +118,14 @@ class UserService {
   static const String _kToken = 'user_token';
   static const String _kUser = 'user_info';
 
-  final Dio _dio = Dio(BaseOptions(
-    headers: DeviceInfo.headers,
-    baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 12),
-    receiveTimeout: const Duration(seconds: 20),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      headers: DeviceInfo.headers,
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 12),
+      receiveTimeout: const Duration(seconds: 20),
+    ),
+  );
 
   String _token = '';
   UserInfo? _user;
@@ -174,7 +183,7 @@ class UserService {
     await sp.setString(_kToken, _token);
     if (_user != null) {
       final u = _user;
-    if (u != null) await sp.setString(_kUser, jsonEncode(u.toJson()));
+      if (u != null) await sp.setString(_kUser, jsonEncode(u.toJson()));
     }
   }
 
@@ -192,17 +201,51 @@ class UserService {
     }
   }
 
-  /// 统一解析后端 {code,msg,data}
+  /// v52f #6：全局登录失效处理
+  /// 任何接口返回「登录已失效/请先登录」时：清空本地登录态并广播，
+  /// 让「我的」等页面立即回到未登录 UI（不再出现“提示失效但还显示已登录”）
+  void _onTokenExpired() {
+    if (_token.isEmpty && _user == null) return;
+    _token = '';
+    _user = null;
+    SharedPreferences.getInstance().then((sp) {
+      sp.remove(_kToken);
+      sp.remove(_kUser);
+    });
+    expiredTick.value++;
+  }
+
+  /// 失效信号（UI 可监听重建）
+  final RxInt expiredTick = 0.obs;
+
+  static bool _isAuthMsg(String? msg) {
+    if (msg == null) return false;
+    return msg.contains('登录已失效') ||
+        msg.contains('请先登录') ||
+        msg.contains('token') && msg.contains('失效');
+  }
+
+  /// 统一解析后端 {code,msg,data}（★ 失效检测内建在这里）
   Map<String, dynamic> _unwrap(Response resp) {
     final d = resp.data;
-    if (d is Map) return Map<String, dynamic>.from(d);
+    if (d is Map) {
+      final m = Map<String, dynamic>.from(d);
+      if (m['code'] == 0 && _isAuthMsg(m['msg']?.toString())) {
+        _onTokenExpired();
+      }
+      return m;
+    }
     throw Exception('返回格式异常');
   }
 
   /// 发送邮箱验证码
   Future<void> sendCode(String email, {String scene = 'register'}) async {
-    final r = _unwrap(await _dio.post('/api/softlib/user/send_code',
-        data: {'email': email, 'scene': scene}));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/send_code',
+        data: {'email': email, 'scene': scene},
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '发送失败');
   }
 
@@ -214,13 +257,18 @@ class UserService {
     String nickname = '',
     String qq = '',
   }) async {
-    final r = _unwrap(await _dio.post('/api/softlib/user/register', data: {
-      'email': email,
-      'code': code,
-      'password': password,
-      'nickname': nickname,
-      'qq': qq,
-    }));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/register',
+        data: {
+          'email': email,
+          'code': code,
+          'password': password,
+          'nickname': nickname,
+          'qq': qq,
+        },
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '注册失败');
     final data = Map<String, dynamic>.from(r['data'] ?? {});
     await _save(
@@ -231,8 +279,12 @@ class UserService {
 
   /// 登录
   Future<void> login(String account, String password) async {
-    final r = _unwrap(await _dio.post('/api/softlib/user/login',
-        data: {'account': account, 'password': password}));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/login',
+        data: {'account': account, 'password': password},
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '登录失败');
     final data = Map<String, dynamic>.from(r['data'] ?? {});
     await _save(
@@ -247,8 +299,12 @@ class UserService {
     required String code,
     required String password,
   }) async {
-    final r = _unwrap(await _dio.post('/api/softlib/user/reset',
-        data: {'email': email, 'code': code, 'password': password}));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/reset',
+        data: {'email': email, 'code': code, 'password': password},
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '重置失败');
   }
 
@@ -256,8 +312,9 @@ class UserService {
   Future<UserInfo?> refreshProfile() async {
     if (_token.isEmpty) return null;
     try {
-      final r = _unwrap(await _dio.post('/api/softlib/user/profile',
-          data: {'token': _token}));
+      final r = _unwrap(
+        await _dio.post('/api/softlib/user/profile', data: {'token': _token}),
+      );
       if (r['code'] == 1 && r['data'] is Map) {
         final info = UserInfo.fromJson(r['data']);
         final sp = await SharedPreferences.getInstance();
@@ -272,8 +329,12 @@ class UserService {
   /// 更新资料（昵称/QQ/头像等）
   Future<UserInfo?> updateProfile(Map<String, dynamic> fields) async {
     if (_token.isEmpty) throw Exception('请先登录');
-    final r = _unwrap(await _dio.post('/api/softlib/user/update',
-        data: {...fields, 'token': _token}));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/update',
+        data: {...fields, 'token': _token},
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '更新失败');
     if (r['data'] is Map) {
       final info = UserInfo.fromJson(r['data']);
@@ -288,7 +349,9 @@ class UserService {
   /// 每日签到（+5 积分）
   Future<int> signIn() async {
     if (_token.isEmpty) throw Exception('请先登录');
-    final r = _unwrap(await _dio.post('/api/softlib/user/sign', data: {'token': _token}));
+    final r = _unwrap(
+      await _dio.post('/api/softlib/user/sign', data: {'token': _token}),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '签到失败');
     final score = int.tryParse('${r['data']?['score']}') ?? 0;
     await refreshProfile();
@@ -301,7 +364,8 @@ class UserService {
       final r = await _dio.get('/api/softlib/user/donate_rank');
       if (r.data is Map && r.data['code'] == 1 && r.data['data'] is List) {
         return List<Map<String, dynamic>>.from(
-            (r.data['data'] as List).map((e) => Map<String, dynamic>.from(e)));
+          (r.data['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+        );
       }
     } catch (_) {}
     return [];
@@ -310,8 +374,12 @@ class UserService {
   /// 使用卡密
   Future<String> redeem(String code) async {
     if (_token.isEmpty) throw Exception('请先登录');
-    final r = _unwrap(await _dio.post('/api/softlib/user/redeem',
-        data: {'token': _token, 'code': code}));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/redeem',
+        data: {'token': _token, 'code': code},
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '兑换失败');
     final msg = (r['msg'] ?? '兑换成功').toString();
     await refreshProfile();
@@ -321,8 +389,12 @@ class UserService {
   /// 保存自定义开屏图
   Future<void> saveSplash(String url) async {
     if (_token.isEmpty) throw Exception('请先登录');
-    final r = _unwrap(await _dio.post('/api/softlib/user/save_splash',
-        data: {'token': _token, 'splash_image': url}));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/save_splash',
+        data: {'token': _token, 'splash_image': url},
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '保存失败');
     await refreshProfile();
   }
@@ -333,7 +405,8 @@ class UserService {
       final r = await _dio.get('/api/softlib/user/exchange_goods');
       if (r.data is Map && r.data['code'] == 1 && r.data['data'] is List) {
         return List<Map<String, dynamic>>.from(
-            (r.data['data'] as List).map((e) => Map<String, dynamic>.from(e)));
+          (r.data['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+        );
       }
     } catch (_) {}
     return [];
@@ -342,8 +415,12 @@ class UserService {
   /// 积分兑换
   Future<String> exchange(String goods) async {
     if (_token.isEmpty) throw Exception('请先登录');
-    final r = _unwrap(await _dio.post('/api/softlib/user/exchange',
-        data: {'token': _token, 'goods': goods}));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/exchange',
+        data: {'token': _token, 'goods': goods},
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '兑换失败');
     if (r['data'] is Map) {
       _user = UserInfo.fromJson(Map<String, dynamic>.from(r['data']));
@@ -356,8 +433,12 @@ class UserService {
   /// 修改自定义称号
   Future<void> setTitle(String title) async {
     if (_token.isEmpty) throw Exception('请先登录');
-    final r = _unwrap(await _dio.post('/api/softlib/user/set_title',
-        data: {'token': _token, 'title': title}));
+    final r = _unwrap(
+      await _dio.post(
+        '/api/softlib/user/set_title',
+        data: {'token': _token, 'title': title},
+      ),
+    );
     if (r['code'] != 1) throw Exception(r['msg'] ?? '修改失败');
     if (r['data'] is Map) {
       _user = UserInfo.fromJson(Map<String, dynamic>.from(r['data']));
@@ -369,8 +450,10 @@ class UserService {
   /// 查询 QQ 头像（注册前预览用）
   Future<String?> fetchQqAvatar(String qq) async {
     try {
-      final resp = await _dio.get('/api/softlib/user/qqavatar',
-          queryParameters: {'qq': qq});
+      final resp = await _dio.get(
+        '/api/softlib/user/qqavatar',
+        queryParameters: {'qq': qq},
+      );
       final r = _unwrap(resp);
       if (r['code'] == 1 && r['data'] is Map) {
         return (r['data']['avatar'] ?? '').toString();

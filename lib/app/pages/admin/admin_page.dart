@@ -156,7 +156,7 @@ class _AdminPageState extends State<AdminPage>
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '${UserService.instance.user?.nickname ?? '管理员'}',
+                      '${UserService.instance.user?.nickname ?? '管理员'} · 全局配置 · 界面 · 采集 · 经营',
                       style: Ty.small.copyWith(color: context.t3),
                     ),
                   ],
@@ -312,6 +312,48 @@ class _OverviewTabState extends State<_OverviewTab> {
     if (_loading) {
       return const LoadingState(text: '加载概览数据…');
     }
+    // v52f #8：概览顶部系统信息卡（视觉重构的一部分）
+    final sysCard = GlassCard(
+      radius: R.xl,
+      padding: const EdgeInsets.all(16),
+      glow: C.brand,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: C.brandGradient,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.shield_outlined,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('系统运行正常', style: Ty.h3.copyWith(color: context.t1)),
+                const SizedBox(height: 3),
+                Text(
+                  'API · 数据库 · 采集服务 · 支付通道（状态以上方开关为准）',
+                  style: Ty.tiny.copyWith(color: context.t3),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 20,
+            color: Colors.transparent,
+          ),
+        ],
+      ),
+    );
+
     final items = [
       ('软件总数', _d['apps'], C.brandBright, Icons.apps_rounded),
       ('用户总数', _d['users'], C.mint, Icons.people_rounded),
@@ -361,6 +403,8 @@ class _OverviewTabState extends State<_OverviewTab> {
           30,
         ),
         children: [
+          sysCard,
+          const SizedBox(height: 20),
           GridView.count(
             crossAxisCount: context.isWide ? 4 : 2,
             shrinkWrap: true,

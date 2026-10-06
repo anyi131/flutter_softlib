@@ -114,7 +114,9 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     });
     try {
       final r = await _svc.collectList(
-          page: _page, keyword: _kwCtrl.text.trim());
+        page: _page,
+        keyword: _kwCtrl.text.trim(),
+      );
       if (!mounted) return;
       setState(() {
         _items = ((r['items'] as List?) ?? [])
@@ -163,7 +165,11 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     const items = ['采集', '目录', '日志', '蓝奏云'];
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          context.pagePadding, 10, context.pagePadding, 6),
+        context.pagePadding,
+        10,
+        context.pagePadding,
+        6,
+      ),
       child: Container(
         height: 38,
         decoration: BoxDecoration(
@@ -251,7 +257,11 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   Widget _toolbar() {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          context.pagePadding, 10, context.pagePadding, 6),
+        context.pagePadding,
+        10,
+        context.pagePadding,
+        6,
+      ),
       child: Column(
         children: [
           Row(
@@ -264,9 +274,12 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                     hintText: '搜索软件名称…',
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 11),
+                      horizontal: 14,
+                      vertical: 11,
+                    ),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(R.full)),
+                      borderRadius: BorderRadius.circular(R.full),
+                    ),
                   ),
                   onSubmitted: (_) {
                     _page = 1;
@@ -293,25 +306,32 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           const SizedBox(height: 8),
           Row(
             children: [
-              Text('第 $_page / $_totalPages 页 · 共 ${_items.length} 条',
-                  style: Ty.tiny.copyWith(color: context.t3)),
+              Text(
+                '第 $_page / $_totalPages 页 · 共 ${_items.length} 条',
+                style: Ty.tiny.copyWith(color: context.t3),
+              ),
               const Spacer(),
               if (_selected.isNotEmpty) ...[
-                Text('已选 ${_selected.length}',
-                    style: Ty.tiny.copyWith(color: C.brand)),
+                Text(
+                  '已选 ${_selected.length}',
+                  style: Ty.tiny.copyWith(color: C.brand),
+                ),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => setState(_selected.clear),
-                  child: Text('清空',
-                      style: Ty.tiny.copyWith(color: C.danger)),
+                  child: Text('清空', style: Ty.tiny.copyWith(color: C.danger)),
                 ),
                 const SizedBox(width: 10),
               ],
               GestureDetector(
                 onTap: _selectAllMatched,
-                child: Text('全选本页',
-                    style: Ty.tiny.copyWith(
-                        color: C.brand, fontWeight: FontWeight.w800)),
+                child: Text(
+                  '全选本页',
+                  style: Ty.tiny.copyWith(
+                    color: C.brand,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
           ),
@@ -332,11 +352,7 @@ class _AdminCollectTabState extends State<AdminCollectTab>
 
   Widget _list() {
     if (_err.isNotEmpty) {
-      return ErrorState(
-        text: '采集数据加载失败',
-        hint: _err,
-        onRetry: _load,
-      );
+      return ErrorState(text: '采集数据加载失败', hint: _err, onRetry: _load);
     }
     if (_items.isEmpty) {
       return EmptyState(
@@ -351,7 +367,11 @@ class _AdminCollectTabState extends State<AdminCollectTab>
         Expanded(
           child: ListView.separated(
             padding: EdgeInsets.fromLTRB(
-                context.pagePadding, 4, context.pagePadding, 12),
+              context.pagePadding,
+              4,
+              context.pagePadding,
+              12,
+            ),
             itemCount: _items.length + 1,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) {
@@ -390,9 +410,13 @@ class _AdminCollectTabState extends State<AdminCollectTab>
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text('账号设置',
-              style: Ty.tiny.copyWith(
-                  color: C.brand, fontWeight: FontWeight.w800)),
+          Text(
+            '账号设置',
+            style: Ty.tiny.copyWith(
+              color: C.brand,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           Icon(Icons.chevron_right_rounded, size: 16, color: C.brand),
         ],
       ),
@@ -456,12 +480,12 @@ class _AdminCollectTabState extends State<AdminCollectTab>
       padding: const EdgeInsets.all(11),
       onTap: matched
           ? () => setState(() {
-                if (sel) {
-                  _selected.remove(appid);
-                } else {
-                  _selected.add(appid);
-                }
-              })
+              if (sel) {
+                _selected.remove(appid);
+              } else {
+                _selected.add(appid);
+              }
+            })
           : () => ToastUtil.info('该软件未匹配到蓝奏云目录，无法采集'),
       child: Row(
         children: [
@@ -489,10 +513,12 @@ class _AdminCollectTabState extends State<AdminCollectTab>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text((it['name'] ?? '').toString(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Ty.h3.copyWith(fontSize: 14, color: context.t1)),
+                Text(
+                  (it['name'] ?? '').toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Ty.h3.copyWith(fontSize: 14, color: context.t1),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'v${it['version'] ?? ''} · ${it['size'] ?? ''} · ${it['category'] ?? ''}',
@@ -532,8 +558,10 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                 : () {},
           ),
           const SizedBox(width: 14),
-          Text('$_page / $_totalPages',
-              style: Ty.small.copyWith(color: context.t2)),
+          Text(
+            '$_page / $_totalPages',
+            style: Ty.small.copyWith(color: context.t2),
+          ),
           const SizedBox(width: 14),
           SoftButton(
             label: '下一页',
@@ -556,11 +584,13 @@ class _AdminCollectTabState extends State<AdminCollectTab>
       top: false,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-            context.pagePadding, 6, context.pagePadding, 10),
+          context.pagePadding,
+          6,
+          context.pagePadding,
+          10,
+        ),
         child: PrimaryButton(
-          label: _selected.isEmpty
-              ? '请选择要采集的软件'
-              : '开始采集（${_selected.length}）',
+          label: _selected.isEmpty ? '请选择要采集的软件' : '开始采集（${_selected.length}）',
           icon: Icons.cloud_upload_rounded,
           height: 48,
           enabled: _selected.isNotEmpty && !_running,
@@ -573,27 +603,37 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   Future<void> _start() async {
     final apps = _items
         .where((it) => _selected.contains((it['appid'] ?? '').toString()))
-        .map((it) => {
-              'appid': it['appid'],
-              'appname': it['name'],
-              'config_id': it['config_id'],
-              'dir_id': it['dir_id'],
-              'config_name': it['config_name'],
-              'is_fallback': it['is_fallback'],
-            })
+        .map(
+          (it) => {
+            'appid': it['appid'],
+            'appname': it['name'],
+            'config_id': it['config_id'],
+            'dir_id': it['dir_id'],
+            'config_name': it['config_name'],
+            'is_fallback': it['is_fallback'],
+          },
+        )
         .toList();
     if (apps.isEmpty) return;
-    final go = await Get.dialog<bool>(AlertDialog(
-      title: const Text('开始采集'),
-      content: Text('将把选中的 ${apps.length} 个软件上传到【你自己的蓝奏云】目录，'
-          '完成后可一键导入软件库。\n\n是否继续？'),
-      actions: [
-        TextButton(
-            onPressed: () => Get.back(result: false), child: const Text('取消')),
-        FilledButton(
-            onPressed: () => Get.back(result: true), child: const Text('开始')),
-      ],
-    ));
+    final go = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('开始采集'),
+        content: Text(
+          '将把选中的 ${apps.length} 个软件上传到【你自己的蓝奏云】目录，'
+          '完成后可一键导入软件库。\n\n是否继续？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('开始'),
+          ),
+        ],
+      ),
+    );
     if (go != true) return;
     try {
       final taskId = await _svc.collectStart(apps);
@@ -612,8 +652,10 @@ class _AdminCollectTabState extends State<AdminCollectTab>
         _results = [];
         _logs = [];
         // 记录本次要采集的软件名（完成后到日志页反查链接用）
-        _pendingNames =
-            apps.map((a) => '${a['appname'] ?? ''}').where((s) => s.isNotEmpty).toList();
+        _pendingNames = apps
+            .map((a) => '${a['appname'] ?? ''}')
+            .where((s) => s.isNotEmpty)
+            .toList();
       });
       _startPoll();
     } catch (e) {
@@ -666,14 +708,16 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           _scrollLogToEnd();
         }
         // 一旦站点给了结果，立刻刷新成功数（不要等任务结束）
-        if (_results.isNotEmpty && _ok != _results.where((x) => x['ok'] == true).length) {
+        if (_results.isNotEmpty &&
+            _ok != _results.where((x) => x['ok'] == true).length) {
           setState(() {
             _ok = _results.where((x) => x['ok'] == true).length;
           });
         }
 
         // 进度满了就说明该完成的都完成了（站点可能稍后才给 done）
-        if (_status == 'done' || (_results.isNotEmpty && _cur >= _total && _total > 0)) {
+        if (_status == 'done' ||
+            (_results.isNotEmpty && _cur >= _total && _total > 0)) {
           t.cancel();
           await _finishFromLog();
         }
@@ -760,7 +804,11 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     final doneLinks = _results.where((r) => r['ok'] == true).toList();
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          context.pagePadding, 4, context.pagePadding, 4),
+        context.pagePadding,
+        4,
+        context.pagePadding,
+        4,
+      ),
       child: KitCard(
         radius: R.md,
         padding: const EdgeInsets.all(13),
@@ -776,16 +824,17 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
-                  Icon(Icons.check_circle_rounded,
-                      size: 17, color: C.success),
+                  Icon(Icons.check_circle_rounded, size: 17, color: C.success),
                 const SizedBox(width: 8),
                 Text(
                   _running ? '正在上传到你的蓝奏云…' : '采集结束',
                   style: Ty.h3.copyWith(fontSize: 13.5, color: context.t1),
                 ),
                 const Spacer(),
-                Text('$_cur/$_total',
-                    style: Ty.small.copyWith(color: context.t2)),
+                Text(
+                  '$_cur/$_total',
+                  style: Ty.small.copyWith(color: context.t2),
+                ),
               ],
             ),
             const SizedBox(height: 9),
@@ -802,9 +851,13 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                 if (_running)
                   GestureDetector(
                     onTap: _finishFromLog,
-                    child: Text('立即取结果',
-                        style: Ty.tiny.copyWith(
-                            color: C.brand, fontWeight: FontWeight.w700)),
+                    child: Text(
+                      '立即取结果',
+                      style: Ty.tiny.copyWith(
+                        color: C.brand,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -815,9 +868,13 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                 children: [
                   Icon(Icons.terminal_rounded, size: 13, color: context.t3),
                   const SizedBox(width: 5),
-                  Text('实时日志',
-                      style: Ty.tiny.copyWith(
-                          color: context.t2, fontWeight: FontWeight.w700)),
+                  Text(
+                    '实时日志',
+                    style: Ty.tiny.copyWith(
+                      color: context.t2,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 5),
@@ -837,28 +894,39 @@ class _AdminCollectTabState extends State<AdminCollectTab>
             ],
             if (doneLinks.isNotEmpty) ...[
               const SizedBox(height: 10),
-              Text('已生成蓝奏云链接（${doneLinks.length}）',
-                  style: Ty.tiny.copyWith(
-                      color: context.t2, fontWeight: FontWeight.w800)),
+              Text(
+                '已生成蓝奏云链接（${doneLinks.length}）',
+                style: Ty.tiny.copyWith(
+                  color: context.t2,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 6),
-              ...doneLinks.take(8).map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        Icon(Icons.check_circle_outline_rounded,
-                            size: 13, color: C.success),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            '${r['name']}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Ty.tiny.copyWith(color: context.t1),
+              ...doneLinks
+                  .take(8)
+                  .map(
+                    (r) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 13,
+                            color: C.success,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              '${r['name']}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Ty.tiny.copyWith(color: context.t1),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )),
+                  ),
               const SizedBox(height: 10),
               PrimaryButton(
                 label: '导入软件库（${doneLinks.length}）',
@@ -869,8 +937,10 @@ class _AdminCollectTabState extends State<AdminCollectTab>
             ],
             if (!_running && _logs.isEmpty && doneLinks.isEmpty) ...[
               const SizedBox(height: 8),
-              Text('任务已结束，可到「日志」子页查看结果链接。',
-                  style: Ty.tiny.copyWith(color: context.t3)),
+              Text(
+                '任务已结束，可到「日志」子页查看结果链接。',
+                style: Ty.tiny.copyWith(color: context.t3),
+              ),
             ],
           ],
         ),
@@ -908,31 +978,38 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   }
 
   Widget _miniStat(String label, int v, Color color) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('$v',
-              style: Ty.small
-                  .copyWith(fontSize: 12.5, fontWeight: FontWeight.w800, color: color)),
-          const SizedBox(width: 3),
-          Text(label, style: Ty.tiny.copyWith(fontSize: 10.5, color: context.t3)),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        '$v',
+        style: Ty.small.copyWith(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      ),
+      const SizedBox(width: 3),
+      Text(label, style: Ty.tiny.copyWith(fontSize: 10.5, color: context.t3)),
+    ],
+  );
 
   Future<void> _import(List<Map<String, dynamic>> results) async {
     // ★ 把站点给的完整信息都带上：之前只传 name/url/desc/category，
     //   导致导入后 图标/大小/版本 全为空、描述带脏字符。
     //   ★ 现在再补上 preview（应用截图）——这也是用户反馈「截图没导入」的原因。
     final items = results
-        .map((r) => {
-              'name': r['name'],
-              'url': r['url'],
-              'desc': r['desc'],
-              'category': r['category'],
-              'logo': r['logo'] ?? '',
-              'size': r['size'] ?? '',
-              'version': r['version'] ?? '',
-              'preview': r['preview'] ?? r['screenshots'] ?? '',
-            })
+        .map(
+          (r) => {
+            'name': r['name'],
+            'url': r['url'],
+            'desc': r['desc'],
+            'category': r['category'],
+            'logo': r['logo'] ?? '',
+            'size': r['size'] ?? '',
+            'version': r['version'] ?? '',
+            'preview': r['preview'] ?? r['screenshots'] ?? '',
+          },
+        )
         .toList();
     if (items.isEmpty) return;
     // 导入前让用户确认/修改数据（对应需求 #10）
@@ -940,8 +1017,7 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     if (edited == null || edited.isEmpty) return;
     try {
       final r = await _svc.collectImport(edited);
-      ToastUtil.success(
-          '已导入 ${r['added']} 条，跳过重复 ${r['skipped']} 条');
+      ToastUtil.success('已导入 ${r['added']} 条，跳过重复 ${r['skipped']} 条');
       setState(() {
         _results = [];
         _logs = [];
@@ -954,9 +1030,11 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   /// 导入前编辑：逐条可修改名称/大小/版本/分类/截图，避免脏数据入库
   /// 返回 null 表示用户取消
   Future<List<Map<String, dynamic>>?> _editBeforeImport(
-      List<Map<String, dynamic>> items) async {
-    final List<Map<String, dynamic>> draft =
-        items.map((e) => Map<String, dynamic>.from(e)).toList();
+    List<Map<String, dynamic>> items,
+  ) async {
+    final List<Map<String, dynamic>> draft = items
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
     return await Get.dialog<List<Map<String, dynamic>>>(
       Dialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 40),
@@ -972,20 +1050,27 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.edit_note_rounded,
-                          color: C.brand, size: 22),
+                      Icon(Icons.edit_note_rounded, color: C.brand, size: 22),
                       const SizedBox(width: 8),
-                      const Text('导入前确认',
-                          style: TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w800)),
+                      const Text(
+                        '导入前确认',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       const Spacer(),
-                      Text('共 ${draft.length} 条',
-                          style: Ty.tiny.copyWith(color: ctx.t3)),
+                      Text(
+                        '共 ${draft.length} 条',
+                        style: Ty.tiny.copyWith(color: ctx.t3),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('可直接修改名称/大小/版本/截图，确认后写入软件库',
-                      style: Ty.tiny.copyWith(color: ctx.t3)),
+                  Text(
+                    '可直接修改名称/大小/版本/截图，确认后写入软件库',
+                    style: Ty.tiny.copyWith(color: ctx.t3),
+                  ),
                   const SizedBox(height: 10),
                   Flexible(
                     child: ListView.separated(
@@ -1010,8 +1095,12 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                           onPressed: () {
                             // 过滤掉名称为空的
                             final ok = draft
-                                .where((e) =>
-                                    (e['name'] ?? '').toString().trim().isNotEmpty)
+                                .where(
+                                  (e) => (e['name'] ?? '')
+                                      .toString()
+                                      .trim()
+                                      .isNotEmpty,
+                                )
                                 .toList();
                             Navigator.pop(ctx, ok);
                           },
@@ -1029,17 +1118,30 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     );
   }
 
-  Widget _importRow(List<Map<String, dynamic>> draft, int i, void Function(void Function()) setD) {
+  Widget _importRow(
+    List<Map<String, dynamic>> draft,
+    int i,
+    void Function(void Function()) setD,
+  ) {
     final it = draft[i];
     final shots = (it['preview'] ?? '').toString();
-    final shotCount =
-        shots.trim().isEmpty ? 0 : shots.split(',').where((s) => s.trim().isNotEmpty).length;
+    final shotCount = shots.trim().isEmpty
+        ? 0
+        : shots.split(',').where((s) => s.trim().isNotEmpty).length;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: context.isDark ? Colors.white.withAlpha(8) : C.bg2,
+        // v52f #7：浅色模式用浅灰底（C.bg2 是深色板，之前黑块就是这来的）
+        color: context.isDark
+            ? Colors.white.withAlpha(8)
+            : const Color(0xFFF5F6FA),
         borderRadius: BorderRadius.circular(R.md),
-        border: Border.all(color: C.stroke.withAlpha(60), width: 0.8),
+        border: Border.all(
+          color: context.isDark
+              ? Colors.white.withAlpha(18)
+              : Colors.black.withAlpha(14),
+          width: 0.8,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1047,14 +1149,20 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           Row(
             children: [
               Expanded(
-                child: _miniField('名称', (it['name'] ?? '').toString(),
-                    (v) => setD(() => it['name'] = v)),
+                child: _miniField(
+                  '名称',
+                  (it['name'] ?? '').toString(),
+                  (v) => setD(() => it['name'] = v),
+                ),
               ),
               const SizedBox(width: 8),
               SizedBox(
                 width: 95,
-                child: _miniField('分类', (it['category'] ?? '').toString(),
-                    (v) => setD(() => it['category'] = v)),
+                child: _miniField(
+                  '分类',
+                  (it['category'] ?? '').toString(),
+                  (v) => setD(() => it['category'] = v),
+                ),
               ),
             ],
           ),
@@ -1063,27 +1171,39 @@ class _AdminCollectTabState extends State<AdminCollectTab>
             children: [
               SizedBox(
                 width: 110,
-                child: _miniField('大小', (it['size'] ?? '').toString(),
-                    (v) => setD(() => it['size'] = v)),
+                child: _miniField(
+                  '大小',
+                  (it['size'] ?? '').toString(),
+                  (v) => setD(() => it['size'] = v),
+                ),
               ),
               const SizedBox(width: 8),
               SizedBox(
                 width: 100,
-                child: _miniField('版本', (it['version'] ?? '').toString(),
-                    (v) => setD(() => it['version'] = v)),
+                child: _miniField(
+                  '版本',
+                  (it['version'] ?? '').toString(),
+                  (v) => setD(() => it['version'] = v),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('应用截图', style: Ty.tiny.copyWith(fontSize: 10, color: context.t3)),
+                    Text(
+                      '应用截图',
+                      style: Ty.tiny.copyWith(fontSize: 10, color: context.t3),
+                    ),
                     const SizedBox(height: 4),
-                    Text(shotCount > 0 ? '已带 $shotCount 张' : '无',
-                        style: Ty.tiny.copyWith(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: shotCount > 0 ? C.mint : C.warning)),
+                    Text(
+                      shotCount > 0 ? '已带 $shotCount 张' : '无',
+                      style: Ty.tiny.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: shotCount > 0 ? C.mint : C.warning,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1095,7 +1215,11 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   }
 
   /// 弹窗内的小输入框（内联保存）
-  Widget _miniField(String label, String value, ValueChanged<String> onChanged) {
+  Widget _miniField(
+    String label,
+    String value,
+    ValueChanged<String> onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1106,13 +1230,20 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           child: TextFormField(
             initialValue: value,
             onChanged: onChanged,
-            style: const TextStyle(fontSize: 12.5),
+            style: TextStyle(fontSize: 12.5, color: context.t1),
             decoration: InputDecoration(
               isDense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+              filled: true,
+              fillColor: context.isDark
+                  ? Colors.white.withAlpha(10)
+                  : Colors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 9,
+                vertical: 8,
+              ),
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ),

@@ -46,6 +46,15 @@ class MineLogic extends GetxController {
   void onInit() {
     super.onInit();
     load();
+    // v52f #6：监听全局登录失效信号，立即刷新本页（回到未登录 UI）
+    ever(_userService.expiredTick, (_) {
+      nickname = '';
+      avatar = '';
+      vipExpire = '';
+      isVipMember = false;
+      signedDate = '';
+      update();
+    });
   }
 
   bool get isLoggedIn => _userService.isLoggedIn;

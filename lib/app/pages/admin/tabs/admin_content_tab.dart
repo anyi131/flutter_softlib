@@ -33,8 +33,6 @@ class _AdminContentTabState extends State<AdminContentTab>
   List<Map<String, dynamic>> _referrals = [];
   List<Map<String, dynamic>> _versions = [];
   List<Map<String, dynamic>> _sources = [];
-  List<Map<String, dynamic>> _toolCats = [];
-  List<Map<String, dynamic>> _tools = [];
   bool _loading = true;
 
   @override
@@ -62,26 +60,20 @@ class _AdminContentTabState extends State<AdminContentTab>
       final vs = await _svc.versions();
       final sc = await _svc.sources();
       // 工具（v43 #5）
-      List<Map<String, dynamic>> tcats = [];
-      List<Map<String, dynamic>> tls = [];
-      try {
-        tcats = await _svc.toolCats();
-        tls = await _svc.tools();
-      } catch (_) {}
-      if (mounted) setState(() {
-        _posts = p;
-        _reviews = r;
-        _cats = ct;
-        _carousels = ca;
-        _reports = rp;
-        _cards = cd;
-        _referrals = rf;
-        _versions = vs;
-        _sources = sc;
-        _toolCats = tcats;
-        _tools = tls;
-        _loading = false;
-      });
+      try {} catch (_) {}
+      if (mounted)
+        setState(() {
+          _posts = p;
+          _reviews = r;
+          _cats = ct;
+          _carousels = ca;
+          _reports = rp;
+          _cards = cd;
+          _referrals = rf;
+          _versions = vs;
+          _sources = sc;
+          _loading = false;
+        });
     } catch (e) {
       if (mounted) setState(() => _loading = false);
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
@@ -97,7 +89,10 @@ class _AdminContentTabState extends State<AdminContentTab>
           indicatorColor: C.brand,
           labelColor: C.brand,
           unselectedLabelColor: context.t3,
-          labelStyle: Ty.small.copyWith(fontSize: 13.5, fontWeight: FontWeight.w700),
+          labelStyle: Ty.small.copyWith(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+          ),
           dividerColor: Colors.transparent,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -111,7 +106,6 @@ class _AdminContentTabState extends State<AdminContentTab>
             Tab(text: '推荐 ${_referrals.length}'),
             Tab(text: '版本 ${_versions.length}'),
             Tab(text: '卡密 ${_cards.length}'),
-            Tab(text: '工具 ${_tools.length}'),
             const Tab(text: '配置'),
           ],
         ),
@@ -130,7 +124,6 @@ class _AdminContentTabState extends State<AdminContentTab>
                     _referralList(),
                     _versionList(),
                     _cardList(),
-                    _toolList(),
                     _configList(),
                   ],
                 ),
@@ -157,26 +150,32 @@ class _AdminContentTabState extends State<AdminContentTab>
             children: [
               Row(
                 children: [
-                  Text('${p['nickname']}',
-                      style: const TextStyle(
-                          fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  Text(
+                    '${p['nickname']}',
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Text('${p['createtime_text']}',
-                      style:
-                          Ty.tiny.copyWith(color: context.t3)),
+                  Text(
+                    '${p['createtime_text']}',
+                    style: Ty.tiny.copyWith(color: context.t3),
+                  ),
                   const Spacer(),
                   IconButton(
                     tooltip: '编辑内容',
-                    icon: Icon(Icons.edit_outlined,
-                        size: 18, color: C.brand),
+                    icon: Icon(Icons.edit_outlined, size: 18, color: C.brand),
                     onPressed: () => _editPost(p),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline,
-                        size: 18, color: C.danger),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: C.danger,
+                    ),
                     onPressed: () async {
-                      await _svc.deletePost(
-                          int.tryParse('${p['id']}') ?? 0);
+                      await _svc.deletePost(int.tryParse('${p['id']}') ?? 0);
                       ToastUtil.success('已删除');
                       _load();
                     },
@@ -184,10 +183,12 @@ class _AdminContentTabState extends State<AdminContentTab>
                 ],
               ),
               if ('${p['content']}'.isNotEmpty)
-                Text('${p['content']}',
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13.5, height: 1.5)),
+                Text(
+                  '${p['content']}',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13.5, height: 1.5),
+                ),
               if (imgs.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 SizedBox(
@@ -199,17 +200,20 @@ class _AdminContentTabState extends State<AdminContentTab>
                     itemBuilder: (_, j) => ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: CachedNetworkImage(
-                          imageUrl: '${imgs[j]}',
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover),
+                        imageUrl: '${imgs[j]}',
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
               ],
               const SizedBox(height: 6),
-              Text('赞 ${p['like_count']} · 评论 ${p['comment_count']} · 浏览 ${p['views']}',
-                  style: Ty.tiny.copyWith(color: context.t3)),
+              Text(
+                '赞 ${p['like_count']} · 评论 ${p['comment_count']} · 浏览 ${p['views']}',
+                style: Ty.tiny.copyWith(color: context.t3),
+              ),
             ],
           ),
         );
@@ -221,126 +225,140 @@ class _AdminContentTabState extends State<AdminContentTab>
   Future<void> _editPost(Map p) async {
     final content = TextEditingController(text: '${p['content'] ?? ''}');
     final videoUrl = TextEditingController(text: '${p['video_url'] ?? ''}');
-    final videoCover =
-        TextEditingController(text: '${p['video_cover'] ?? ''}');
+    final videoCover = TextEditingController(text: '${p['video_cover'] ?? ''}');
     // 图片：可能是 List 或逗号串
     final rawImgs = p['images'];
     final imgList = rawImgs is List
         ? rawImgs.map((e) => '$e').toList()
         : '${rawImgs ?? ''}'
-            .split(',')
-            .where((s) => s.trim().isNotEmpty)
-            .toList();
+              .split(',')
+              .where((s) => s.trim().isNotEmpty)
+              .toList();
     final images = TextEditingController(text: imgList.join('\n'));
     String videoType = '${p['video_type'] ?? 'file'}';
 
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
-        return AlertDialog(
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
-          title: const Text('编辑动态'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: content,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          return AlertDialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 30,
+            ),
+            title: const Text('编辑动态'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: content,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
                         labelText: '正文内容',
                         border: OutlineInputBorder(),
-                        isDense: true),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: images,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: images,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
                         labelText: '图片地址（每行一个，可留空）',
                         border: OutlineInputBorder(),
-                        isDense: true),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: videoType,
-                    decoration: const InputDecoration(
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: videoType,
+                      decoration: const InputDecoration(
                         labelText: '视频类型',
                         border: OutlineInputBorder(),
-                        isDense: true),
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'file', child: Text('直链视频 (mp4)')),
-                      DropdownMenuItem(
-                          value: 'iframe', child: Text('网页嵌入 (iframe)')),
-                    ],
-                    onChanged: (v) => setD(() => videoType = v ?? 'file'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: videoUrl,
-                    decoration: const InputDecoration(
+                        isDense: true,
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'file',
+                          child: Text('直链视频 (mp4)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'iframe',
+                          child: Text('网页嵌入 (iframe)'),
+                        ),
+                      ],
+                      onChanged: (v) => setD(() => videoType = v ?? 'file'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: videoUrl,
+                      decoration: const InputDecoration(
                         labelText: '视频地址（留空=无视频）',
                         border: OutlineInputBorder(),
-                        isDense: true),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: videoCover,
-                    decoration: const InputDecoration(
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: videoCover,
+                      decoration: const InputDecoration(
                         labelText: '视频封面（选填）',
                         border: OutlineInputBorder(),
-                        isDense: true),
-                  ),
-                ],
+                        isDense: true,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-            FilledButton(
-              onPressed: () async {
-                if (content.text.trim().isEmpty) return;
-                Navigator.pop(ctx);
-                final imgs = images.text
-                    .split('\n')
-                    .map((s) => s.trim())
-                    .where((s) => s.isNotEmpty)
-                    .join(',');
-                try {
-                  await _svc.savePost({
-                    'id': p['id'],
-                    'content': content.text.trim(),
-                    'cat_id': p['cat_id'] ?? 0,
-                    'images': imgs,
-                    'video_url': videoUrl.text.trim(),
-                    'video_type': videoType,
-                    'video_cover': videoCover.text.trim(),
-                  });
-                  ToastUtil.success('已保存');
-                  _load();
-                } catch (e) {
-                  ToastUtil.error(
-                      e.toString().replaceFirst('Exception: ', ''));
-                }
-              },
-              child: const Text('保存'),
-            ),
-          ],
-        );
-      }),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  if (content.text.trim().isEmpty) return;
+                  Navigator.pop(ctx);
+                  final imgs = images.text
+                      .split('\n')
+                      .map((s) => s.trim())
+                      .where((s) => s.isNotEmpty)
+                      .join(',');
+                  try {
+                    await _svc.savePost({
+                      'id': p['id'],
+                      'content': content.text.trim(),
+                      'cat_id': p['cat_id'] ?? 0,
+                      'images': imgs,
+                      'video_url': videoUrl.text.trim(),
+                      'video_type': videoType,
+                      'video_cover': videoCover.text.trim(),
+                    });
+                    ToastUtil.success('已保存');
+                    _load();
+                  } catch (e) {
+                    ToastUtil.error(
+                      e.toString().replaceFirst('Exception: ', ''),
+                    );
+                  }
+                },
+                child: const Text('保存'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   Widget _reviewList() {
     if (_reviews.isEmpty) {
-      return const EmptyState(
-          text: '暂无评价', icon: Icons.rate_review_outlined);
+      return const EmptyState(text: '暂无评价', icon: Icons.rate_review_outlined);
     }
     return ListView.builder(
       padding: const EdgeInsets.all(14),
@@ -355,9 +373,13 @@ class _AdminContentTabState extends State<AdminContentTab>
             children: [
               Row(
                 children: [
-                  Text('${r['nickname']}',
-                      style: const TextStyle(
-                          fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  Text(
+                    '${r['nickname']}',
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Row(
                     children: List.generate(
@@ -373,22 +395,28 @@ class _AdminContentTabState extends State<AdminContentTab>
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline,
-                        size: 18, color: C.danger),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: C.danger,
+                    ),
                     onPressed: () async {
-                      await _svc.deleteReview(
-                          int.tryParse('${r['id']}') ?? 0);
+                      await _svc.deleteReview(int.tryParse('${r['id']}') ?? 0);
                       ToastUtil.success('已删除');
                       _load();
                     },
                   ),
                 ],
               ),
-              Text('${r['content']}',
-                  style: const TextStyle(fontSize: 13.5, height: 1.5)),
+              Text(
+                '${r['content']}',
+                style: const TextStyle(fontSize: 13.5, height: 1.5),
+              ),
               const SizedBox(height: 4),
-              Text('软件ID ${r['app_id']} · ${r['createtime_text']}',
-                  style: Ty.tiny.copyWith(color: context.t3)),
+              Text(
+                '软件ID ${r['app_id']} · ${r['createtime_text']}',
+                style: Ty.tiny.copyWith(color: context.t3),
+              ),
             ],
           ),
         );
@@ -419,22 +447,31 @@ class _AdminContentTabState extends State<AdminContentTab>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${c['title']}',
-                          style: const TextStyle(
-                              fontSize: 14.5, fontWeight: FontWeight.w700)),
+                      Text(
+                        '${c['title']}',
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text('${c['count'] ?? 0} 个软件 · 权重 ${c['weigh'] ?? 0}',
-                          style:
-                              Ty.tiny.copyWith(color: context.t3)),
+                      Text(
+                        '${c['count'] ?? 0} 个软件 · 权重 ${c['weigh'] ?? 0}',
+                        style: Ty.tiny.copyWith(color: context.t3),
+                      ),
                     ],
                   ),
                 ),
                 IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 19),
-                    onPressed: () => _editCat(c)),
+                  icon: const Icon(Icons.edit_outlined, size: 19),
+                  onPressed: () => _editCat(c),
+                ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 19, color: C.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: C.danger,
+                  ),
                   onPressed: () async {
                     await _svc.deleteCat(int.tryParse('${c['id']}') ?? 0);
                     ToastUtil.success('已删除');
@@ -472,9 +509,13 @@ class _AdminContentTabState extends State<AdminContentTab>
         ),
         actions: [
           TextButton(
-              onPressed: () => Get.back(result: false), child: const Text('取消')),
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消'),
+          ),
           FilledButton(
-              onPressed: () => Get.back(result: true), child: const Text('保存')),
+            onPressed: () => Get.back(result: true),
+            child: const Text('保存'),
+          ),
         ],
       ),
     );
@@ -518,27 +559,34 @@ class _AdminContentTabState extends State<AdminContentTab>
                     width: 60,
                     height: 42,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => Container(
-                        width: 60, height: 42, color: Colors.black12),
+                    errorWidget: (_, __, ___) =>
+                        Container(width: 60, height: 42, color: Colors.black12),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('${c['title']}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    '${c['title']}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
                 IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 19),
-                    onPressed: () => _editCarousel(c)),
+                  icon: const Icon(Icons.edit_outlined, size: 19),
+                  onPressed: () => _editCarousel(c),
+                ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 19, color: C.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: C.danger,
+                  ),
                   onPressed: () async {
-                    await _svc
-                        .deleteCarousel(int.tryParse('${c['id']}') ?? 0);
+                    await _svc.deleteCarousel(int.tryParse('${c['id']}') ?? 0);
                     ToastUtil.success('已删除');
                     _load();
                   },
@@ -550,8 +598,11 @@ class _AdminContentTabState extends State<AdminContentTab>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
-                child: Text('暂无轮播图，可在网页后台添加',
-                    style: Ty.small.copyWith(color: context.t3))),
+              child: Text(
+                '暂无轮播图，可在网页后台添加',
+                style: Ty.small.copyWith(color: context.t3),
+              ),
+            ),
           ),
       ],
     );
@@ -567,97 +618,115 @@ class _AdminContentTabState extends State<AdminContentTab>
     String err = '';
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
-          title: Text(c == null ? '新增轮播图' : '编辑轮播图'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(R.md),
+            ),
+            title: Text(c == null ? '新增轮播图' : '编辑轮播图'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
                     controller: titleCtrl,
-                    decoration: const InputDecoration(labelText: '标题')),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
+                    decoration: const InputDecoration(labelText: '标题'),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
                           controller: imgCtrl,
-                          decoration:
-                              const InputDecoration(labelText: '图片 URL')),
-                    ),
-                    IconButton(
-                      tooltip: '上传图片',
-                      icon: uploading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.image_outlined, size: 21),
-                      onPressed: uploading
-                          ? null
-                          : () async {
-                              try {
-                                final p = await ImagePicker().pickImage(
+                          decoration: const InputDecoration(
+                            labelText: '图片 URL',
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '上传图片',
+                        icon: uploading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.image_outlined, size: 21),
+                        onPressed: uploading
+                            ? null
+                            : () async {
+                                try {
+                                  final p = await ImagePicker().pickImage(
                                     source: ImageSource.gallery,
-                                    imageQuality: 85);
-                                if (p == null) return;
-                                setD(() => uploading = true);
-                                final url = await _svc.uploadImage(File(p.path));
-                                setD(() {
-                                  imgCtrl.text = url;
-                                  uploading = false;
-                                });
-                              } catch (e) {
-                                setD(() {
-                                  uploading = false;
-                                  err = '上传失败';
-                                });
-                              }
-                            },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  decoration: const InputDecoration(labelText: '点击行为'),
-                  items: const [
-                    DropdownMenuItem(value: 'no', child: Text('不跳转')),
-                    DropdownMenuItem(value: 'url', child: Text('跳转网址')),
-                  ],
-                  onChanged: (v) => setD(() => type = v ?? 'no'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
+                                    imageQuality: 85,
+                                  );
+                                  if (p == null) return;
+                                  setD(() => uploading = true);
+                                  final url = await _svc.uploadImage(
+                                    File(p.path),
+                                  );
+                                  setD(() {
+                                    imgCtrl.text = url;
+                                    uploading = false;
+                                  });
+                                } catch (e) {
+                                  setD(() {
+                                    uploading = false;
+                                    err = '上传失败';
+                                  });
+                                }
+                              },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: type,
+                    decoration: const InputDecoration(labelText: '点击行为'),
+                    items: const [
+                      DropdownMenuItem(value: 'no', child: Text('不跳转')),
+                      DropdownMenuItem(value: 'url', child: Text('跳转网址')),
+                    ],
+                    onChanged: (v) => setD(() => type = v ?? 'no'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: urlCtrl,
-                    decoration: const InputDecoration(labelText: '跳转网址')),
-                const SizedBox(height: 10),
-                TextField(
+                    decoration: const InputDecoration(labelText: '跳转网址'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: weighCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: '权重')),
-                if (err.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(err,
-                        style: const TextStyle(
-                            fontSize: 12, color: C.danger)),
+                    decoration: const InputDecoration(labelText: '权重'),
                   ),
-              ],
+                  if (err.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        err,
+                        style: const TextStyle(fontSize: 12, color: C.danger),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
+            actions: [
+              TextButton(
                 onPressed: () => Get.back(result: false),
-                child: const Text('取消')),
-            FilledButton(
+                child: const Text('取消'),
+              ),
+              FilledButton(
                 onPressed: () => Get.back(result: true),
-                child: const Text('保存')),
-          ],
-        );
-      }),
+                child: const Text('保存'),
+              ),
+            ],
+          );
+        },
+      ),
     );
     if (ok != true) return;
     try {
@@ -694,8 +763,11 @@ class _AdminContentTabState extends State<AdminContentTab>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
-                child: Text('暂无线报文章',
-                    style: Ty.small.copyWith(color: context.t3))),
+              child: Text(
+                '暂无线报文章',
+                style: Ty.small.copyWith(color: context.t3),
+              ),
+            ),
           )
         else
           ..._reports.map((r) => _reportTile(r)),
@@ -705,41 +777,46 @@ class _AdminContentTabState extends State<AdminContentTab>
 
   Widget _reportTile(Map r) {
     return KitCard(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${r['title']}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 3),
-                    Text('浏览 ${r['views']}',
-                        style:
-                            Ty.tiny.copyWith(color: context.t3)),
-                  ],
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${r['title']}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 19),
-                  onPressed: () => _editReport(r)),
-              IconButton(
-                icon: const Icon(Icons.delete_outline,
-                    size: 19, color: C.danger),
-                onPressed: () async {
-                  await _svc.deleteReport(int.tryParse('${r['id']}') ?? 0);
-                  ToastUtil.success('已删除');
-                  _load();
-                },
-              ),
-            ],
+                const SizedBox(height: 3),
+                Text(
+                  '浏览 ${r['views']}',
+                  style: Ty.tiny.copyWith(color: context.t3),
+                ),
+              ],
+            ),
           ),
-        );
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 19),
+            onPressed: () => _editReport(r),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 19, color: C.danger),
+            onPressed: () async {
+              await _svc.deleteReport(int.tryParse('${r['id']}') ?? 0);
+              ToastUtil.success('已删除');
+              _load();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _editReport(Map? r) async {
@@ -750,86 +827,103 @@ class _AdminContentTabState extends State<AdminContentTab>
         full = await _svc.reportDetail(int.tryParse('${r['id']}') ?? 0);
       } catch (_) {}
     }
-    final titleCtrl = TextEditingController(text: '${full['title'] ?? r?['title'] ?? ''}');
+    final titleCtrl = TextEditingController(
+      text: '${full['title'] ?? r?['title'] ?? ''}',
+    );
     final contentCtrl = TextEditingController(text: '${full['content'] ?? ''}');
     final imgCtrl = TextEditingController(text: '${full['image'] ?? ''}');
     bool uploading = false;
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
-          title: Text(r == null ? '新增线报' : '编辑线报'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(R.md),
+            ),
+            title: Text(r == null ? '新增线报' : '编辑线报'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
                       controller: titleCtrl,
-                      decoration: const InputDecoration(labelText: '文章标题')),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
+                      decoration: const InputDecoration(labelText: '文章标题'),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
                             controller: imgCtrl,
-                            decoration:
-                                const InputDecoration(labelText: '封面图 URL')),
-                      ),
-                      IconButton(
-                        icon: uploading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.image_outlined, size: 21),
-                        onPressed: uploading
-                            ? null
-                            : () async {
-                                try {
-                                  final p = await ImagePicker().pickImage(
+                            decoration: const InputDecoration(
+                              labelText: '封面图 URL',
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: uploading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.image_outlined, size: 21),
+                          onPressed: uploading
+                              ? null
+                              : () async {
+                                  try {
+                                    final p = await ImagePicker().pickImage(
                                       source: ImageSource.gallery,
-                                      imageQuality: 85);
-                                  if (p == null) return;
-                                  setD(() => uploading = true);
-                                  final url =
-                                      await _svc.uploadImage(File(p.path));
-                                  setD(() {
-                                    imgCtrl.text = url;
-                                    uploading = false;
-                                  });
-                                } catch (_) {
-                                  setD(() => uploading = false);
-                                }
-                              },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
+                                      imageQuality: 85,
+                                    );
+                                    if (p == null) return;
+                                    setD(() => uploading = true);
+                                    final url = await _svc.uploadImage(
+                                      File(p.path),
+                                    );
+                                    setD(() {
+                                      imgCtrl.text = url;
+                                      uploading = false;
+                                    });
+                                  } catch (_) {
+                                    setD(() => uploading = false);
+                                  }
+                                },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
                       controller: contentCtrl,
                       maxLines: 8,
                       decoration: const InputDecoration(
-                          labelText: '正文内容(支持 HTML)',
-                          alignLabelWithHint: true)),
-                ],
+                        labelText: '正文内容(支持 HTML)',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
+            actions: [
+              TextButton(
                 onPressed: () => Get.back(result: false),
-                child: const Text('取消')),
-            FilledButton(
+                child: const Text('取消'),
+              ),
+              FilledButton(
                 onPressed: () => Get.back(result: true),
-                child: Text(r == null ? '发布' : '保存')),
-          ],
-        );
-      }),
+                child: Text(r == null ? '发布' : '保存'),
+              ),
+            ],
+          );
+        },
+      ),
     );
     if (ok != true) return;
     try {
@@ -883,39 +977,54 @@ class _AdminContentTabState extends State<AdminContentTab>
                     color: C.cyan.withAlpha(context.isDark ? 44 : 28),
                     borderRadius: BorderRadius.circular(9),
                   ),
-                  child: const Icon(Icons.cloud_outlined,
-                      size: 18, color: C.cyan),
+                  child: const Icon(
+                    Icons.cloud_outlined,
+                    size: 18,
+                    color: C.cyan,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${s['name']}',
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w700)),
+                      Text(
+                        '${s['name']}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
-                          '${s['url']}'
-                          '${(s['sync_count'] ?? 0) > 0 ? '  ·  已同步 ${s['sync_count']} 条' : '  ·  未同步'}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Ty.tiny.copyWith(color: context.t3)),
+                        '${s['url']}'
+                        '${(s['sync_count'] ?? 0) > 0 ? '  ·  已同步 ${s['sync_count']} 条' : '  ·  未同步'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Ty.tiny.copyWith(color: context.t3),
+                      ),
                     ],
                   ),
                 ),
                 IconButton(
                   tooltip: '同步文件夹内容',
-                  icon: const Icon(Icons.sync_rounded,
-                      size: 19, color: C.success),
+                  icon: const Icon(
+                    Icons.sync_rounded,
+                    size: 19,
+                    color: C.success,
+                  ),
                   onPressed: () => _syncSource(s),
                 ),
                 IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 19),
-                    onPressed: () => _editSource(s)),
+                  icon: const Icon(Icons.edit_outlined, size: 19),
+                  onPressed: () => _editSource(s),
+                ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 19, color: C.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: C.danger,
+                  ),
                   onPressed: () async {
                     await _svc.deleteSource(int.tryParse('${s['id']}') ?? 0);
                     ToastUtil.success('已删除');
@@ -929,8 +1038,8 @@ class _AdminContentTabState extends State<AdminContentTab>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
-                child: Text('暂无数据源',
-                    style: Ty.small.copyWith(color: context.t3))),
+              child: Text('暂无数据源', style: Ty.small.copyWith(color: context.t3)),
+            ),
           ),
       ],
     );
@@ -942,135 +1051,161 @@ class _AdminContentTabState extends State<AdminContentTab>
     final pwdCtrl = TextEditingController(text: '${s?['pwd'] ?? ''}');
     final weighCtrl = TextEditingController(text: '${s?['weigh'] ?? 0}');
     final descCtrl = TextEditingController(text: '${s?['default_desc'] ?? ''}');
-    final shotsCtrl = TextEditingController(text: '${s?['default_shots'] ?? ''}');
+    final shotsCtrl = TextEditingController(
+      text: '${s?['default_shots'] ?? ''}',
+    );
     bool testing = false;
     String testMsg = '';
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
-          title: Text(s == null ? '添加数据源' : '编辑数据源'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(R.md),
+            ),
+            title: Text(s == null ? '添加数据源' : '编辑数据源'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(
-                        labelText: '分类名称', hintText: '如：开车软件')),
-                const SizedBox(height: 10),
-                TextField(
+                      labelText: '分类名称',
+                      hintText: '如：开车软件',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: urlCtrl,
                     decoration: const InputDecoration(
-                        labelText: '蓝奏云文件夹链接',
-                        hintText: 'https://xxx.lanzouw.com/bXXXX')),
-                const SizedBox(height: 10),
-                TextField(
+                      labelText: '蓝奏云文件夹链接',
+                      hintText: 'https://xxx.lanzouw.com/bXXXX',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: pwdCtrl,
-                    decoration: const InputDecoration(
-                        labelText: '访问密码(选填)')),
-                const SizedBox(height: 10),
-                TextField(
+                    decoration: const InputDecoration(labelText: '访问密码(选填)'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: weighCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: '排序权重')),
-                const SizedBox(height: 10),
-                // 统一描述（文件夹内所有软件共用）
-                TextField(
+                    decoration: const InputDecoration(labelText: '排序权重'),
+                  ),
+                  const SizedBox(height: 10),
+                  // 统一描述（文件夹内所有软件共用）
+                  TextField(
                     controller: descCtrl,
                     maxLines: 3,
                     decoration: const InputDecoration(
-                        labelText: '统一软件介绍',
-                        helperText: '文件夹里的软件都会显示这段介绍',
-                        alignLabelWithHint: true)),
-                const SizedBox(height: 10),
-                // 统一截图
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
+                      labelText: '统一软件介绍',
+                      helperText: '文件夹里的软件都会显示这段介绍',
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // 统一截图
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
                           controller: shotsCtrl,
                           decoration: const InputDecoration(
-                              labelText: '统一截图 URL(逗号分隔)')),
-                    ),
-                    IconButton(
-                      tooltip: '上传截图',
-                      icon: const Icon(Icons.collections_outlined, size: 21),
-                      onPressed: () async {
-                        try {
-                          final picked = await ImagePicker()
-                              .pickMultiImage(imageQuality: 80);
-                          if (picked.isEmpty) return;
-                          final urls = <String>[];
-                          for (final f in picked) {
-                            urls.add(await _svc.uploadImage(File(f.path)));
-                          }
-                          final cur = shotsCtrl.text.trim();
-                          shotsCtrl.text = cur.isEmpty
-                              ? urls.join(',')
-                              : '$cur,${urls.join(',')}';
-                          setD(() {});
-                        } catch (_) {}
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: testing
-                        ? null
-                        : () async {
-                            setD(() {
-                              testing = true;
-                              testMsg = '';
-                            });
-                            try {
-                              final list = await PostService.instance
-                                  .fetchFolderForTest(urlCtrl.text.trim());
-                              setD(() {
-                                testing = false;
-                                testMsg = '✅ 解析成功，共 $list 个软件';
-                              });
-                            } catch (e) {
-                              setD(() {
-                                testing = false;
-                                testMsg = '❌ ' +
-                                    e.toString().replaceFirst('Exception: ', '');
-                              });
+                            labelText: '统一截图 URL(逗号分隔)',
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '上传截图',
+                        icon: const Icon(Icons.collections_outlined, size: 21),
+                        onPressed: () async {
+                          try {
+                            final picked = await ImagePicker().pickMultiImage(
+                              imageQuality: 80,
+                            );
+                            if (picked.isEmpty) return;
+                            final urls = <String>[];
+                            for (final f in picked) {
+                              urls.add(await _svc.uploadImage(File(f.path)));
                             }
-                          },
-                    icon: testing
-                        ? const SizedBox(
-                            width: 15,
-                            height: 15,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.wifi_find, size: 17),
-                    label: const Text('测试解析'),
+                            final cur = shotsCtrl.text.trim();
+                            shotsCtrl.text = cur.isEmpty
+                                ? urls.join(',')
+                                : '$cur,${urls.join(',')}';
+                            setD(() {});
+                          } catch (_) {}
+                        },
+                      ),
+                    ],
                   ),
-                ),
-                if (testMsg.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(testMsg,
-                        style: const TextStyle(fontSize: 12, height: 1.4)),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: testing
+                          ? null
+                          : () async {
+                              setD(() {
+                                testing = true;
+                                testMsg = '';
+                              });
+                              try {
+                                final list = await PostService.instance
+                                    .fetchFolderForTest(urlCtrl.text.trim());
+                                setD(() {
+                                  testing = false;
+                                  testMsg = '✅ 解析成功，共 $list 个软件';
+                                });
+                              } catch (e) {
+                                setD(() {
+                                  testing = false;
+                                  testMsg =
+                                      '❌ ' +
+                                      e.toString().replaceFirst(
+                                        'Exception: ',
+                                        '',
+                                      );
+                                });
+                              }
+                            },
+                      icon: testing
+                          ? const SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.wifi_find, size: 17),
+                      label: const Text('测试解析'),
+                    ),
                   ),
-              ],
+                  if (testMsg.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        testMsg,
+                        style: const TextStyle(fontSize: 12, height: 1.4),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
+            actions: [
+              TextButton(
                 onPressed: () => Get.back(result: false),
-                child: const Text('取消')),
-            FilledButton(
+                child: const Text('取消'),
+              ),
+              FilledButton(
                 onPressed: () => Get.back(result: true),
-                child: const Text('保存')),
-          ],
-        );
-      }),
+                child: const Text('保存'),
+              ),
+            ],
+          );
+        },
+      ),
     );
     if (ok != true) return;
     try {
@@ -1099,11 +1234,14 @@ class _AdminContentTabState extends State<AdminContentTab>
 
     // 询问起止页
     final ctrl = TextEditingController(
-        text: '${(int.tryParse('${s['sync_count']}') ?? 0) > 0 ? 1 : 1}');
+      text: '${(int.tryParse('${s['sync_count']}') ?? 0) > 0 ? 1 : 1}',
+    );
     final pagesCtrl = TextEditingController(text: '10');
     final ok = await Get.dialog<bool>(
       AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(R.md),
+        ),
         title: const Text('同步文件夹'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1115,21 +1253,27 @@ class _AdminContentTabState extends State<AdminContentTab>
             ),
             const SizedBox(height: 12),
             TextField(
-                controller: ctrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: '起始页')),
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: '起始页'),
+            ),
             const SizedBox(height: 10),
             TextField(
-                controller: pagesCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: '本批页数')),
+              controller: pagesCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: '本批页数'),
+            ),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Get.back(result: false), child: const Text('取消')),
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消'),
+          ),
           FilledButton(
-              onPressed: () => Get.back(result: true), child: const Text('开始同步')),
+            onPressed: () => Get.back(result: true),
+            child: const Text('开始同步'),
+          ),
         ],
       ),
     );
@@ -1143,13 +1287,17 @@ class _AdminContentTabState extends State<AdminContentTab>
         pages: int.tryParse(pagesCtrl.text) ?? 10,
       );
       if (d['throttled'] == true) {
-        ToastUtil.error('蓝奏云限流中，请等待 1-2 分钟后重试'
-            '（已保留 ${d['total']} 条）');
+        ToastUtil.error(
+          '蓝奏云限流中，请等待 1-2 分钟后重试'
+          '（已保留 ${d['total']} 条）',
+        );
       } else {
         final next = (d['last_page'] ?? 0) as int;
         final more = d['has_more'] == true;
-        ToastUtil.success('已同步 ${d['total']} 条'
-            '${more ? '，可继续从第 ${next + 1} 页同步' : ''}');
+        ToastUtil.success(
+          '已同步 ${d['total']} 条'
+          '${more ? '，可继续从第 ${next + 1} 页同步' : ''}',
+        );
       }
       _load();
     } catch (e) {
@@ -1183,27 +1331,34 @@ class _AdminContentTabState extends State<AdminContentTab>
                     width: 60,
                     height: 42,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => Container(
-                        width: 60, height: 42, color: Colors.black12),
+                    errorWidget: (_, __, ___) =>
+                        Container(width: 60, height: 42, color: Colors.black12),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('${r['title']}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    '${r['title']}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
                 IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 19),
-                    onPressed: () => _editReferral(r)),
+                  icon: const Icon(Icons.edit_outlined, size: 19),
+                  onPressed: () => _editReferral(r),
+                ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 19, color: C.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: C.danger,
+                  ),
                   onPressed: () async {
-                    await _svc
-                        .deleteReferral(int.tryParse('${r['id']}') ?? 0);
+                    await _svc.deleteReferral(int.tryParse('${r['id']}') ?? 0);
                     ToastUtil.success('已删除');
                     _load();
                   },
@@ -1215,8 +1370,8 @@ class _AdminContentTabState extends State<AdminContentTab>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
-                child: Text('暂无推荐位',
-                    style: Ty.small.copyWith(color: context.t3))),
+              child: Text('暂无推荐位', style: Ty.small.copyWith(color: context.t3)),
+            ),
           ),
       ],
     );
@@ -1231,86 +1386,103 @@ class _AdminContentTabState extends State<AdminContentTab>
     bool uploading = false;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
-          title: Text(r == null ? '新增推荐位' : '编辑推荐位'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(R.md),
+            ),
+            title: Text(r == null ? '新增推荐位' : '编辑推荐位'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
                     controller: titleCtrl,
-                    decoration: const InputDecoration(labelText: '标题')),
-                const SizedBox(height: 10),
-                TextField(
+                    decoration: const InputDecoration(labelText: '标题'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: contentCtrl,
                     maxLines: 2,
-                    decoration: const InputDecoration(labelText: '简介')),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
+                    decoration: const InputDecoration(labelText: '简介'),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
                           controller: imgCtrl,
-                          decoration:
-                              const InputDecoration(labelText: '封面图 URL')),
-                    ),
-                    IconButton(
-                      icon: uploading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.image_outlined, size: 21),
-                      onPressed: uploading
-                          ? null
-                          : () async {
-                              try {
-                                final p = await ImagePicker().pickImage(
+                          decoration: const InputDecoration(
+                            labelText: '封面图 URL',
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: uploading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.image_outlined, size: 21),
+                        onPressed: uploading
+                            ? null
+                            : () async {
+                                try {
+                                  final p = await ImagePicker().pickImage(
                                     source: ImageSource.gallery,
-                                    imageQuality: 85);
-                                if (p == null) return;
-                                setD(() => uploading = true);
-                                final url = await _svc.uploadImage(File(p.path));
-                                setD(() {
-                                  imgCtrl.text = url;
-                                  uploading = false;
-                                });
-                              } catch (_) {
-                                setD(() => uploading = false);
-                              }
-                            },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  decoration: const InputDecoration(labelText: '点击行为'),
-                  items: const [
-                    DropdownMenuItem(value: 'no', child: Text('不跳转')),
-                    DropdownMenuItem(value: 'url', child: Text('跳转网址')),
-                  ],
-                  onChanged: (v) => setD(() => type = v ?? 'no'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
+                                    imageQuality: 85,
+                                  );
+                                  if (p == null) return;
+                                  setD(() => uploading = true);
+                                  final url = await _svc.uploadImage(
+                                    File(p.path),
+                                  );
+                                  setD(() {
+                                    imgCtrl.text = url;
+                                    uploading = false;
+                                  });
+                                } catch (_) {
+                                  setD(() => uploading = false);
+                                }
+                              },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: type,
+                    decoration: const InputDecoration(labelText: '点击行为'),
+                    items: const [
+                      DropdownMenuItem(value: 'no', child: Text('不跳转')),
+                      DropdownMenuItem(value: 'url', child: Text('跳转网址')),
+                    ],
+                    onChanged: (v) => setD(() => type = v ?? 'no'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: urlCtrl,
-                    decoration: const InputDecoration(labelText: '跳转网址')),
-              ],
+                    decoration: const InputDecoration(labelText: '跳转网址'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
+            actions: [
+              TextButton(
                 onPressed: () => Get.back(result: false),
-                child: const Text('取消')),
-            FilledButton(
+                child: const Text('取消'),
+              ),
+              FilledButton(
                 onPressed: () => Get.back(result: true),
-                child: const Text('保存')),
-          ],
-        );
-      }),
+                child: const Text('保存'),
+              ),
+            ],
+          );
+        },
+      ),
     );
     if (ok != true) return;
     try {
@@ -1367,28 +1539,36 @@ class _AdminContentTabState extends State<AdminContentTab>
                     children: [
                       Row(
                         children: [
-                          Text('${v['version']}',
-                              style: const TextStyle(
-                                  fontSize: 14.5,
-                                  fontWeight: FontWeight.w800)),
+                          Text(
+                            '${v['version']}',
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           if ('${v['forced_switch']}' == '1')
-                            const Pill('强制更新',
-                                color: C.danger, small: true),
+                            const Pill('强制更新', color: C.danger, small: true),
                         ],
                       ),
                       const SizedBox(height: 3),
-                      Text('${v['title'] ?? ''} · ${v['createtime_text'] ?? ''}',
-                          style: Ty.tiny.copyWith(color: context.t3)),
+                      Text(
+                        '${v['title'] ?? ''} · ${v['createtime_text'] ?? ''}',
+                        style: Ty.tiny.copyWith(color: context.t3),
+                      ),
                     ],
                   ),
                 ),
                 IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 19),
-                    onPressed: () => _editVersion(v)),
+                  icon: const Icon(Icons.edit_outlined, size: 19),
+                  onPressed: () => _editVersion(v),
+                ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 19, color: C.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: C.danger,
+                  ),
                   onPressed: () async {
                     await _svc.deleteVersion(int.tryParse('${v['id']}') ?? 0);
                     ToastUtil.success('已删除');
@@ -1402,8 +1582,11 @@ class _AdminContentTabState extends State<AdminContentTab>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
-                child: Text('暂无版本记录',
-                    style: Ty.small.copyWith(color: context.t3))),
+              child: Text(
+                '暂无版本记录',
+                style: Ty.small.copyWith(color: context.t3),
+              ),
+            ),
           ),
       ],
     );
@@ -1417,60 +1600,71 @@ class _AdminContentTabState extends State<AdminContentTab>
     bool forced = '${v?['forced_switch'] ?? 0}' == '1';
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
-          title: Text(v == null ? '发布新版本' : '编辑版本'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(R.md),
+            ),
+            title: Text(v == null ? '发布新版本' : '编辑版本'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
                     controller: verCtrl,
                     decoration: const InputDecoration(
-                        labelText: '版本号', hintText: '如 v1.1.0')),
-                const SizedBox(height: 10),
-                TextField(
+                      labelText: '版本号',
+                      hintText: '如 v1.1.0',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: titleCtrl,
-                    decoration:
-                        const InputDecoration(labelText: '版本标题')),
-                const SizedBox(height: 10),
-                TextField(
+                    decoration: const InputDecoration(labelText: '版本标题'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: contentCtrl,
                     maxLines: 4,
                     decoration: const InputDecoration(
-                        labelText: '更新说明(支持 HTML)')),
-                const SizedBox(height: 10),
-                TextField(
-                    controller: urlCtrl,
-                    decoration:
-                        const InputDecoration(labelText: '下载地址')),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Expanded(
-                        child: Text('强制更新',
-                            style: TextStyle(fontSize: 13.5))),
-                    Switch(
-                      value: forced,
-                      activeThumbColor: C.brand,
-                      onChanged: (x) => setD(() => forced = x),
+                      labelText: '更新说明(支持 HTML)',
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: urlCtrl,
+                    decoration: const InputDecoration(labelText: '下载地址'),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text('强制更新', style: TextStyle(fontSize: 13.5)),
+                      ),
+                      Switch(
+                        value: forced,
+                        activeThumbColor: C.brand,
+                        onChanged: (x) => setD(() => forced = x),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
+            actions: [
+              TextButton(
                 onPressed: () => Get.back(result: false),
-                child: const Text('取消')),
-            FilledButton(
+                child: const Text('取消'),
+              ),
+              FilledButton(
                 onPressed: () => Get.back(result: true),
-                child: const Text('发布')),
-          ],
-        );
-      }),
+                child: const Text('发布'),
+              ),
+            ],
+          );
+        },
+      ),
     );
     if (ok != true) return;
     try {
@@ -1513,24 +1707,29 @@ class _AdminContentTabState extends State<AdminContentTab>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${c['code']}',
-                          style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: 'monospace')),
+                      Text(
+                        '${c['code']}',
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         '${c['type'] == 'vip' ? '会员 ${c['value']} 天' : '积分 ${c['value']}'}'
                         ' · ${c['used'] == 1 ? '已使用' : '未使用'}',
-                        style: TextStyle(
-                            fontSize: 11.5, color: context.t3),
+                        style: TextStyle(fontSize: 11.5, color: context.t3),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 19, color: C.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: C.danger,
+                  ),
                   onPressed: () async {
                     await _svc.deleteCard(int.tryParse('${c['id']}') ?? 0);
                     ToastUtil.success('已删除');
@@ -1544,8 +1743,11 @@ class _AdminContentTabState extends State<AdminContentTab>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
-                child: Text('暂无卡密，点上方按钮生成',
-                    style: Ty.small.copyWith(color: context.t3))),
+              child: Text(
+                '暂无卡密，点上方按钮生成',
+                style: Ty.small.copyWith(color: context.t3),
+              ),
+            ),
           ),
       ],
     );
@@ -1557,42 +1759,51 @@ class _AdminContentTabState extends State<AdminContentTab>
     String type = 'vip';
     final ok = await Get.dialog<bool>(
       AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(R.md),
+        ),
         title: const Text('批量生成卡密'),
-        content: StatefulBuilder(builder: (ctx, setD) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
+        content: StatefulBuilder(
+          builder: (ctx, setD) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
                   controller: countCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: '生成数量')),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: type,
-                decoration: const InputDecoration(labelText: '卡密类型'),
-                items: const [
-                  DropdownMenuItem(value: 'vip', child: Text('会员时长(天)')),
-                  DropdownMenuItem(value: 'score', child: Text('积分')),
-                ],
-                onChanged: (v) => setD(() => type = v ?? 'vip'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
+                  decoration: const InputDecoration(labelText: '生成数量'),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: type,
+                  decoration: const InputDecoration(labelText: '卡密类型'),
+                  items: const [
+                    DropdownMenuItem(value: 'vip', child: Text('会员时长(天)')),
+                    DropdownMenuItem(value: 'score', child: Text('积分')),
+                  ],
+                  onChanged: (v) => setD(() => type = v ?? 'vip'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
                   controller: valueCtrl,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                      labelText: type == 'vip' ? '会员天数' : '积分数量')),
-            ],
-          );
-        }),
+                    labelText: type == 'vip' ? '会员天数' : '积分数量',
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
         actions: [
           TextButton(
-              onPressed: () => Get.back(result: false),
-              child: const Text('取消')),
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消'),
+          ),
           FilledButton(
-              onPressed: () => Get.back(result: true),
-              child: const Text('生成')),
+            onPressed: () => Get.back(result: true),
+            child: const Text('生成'),
+          ),
         ],
       ),
     );
@@ -1608,355 +1819,6 @@ class _AdminContentTabState extends State<AdminContentTab>
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
     }
-  }
-
-  // ═════════ 工具管理（v43 #5）═════════
-  Widget _toolList() {
-    if (_toolCats.isEmpty && _tools.isEmpty) {
-      return const EmptyState(
-          text: '暂无工具', hint: '点击右下角新增工具分类或工具', icon: Icons.widgets_outlined);
-    }
-    return Stack(
-      children: [
-        ListView(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 90),
-          children: [
-            // 分类
-            Row(
-              children: [
-                Text('工具分类', style: Ty.h3.copyWith(fontSize: 14)),
-                const Spacer(),
-                MiniAction(
-                  label: '新增分类',
-                  icon: Icons.add_rounded,
-                  onTap: () => _editToolCat(null),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ..._toolCats.map((c) => KitCard(
-                  margin: const EdgeInsets.only(bottom: 7),
-                  padding: const EdgeInsets.all(11),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: _parseColor('${c['color']}').withAlpha(30),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: Icon(Icons.widgets_rounded,
-                            size: 16,
-                            color: _parseColor('${c['color']}')),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${c['title']}',
-                                style: Ty.h3.copyWith(
-                                    fontSize: 13.5, color: context.t1)),
-                            Text(
-                                '${c['subtitle'] ?? ''} · ${c['count'] ?? 0} 个工具 · 权重 ${c['weigh'] ?? 0}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Ty.tiny.copyWith(color: context.t3)),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.edit_outlined,
-                            size: 17, color: C.brand),
-                        onPressed: () => _editToolCat(c),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline,
-                            size: 17, color: C.danger),
-                        onPressed: () async {
-                          final ok = await Get.dialog<bool>(AlertDialog(
-                            title: const Text('删除分类'),
-                            content: Text('删除「${c['title']}」会同时删除其下所有工具，确定吗？'),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Get.back(result: false),
-                                  child: const Text('取消')),
-                              FilledButton(
-                                  onPressed: () => Get.back(result: true),
-                                  child: const Text('删除')),
-                            ],
-                          ));
-                          if (ok != true) return;
-                          await _svc.deleteToolCat((c['id'] as num).toInt());
-                          ToastUtil.success('已删除');
-                          _load();
-                        },
-                      ),
-                    ],
-                  ),
-                )),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text('工具条目', style: Ty.h3.copyWith(fontSize: 14)),
-                const Spacer(),
-                MiniAction(
-                  label: '新增工具',
-                  icon: Icons.add_rounded,
-                  onTap: () => _editTool(null),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ..._tools.map((t) {
-              final cat = _toolCats.firstWhere(
-                (c) => c['id'] == t['cat_id'],
-                orElse: () => <String, dynamic>{},
-              );
-              return KitCard(
-                margin: const EdgeInsets.only(bottom: 7),
-                padding: const EdgeInsets.all(11),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: C.brand.withAlpha(26),
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '${t['title']}'.isNotEmpty
-                            ? '${t['title']}'.characters.first
-                            : '·',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            color: C.brand),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${t['title']}',
-                              style: Ty.h3.copyWith(
-                                  fontSize: 13.5, color: context.t1)),
-                          Text(
-                              '${cat['title'] ?? '未分类'} · ${t['type']} · ${t['target']}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Ty.tiny.copyWith(color: context.t3)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.edit_outlined,
-                          size: 17, color: C.brand),
-                      onPressed: () => _editTool(t),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline,
-                          size: 17, color: C.danger),
-                      onPressed: () async {
-                        await _svc.deleteTool((t['id'] as num).toInt());
-                        ToastUtil.success('已删除');
-                        _load();
-                      },
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Color _parseColor(String s) {
-    var v = s.trim().replaceAll('#', '');
-    if (v.length == 6) v = 'FF$v';
-    final n = int.tryParse(v, radix: 16);
-    return n == null ? C.brand : Color(n);
-  }
-
-  /// 新增/编辑工具分类
-  Future<void> _editToolCat(Map? c) async {
-    final title = TextEditingController(text: '${c?['title'] ?? ''}');
-    final subtitle = TextEditingController(text: '${c?['subtitle'] ?? ''}');
-    final color =
-        TextEditingController(text: '${c?['color'] ?? '#4B5EF5'}');
-    final iconCtrl = TextEditingController(text: '${c?['icon'] ?? ''}');
-    final weigh = TextEditingController(text: '${c?['weigh'] ?? 0}');
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(c == null ? '新增工具分类' : '编辑工具分类'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                  controller: title,
-                  decoration: const InputDecoration(
-                      labelText: '分类名称 *', isDense: true)),
-              const SizedBox(height: 10),
-              TextField(
-                  controller: subtitle,
-                  decoration: const InputDecoration(
-                      labelText: '英文名 / 副标题', isDense: true)),
-              const SizedBox(height: 10),
-              TextField(
-                  controller: color,
-                  decoration: const InputDecoration(
-                      labelText: '主题色（如 #4B5EF5）', isDense: true)),
-              const SizedBox(height: 10),
-              TextField(
-                  controller: iconCtrl,
-                  decoration: const InputDecoration(
-                      labelText: '图标标识（movie/link/tool/news/image/text/calc/game）',
-                      isDense: true)),
-              const SizedBox(height: 10),
-              TextField(
-                  controller: weigh,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: '权重（越大越靠前）', isDense: true)),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          FilledButton(
-            onPressed: () async {
-              if (title.text.trim().isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                await _svc.saveToolCat({
-                  'id': c?['id'] ?? 0,
-                  'title': title.text.trim(),
-                  'subtitle': subtitle.text.trim(),
-                  'color': color.text.trim(),
-                  'icon': iconCtrl.text.trim(),
-                  'weigh': int.tryParse(weigh.text) ?? 0,
-                  'enable_switch': 1,
-                });
-                ToastUtil.success('已保存');
-                _load();
-              } catch (e) {
-                ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
-              }
-            },
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 新增/编辑工具条目
-  Future<void> _editTool(Map? t) async {
-    final title = TextEditingController(text: '${t?['title'] ?? ''}');
-    final target = TextEditingController(text: '${t?['target'] ?? ''}');
-    final iconCtrl = TextEditingController(text: '${t?['icon'] ?? ''}');
-    final weigh = TextEditingController(text: '${t?['weigh'] ?? 0}');
-    int catId = (t?['cat_id'] as num?)?.toInt() ??
-        (_toolCats.isNotEmpty ? (_toolCats.first['id'] as num).toInt() : 0);
-    String type = '${t?['type'] ?? 'link'}';
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) {
-        return AlertDialog(
-          title: Text(t == null ? '新增工具' : '编辑工具'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                    controller: title,
-                    decoration: const InputDecoration(
-                        labelText: '工具名称 *', isDense: true)),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<int>(
-                  initialValue: catId,
-                  decoration: const InputDecoration(
-                      labelText: '所属分类', isDense: true),
-                  items: _toolCats
-                      .map((c) => DropdownMenuItem(
-                            value: (c['id'] as num).toInt(),
-                            child: Text('${c['title']}'),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setD(() => catId = v ?? 0),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  decoration: const InputDecoration(
-                      labelText: '类型', isDense: true),
-                  items: const [
-                    DropdownMenuItem(value: 'link', child: Text('外部链接')),
-                    DropdownMenuItem(value: 'page', child: Text('App 内页面')),
-                  ],
-                  onChanged: (v) => setD(() => type = v ?? 'link'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                    controller: target,
-                    decoration: const InputDecoration(
-                        labelText: '目标（网址 或 路由如 /appSearch）',
-                        isDense: true)),
-                const SizedBox(height: 10),
-                TextField(
-                    controller: iconCtrl,
-                    decoration: const InputDecoration(
-                        labelText: '图标 URL（留空用首字色块）', isDense: true)),
-                const SizedBox(height: 10),
-                TextField(
-                    controller: weigh,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                        labelText: '权重', isDense: true)),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-            FilledButton(
-              onPressed: () async {
-                if (title.text.trim().isEmpty) return;
-                Navigator.pop(ctx);
-                try {
-                  await _svc.saveTool({
-                    'id': t?['id'] ?? 0,
-                    'cat_id': catId,
-                    'title': title.text.trim(),
-                    'target': target.text.trim(),
-                    'icon': iconCtrl.text.trim(),
-                    'type': type,
-                    'weigh': int.tryParse(weigh.text) ?? 0,
-                    'enable_switch': 1,
-                  });
-                  ToastUtil.success('已保存');
-                  _load();
-                } catch (e) {
-                  ToastUtil.error(
-                      e.toString().replaceFirst('Exception: ', ''));
-                }
-              },
-              child: const Text('保存'),
-            ),
-          ],
-        );
-      }),
-    );
   }
 
   Widget _configList() {
@@ -2005,15 +1867,15 @@ class _AdminContentTabState extends State<AdminContentTab>
   }
 
   Widget _f(String label, TextEditingController c, int lines) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          controller: c,
-          maxLines: lines,
-          style: const TextStyle(fontSize: 13.5),
-          decoration: InputDecoration(
-            labelText: label,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(R.sm)),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextField(
+      controller: c,
+      maxLines: lines,
+      style: const TextStyle(fontSize: 13.5),
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(R.sm)),
+      ),
+    ),
+  );
 }

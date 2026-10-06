@@ -539,14 +539,208 @@ class _AppComponentState extends State<AppComponent> {
               key: ValueKey('l_${a.id}'),
               child: AppStaggerIn(
                 index: i,
-                child: style == AppListStyle.compact
-                    ? _compactCard(a)
-                    : _card(a),
+                child: switch (style) {
+                  AppListStyle.compact => _compactCard(a),
+                  AppListStyle.large => _largeCard(a),
+                  AppListStyle.minimal => _minimalCard(a),
+                  _ => _card(a),
+                },
               ),
             );
           },
         );
       }),
+    );
+  }
+
+  /// 样式四：封面大图卡（v52f #9）
+  Widget _largeCard(AppItem a) {
+    final vip = a.isVipItem;
+    final cover = a.screenshots.isNotEmpty ? a.screenshots.first : a.icon;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        context.pagePadding,
+        6,
+        context.pagePadding,
+        6,
+      ),
+      child: KitCard(
+        radius: R.xl,
+        padding: EdgeInsets.zero,
+        onTap: () => Get.toNamed(
+          Routes.appDetails,
+          arguments: {'appId': a.id.toString(), 'item': a},
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 封面
+            SizedBox(
+              height: 150,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  cover.isEmpty
+                      ? _ph()
+                      : CachedNetworkImage(
+                          imageUrl: cover,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 720,
+                          placeholder: (_, __) => _ph(),
+                          errorWidget: (_, __, ___) => _ph(),
+                        ),
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Row(
+                      children: [
+                        if (a.isNew) _badge('NEW', const Color(0xFFFF6B35)),
+                        if (vip) ...[
+                          if (a.isNew) const SizedBox(width: 6),
+                          _badge('会员', C.gold),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 信息
+            Padding(
+              padding: const EdgeInsets.all(13),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(R.md),
+                    child: a.icon.isEmpty
+                        ? _ph(46)
+                        : CachedNetworkImage(
+                            imageUrl: a.icon,
+                            width: 46,
+                            height: 46,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => _ph(46),
+                            errorWidget: (_, __, ___) => _ph(46),
+                          ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          a.title.isEmpty ? '未知应用' : a.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Ty.h3.copyWith(color: context.t1),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          [
+                            if (a.version.isNotEmpty) a.version,
+                            if (a.size.isNotEmpty) a.size,
+                          ].join(' · '),
+                          style: Ty.tiny.copyWith(color: context.t3),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: context.t3,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _badge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          height: 1.1,
+        ),
+      ),
+    );
+  }
+
+  /// 样式五：极简单行（v52f #9）
+  Widget _minimalCard(AppItem a) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        context.pagePadding,
+        2,
+        context.pagePadding,
+        2,
+      ),
+      child: AppPressable(
+        onTap: () => Get.toNamed(
+          Routes.appDetails,
+          arguments: {'appId': a.id.toString(), 'item': a},
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(R.md),
+            color: context.isDark ? Colors.white.withAlpha(8) : Colors.white,
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: a.icon.isEmpty
+                    ? _ph(38)
+                    : CachedNetworkImage(
+                        imageUrl: a.icon,
+                        width: 38,
+                        height: 38,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _ph(38),
+                        errorWidget: (_, __, ___) => _ph(38),
+                      ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Text(
+                  a.title.isEmpty ? '未知应用' : a.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Ty.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: context.t1,
+                  ),
+                ),
+              ),
+              if (a.isVipItem)
+                Icon(Icons.workspace_premium_rounded, size: 15, color: C.gold)
+              else if (a.isNew)
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF6B35),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -943,14 +1137,14 @@ class _AppComponentState extends State<AppComponent> {
     );
   }
 
-  Widget _ph() => Container(
-    width: 60,
-    height: 60,
+  Widget _ph([double size = 60]) => Container(
+    width: size,
+    height: size,
     decoration: BoxDecoration(
       gradient: LinearGradient(
         colors: [C.brand.withAlpha(50), C.violet.withAlpha(50)],
       ),
     ),
-    child: const Icon(Icons.android_rounded, color: Colors.white, size: 28),
+    child: Icon(Icons.android_rounded, color: Colors.white, size: size * 0.48),
   );
 }

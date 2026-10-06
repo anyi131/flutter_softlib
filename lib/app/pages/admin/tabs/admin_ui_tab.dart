@@ -402,7 +402,13 @@ class _AdminUiTabState extends State<AdminUiTab> {
   }
 
   Widget _listStylePicker() {
-    const opts = [('glass', '玻璃卡片'), ('compact', '紧凑列表'), ('grid', '双列网格')];
+    const opts = [
+      ('glass', '玻璃卡片'),
+      ('compact', '紧凑列表'),
+      ('grid', '双列网格'),
+      ('large', '封面大图'),
+      ('minimal', '极简单行'),
+    ];
     return Row(
       children: [
         for (final o in opts) ...[

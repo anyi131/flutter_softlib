@@ -40,7 +40,11 @@ class MineComponent extends StatelessWidget {
                   child: ListView(
                     physics: const BouncingScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(
-                      context.pagePadding, 12, context.pagePadding, context.tabSpace + 40),
+                      context.pagePadding,
+                      12,
+                      context.pagePadding,
+                      context.tabSpace + 40,
+                    ),
                     children: [
                       _title(context),
                       const SizedBox(height: 16),
@@ -110,8 +114,7 @@ class MineComponent extends StatelessWidget {
         children: [
           // 头像 + 光晕环
           GestureDetector(
-            onTap: () =>
-                logged ? logic.openProfileEdit() : logic.openLogin(),
+            onTap: () => logged ? logic.openProfileEdit() : logic.openLogin(),
             child: Container(
               padding: const EdgeInsets.all(2.5),
               decoration: BoxDecoration(
@@ -157,8 +160,8 @@ class MineComponent extends StatelessWidget {
                       child: Text(
                         logged
                             ? ((UserService.instance.user?.qq ?? '').isNotEmpty
-                                ? 'QQ ${UserService.instance.user!.qq}'
-                                : '账号 ${logic.uid}')
+                                  ? 'QQ ${UserService.instance.user!.qq}'
+                                  : '账号 ${logic.uid}')
                             : '登录后享受完整功能',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -167,17 +170,22 @@ class MineComponent extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: C.brand.withAlpha(30),
                         borderRadius: BorderRadius.circular(R.xs),
                       ),
-                      child: Text('v1.0.2',
-                          style: TextStyle(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              color: C.brandBright)),
+                      child: Text(
+                        'v1.0.2',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: C.brandBright,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -190,8 +198,12 @@ class MineComponent extends StatelessWidget {
                   children: [
                     if (logged) ...[
                       _badge(context, '积分 ${logic.points}', C.violet),
-                      _badge(context, '余额 ¥${logic.money}', C.mint,
-                          icon: Icons.account_balance_wallet_rounded),
+                      _badge(
+                        context,
+                        '余额 ¥${logic.money}',
+                        C.mint,
+                        icon: Icons.account_balance_wallet_rounded,
+                      ),
                     ],
                     _badge(
                       context,
@@ -211,32 +223,49 @@ class MineComponent extends StatelessWidget {
   }
 
   Widget _defaultAvatar(BuildContext context) => Container(
-        color:
-            context.isDark ? C.bg2 : const Color(0xFFEDF0F7),
-        alignment: Alignment.center,
-        child: Icon(Icons.person_rounded, size: 34, color: C.brandBright),
-      );
+    color: context.isDark ? C.bg2 : const Color(0xFFEDF0F7),
+    alignment: Alignment.center,
+    child: Icon(Icons.person_rounded, size: 34, color: C.brandBright),
+  );
 
-  Widget _badge(BuildContext context, String text, Color color,
-      {IconData? icon}) {
+  Widget _badge(
+    BuildContext context,
+    String text,
+    Color color, {
+    IconData? icon,
+  }) {
     return Pill(text, color: color, icon: icon);
   }
 
   // ───────── ② 数据条 ─────────
   Widget _statsRow(BuildContext context, MineLogic logic) {
     final items = [
-      ('消息', !logic.isLoggedIn
-          ? '-'
-          : (logic.messageCount > 0 ? '${logic.messageCount}' : '0'),
-          Icons.chat_bubble_rounded, C.brandBright),
-      ('关注', logic.isLoggedIn ? '${logic.followCount}' : '-',
-          Icons.person_add_rounded, C.cyan),
-      ('粉丝', logic.isLoggedIn ? '${logic.fansCount}' : '-',
-          Icons.groups_rounded, C.mint),
-      ('签到', !logic.isLoggedIn
-          ? '-'
-          : (logic.signedToday ? '已签' : '签到'),
-          Icons.verified_rounded, C.amber),
+      (
+        '消息',
+        !logic.isLoggedIn
+            ? '-'
+            : (logic.messageCount > 0 ? '${logic.messageCount}' : '0'),
+        Icons.chat_bubble_rounded,
+        C.brandBright,
+      ),
+      (
+        '关注',
+        logic.isLoggedIn ? '${logic.followCount}' : '-',
+        Icons.person_add_rounded,
+        C.cyan,
+      ),
+      (
+        '粉丝',
+        logic.isLoggedIn ? '${logic.fansCount}' : '-',
+        Icons.groups_rounded,
+        C.mint,
+      ),
+      (
+        '签到',
+        !logic.isLoggedIn ? '-' : (logic.signedToday ? '已签' : '签到'),
+        Icons.verified_rounded,
+        C.amber,
+      ),
     ];
     return Deco.glass(
       context,
@@ -271,11 +300,15 @@ class MineComponent extends StatelessWidget {
                   children: [
                     Icon(items[i].$3, size: 19, color: items[i].$4),
                     const SizedBox(height: 7),
-                    Text(items[i].$2,
-                        style: Ty.h3.copyWith(color: context.t1, fontSize: 14)),
+                    Text(
+                      items[i].$2,
+                      style: Ty.h3.copyWith(color: context.t1, fontSize: 14),
+                    ),
                     const SizedBox(height: 2),
-                    Text(items[i].$1,
-                        style: Ty.tiny.copyWith(color: context.t3)),
+                    Text(
+                      items[i].$1,
+                      style: Ty.tiny.copyWith(color: context.t3),
+                    ),
                   ],
                 ),
               ),
@@ -312,30 +345,38 @@ class MineComponent extends StatelessWidget {
                 color: Colors.white.withAlpha(50),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.workspace_premium_rounded,
-                  color: Color(0xFF3A2E10), size: 21),
+              child: const Icon(
+                Icons.workspace_premium_rounded,
+                color: Color(0xFF3A2E10),
+                size: 21,
+              ),
             ),
             const SizedBox(width: 13),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('赞助会员',
-                      style: TextStyle(
-                          color: Color(0xFF3A2E10),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900)),
+                  const Text(
+                    '赞助会员',
+                    style: TextStyle(
+                      color: Color(0xFF3A2E10),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 3),
                   Text(
                     !logic.isLoggedIn
                         ? '登录后可开通会员'
                         : (logic.vipExpire.isEmpty
-                            ? '开通享全部特权'
-                            : '有效期至 ${logic.vipExpire}'),
+                              ? '开通享全部特权'
+                              : '有效期至 ${logic.vipExpire}'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        color: Color(0xCC3A2E10), fontSize: 12),
+                      color: Color(0xCC3A2E10),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -346,11 +387,15 @@ class MineComponent extends StatelessWidget {
                 color: const Color(0xFF2B2410),
                 borderRadius: BorderRadius.circular(R.full),
               ),
-              child: const Text('立即开通',
-                  style: TextStyle(
-                      color: Color(0xFFF7D57A),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900)),
+              // v52f #11：已是会员显示「立即续费」，未开通才显示「立即开通」
+              child: Text(
+                logic.isLoggedIn && logic.isVip ? '立即续费' : '立即开通',
+                style: const TextStyle(
+                  color: Color(0xFFF7D57A),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
           ],
         ),
@@ -364,27 +409,58 @@ class MineComponent extends StatelessWidget {
 
   Widget _serviceGrid(BuildContext context, MineLogic logic) {
     final items = <_S>[
-      _S('充值余额', Icons.account_balance_wallet_rounded, C.mint,
-          () => logic.recharge()),
-      _S('赞助排行', Icons.emoji_events_rounded, C.amber,
-          () => logic.sponsorRank()),
-      _S('使用卡密', Icons.confirmation_number_rounded, C.rose,
-          () => logic.redeem()),
-      _S('下载管理', Icons.download_rounded, C.mint,
-          () => Get.toNamed(Routes.appDownload)),
+      _S(
+        '充值余额',
+        Icons.account_balance_wallet_rounded,
+        C.mint,
+        () => logic.recharge(),
+      ),
+      _S(
+        '赞助排行',
+        Icons.emoji_events_rounded,
+        C.amber,
+        () => logic.sponsorRank(),
+      ),
+      _S(
+        '使用卡密',
+        Icons.confirmation_number_rounded,
+        C.rose,
+        () => logic.redeem(),
+      ),
+      _S(
+        '下载管理',
+        Icons.download_rounded,
+        C.mint,
+        () => Get.toNamed(Routes.appDownload),
+      ),
       _S('QQ通知群', Icons.forum_rounded, C.cyan, () => logic.joinGroup()),
-      _S('积分兑换', Icons.monetization_on_rounded, C.accentOrange,
-          () => logic.pointsExchange()),
-      _S('关于软件', Icons.info_rounded, C.brandBright,
-          () => logic.about(context)),
-      _S('用户协议', Icons.description_rounded, C.violet,
-          () => logic.showAgreementPage('agreement')),
-      _S('隐私政策', Icons.privacy_tip_rounded, C.pink,
-          () => logic.showAgreementPage('privacy')),
+      _S(
+        '积分兑换',
+        Icons.monetization_on_rounded,
+        C.accentOrange,
+        () => logic.pointsExchange(),
+      ),
+      _S('关于软件', Icons.info_rounded, C.brandBright, () => logic.about(context)),
+      _S(
+        '用户协议',
+        Icons.description_rounded,
+        C.violet,
+        () => logic.showAgreementPage('agreement'),
+      ),
+      _S(
+        '隐私政策',
+        Icons.privacy_tip_rounded,
+        C.pink,
+        () => logic.showAgreementPage('privacy'),
+      ),
       _S('替换开屏', Icons.image_rounded, C.mint, () => logic.replaceSplash()),
       if (logic.isAdmin)
-        _S('后台管理', Icons.admin_panel_settings_rounded, C.rose,
-            () => logic.openAdminPanel()),
+        _S(
+          '后台管理',
+          Icons.admin_panel_settings_rounded,
+          C.rose,
+          () => logic.openAdminPanel(),
+        ),
     ];
 
     return KitCard(
@@ -429,9 +505,13 @@ class MineComponent extends StatelessWidget {
               child: Icon(s.icon, color: s.color, size: 22),
             ),
             const SizedBox(height: 8),
-            Text(s.label,
-                style: Ty.tiny.copyWith(
-                    color: context.t2, fontWeight: FontWeight.w700)),
+            Text(
+              s.label,
+              style: Ty.tiny.copyWith(
+                color: context.t2,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),

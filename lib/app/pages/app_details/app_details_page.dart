@@ -857,7 +857,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                   PrimaryButton(
                     label: '安装',
                     icon: Icons.install_mobile_rounded,
-                    color: C.success,
+                    // v52f #4：安装按钮统一品牌渐变（绿色仅用于状态标识）
                     onPressed: download.openDownloadFile,
                   ),
                 ],

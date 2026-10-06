@@ -13,26 +13,34 @@ enum AppListStyle {
   glass, // 玻璃卡片（经典）
   compact, // 紧凑列表
   grid, // 双列网格
+  large, // 封面大图卡（v52f #9）
+  minimal, // 极简单行（v52f #9）
 }
 
 extension AppListStyleX on AppListStyle {
   String get label => switch (this) {
-        AppListStyle.glass => '玻璃卡片',
-        AppListStyle.compact => '紧凑列表',
-        AppListStyle.grid => '双列网格',
-      };
+    AppListStyle.glass => '玻璃卡片',
+    AppListStyle.compact => '紧凑列表',
+    AppListStyle.grid => '双列网格',
+    AppListStyle.large => '封面大图',
+    AppListStyle.minimal => '极简单行',
+  };
 
   String get desc => switch (this) {
-        AppListStyle.glass => '大圆角卡片 + 光晕，质感最好',
-        AppListStyle.compact => '一行一款，信息密度高',
-        AppListStyle.grid => '双列大图标，视觉冲击强',
-      };
+    AppListStyle.glass => '大圆角卡片 + 光晕，质感最好',
+    AppListStyle.compact => '一行一款，信息密度高',
+    AppListStyle.grid => '双列大图标，视觉冲击强',
+    AppListStyle.large => '封面截图大图卡，沉浸浏览',
+    AppListStyle.minimal => '只留名字与图标，极致简洁',
+  };
 
   IconData get icon => switch (this) {
-        AppListStyle.glass => Icons.view_agenda_rounded,
-        AppListStyle.compact => Icons.view_list_rounded,
-        AppListStyle.grid => Icons.grid_view_rounded,
-      };
+    AppListStyle.glass => Icons.view_agenda_rounded,
+    AppListStyle.compact => Icons.view_list_rounded,
+    AppListStyle.grid => Icons.grid_view_rounded,
+    AppListStyle.large => Icons.image_rounded,
+    AppListStyle.minimal => Icons.line_weight_rounded,
+  };
 
   String get key => name;
 }
@@ -45,9 +53,9 @@ enum AppDetailStyle {
 
 extension AppDetailStyleX on AppDetailStyle {
   String get label => switch (this) {
-        AppDetailStyle.standard => '标准',
-        AppDetailStyle.poster => '海报式',
-      };
+    AppDetailStyle.standard => '标准',
+    AppDetailStyle.poster => '海报式',
+  };
 }
 
 /// 从字符串解析样式（后台配置 / 本地设置）
@@ -57,6 +65,10 @@ AppListStyle parseListStyle(String? s) {
       return AppListStyle.compact;
     case 'grid':
       return AppListStyle.grid;
+    case 'large':
+      return AppListStyle.large;
+    case 'minimal':
+      return AppListStyle.minimal;
     default:
       return AppListStyle.glass;
   }

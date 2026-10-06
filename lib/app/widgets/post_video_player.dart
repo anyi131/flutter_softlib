@@ -57,8 +57,13 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
   bool _ready = false;
   bool _failed = false;
   String _err = '';
+
   /// 是否已「激活」（懒加载模式下点击后才 true）
   bool _activated = false;
+  // v52f #5：静音开关 + 控制条显隐
+  bool _muted = false;
+  bool _showControls = true;
+  Timer? _hideTimer;
 
   @override
   void initState() {
@@ -99,22 +104,25 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
       ..setUserAgent(
-          'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 '
-          '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageFinished: (_) {
-          if (mounted) setState(() => _ready = true);
-        },
-        onWebResourceError: (e) {
-          // 只把「主文档」的错误当失败，子资源(图片/统计)失败忽略
-          if (e.isForMainFrame != false && mounted) {
-            setState(() {
-              _failed = true;
-              _err = e.description;
-            });
-          }
-        },
-      ))
+        'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      )
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (mounted) setState(() => _ready = true);
+          },
+          onWebResourceError: (e) {
+            // 只把「主文档」的错误当失败，子资源(图片/统计)失败忽略
+            if (e.isForMainFrame != false && mounted) {
+              setState(() {
+                _failed = true;
+                _err = e.description;
+              });
+            }
+          },
+        ),
+      )
       ..loadRequest(Uri.parse(widget.url));
     _web = c;
   }
@@ -143,8 +151,29 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
     }
   }
 
+  void _onTick() {
+    if (mounted) setState(() {});
+  }
+
+  void _armHide() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showControls = false);
+    });
+  }
+
+  void _togglePlay() {
+    final c = _controller;
+    if (c == null) return;
+    c.value.isPlaying ? c.pause() : c.play();
+    setState(() => _showControls = true);
+    _armHide();
+  }
+
   @override
   void dispose() {
+    _hideTimer?.cancel();
+    _controller?.removeListener(_onTick);
     _controller?.dispose();
     super.dispose();
   }
@@ -177,8 +206,7 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
           fit: StackFit.expand,
           children: [
             if (widget.cover.isNotEmpty)
-              CachedNetworkImage(
-                  imageUrl: widget.cover, fit: BoxFit.cover),
+              CachedNetworkImage(imageUrl: widget.cover, fit: BoxFit.cover),
             Container(
               color: Colors.black38,
               alignment: Alignment.center,
@@ -186,7 +214,9 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
                 width: 26,
                 height: 26,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white70),
+                  strokeWidth: 2,
+                  color: Colors.white70,
+                ),
               ),
             ),
           ],
@@ -206,6 +236,14 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
     }
 
     final c = _controller!;
+    final pos = c.value.position;
+    final dur = c.value.duration;
+    String fmt(Duration d) {
+      final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+      final sec = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+      return '$m:$sec';
+    }
+
     return _shell(
       maxHeight: widget.maxHeight,
       child: AspectRatio(
@@ -214,37 +252,97 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
           alignment: Alignment.center,
           children: [
             VideoPlayer(c),
-            // 点击播放/暂停
+            // 单击 = 控制条显隐；双击 = 播放/暂停（v52f #5）
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                setState(() {
-                  c.value.isPlaying ? c.pause() : c.play();
-                });
+                setState(() => _showControls = !_showControls);
+                if (_showControls) _armHide();
               },
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 180),
-                opacity: c.value.isPlaying ? 0 : 1,
+              onDoubleTap: _togglePlay,
+            ),
+            // 居中播放键（暂停时）
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: (!c.value.isPlaying || _showControls) ? 1 : 0,
+              child: GestureDetector(
+                onTap: _togglePlay,
                 child: Container(
-                  color: Colors.black26,
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.play_circle_fill_rounded,
-                      size: 52, color: Colors.white),
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(90),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    c.value.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                    size: 40,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
-            // 进度条
+            // 控制条：静音 + 进度 + 时长
             Positioned(
-              bottom: 0,
               left: 0,
               right: 0,
-              child: VideoProgressIndicator(
-                c,
-                allowScrubbing: true,
-                colors: const VideoProgressColors(
-                  playedColor: Color(0xFF4B5EF5),
-                  bufferedColor: Colors.white24,
-                  backgroundColor: Colors.white10,
+              bottom: 0,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                opacity: _showControls ? 1 : 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Color(0xD9000000), Color(0x00000000)],
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          c.setVolume(_muted ? 1.0 : 0.0);
+                          setState(() => _muted = !_muted);
+                        },
+                        child: Icon(
+                          _muted
+                              ? Icons.volume_off_rounded
+                              : Icons.volume_up_rounded,
+                          size: 17,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: VideoProgressIndicator(
+                          c,
+                          allowScrubbing: true,
+                          colors: VideoProgressColors(
+                            playedColor: C.brandBright,
+                            bufferedColor: Colors.white24,
+                            backgroundColor: Colors.white10,
+                          ),
+                          padding: const EdgeInsets.only(top: 8, bottom: 8),
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Text(
+                        '${fmt(pos)}/${fmt(dur)}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white70,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -297,8 +395,11 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
                     color: Colors.white24,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.play_arrow_rounded,
-                      size: 34, color: Colors.white),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    size: 34,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               // 底部提示
@@ -308,7 +409,9 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
                 bottom: 0,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
@@ -316,8 +419,10 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
                       colors: [Color(0xAA000000), Color(0x00000000)],
                     ),
                   ),
-                  child: const Text('点击播放视频',
-                      style: TextStyle(color: Colors.white70, fontSize: 11.5)),
+                  child: const Text(
+                    '点击播放视频',
+                    style: TextStyle(color: Colors.white70, fontSize: 11.5),
+                  ),
                 ),
               ),
             ],
@@ -346,14 +451,17 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('视频无法播放',
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700)),
+                const Text(
+                  '视频无法播放',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 3),
-                Text(_err.isEmpty ? '该链接可能已失效' : _err,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11.5)),
+                Text(
+                  _err.isEmpty ? '该链接可能已失效' : _err,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11.5),
+                ),
               ],
             ),
           ),

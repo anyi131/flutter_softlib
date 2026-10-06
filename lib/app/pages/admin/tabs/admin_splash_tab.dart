@@ -159,7 +159,8 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         // 支付
         payEnable = '${cfg['pay_enabled']}' == '1';
         qqOn = '${cfg['qq_login_on']}' == '1';
-        qqKeySet = '${cfg['qq_app_key_set']}' == 'true' ||
+        qqKeySet =
+            '${cfg['qq_app_key_set']}' == 'true' ||
             '${cfg['qq_app_key_set']}' == '1';
         qqAppIdCtrl.text = '${cfg['qq_app_id'] ?? ''}';
         qqRedirectCtrl.text = '${cfg['qq_redirect'] ?? ''}';
@@ -240,7 +241,8 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'pay_enabled': payEnable ? 1 : 0,
         'pay_apiurl': payApiCtrl.text.trim(),
         'pay_pid': payPidCtrl.text.trim(),
-        if (payKeyCtrl.text.trim().isNotEmpty) 'pay_key': payKeyCtrl.text.trim(),
+        if (payKeyCtrl.text.trim().isNotEmpty)
+          'pay_key': payKeyCtrl.text.trim(),
         'pay_alipay': payAlipay ? 1 : 0,
         'pay_wxpay': payWxpay ? 1 : 0,
         'pay_qqpay': payQqpay ? 1 : 0,
@@ -312,11 +314,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
       return const LoadingState(text: '加载开屏配置…');
     }
     if (!_inited) {
-      return ErrorState(
-        text: '加载配置失败',
-        hint: '请检查网络连接后重试',
-        onRetry: _load,
-      );
+      return ErrorState(text: '加载配置失败', hint: '请检查网络连接后重试', onRetry: _load);
     }
     return ListView(
       padding: const EdgeInsets.all(14),
@@ -324,8 +322,11 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         _card(
           title: '开屏页',
           children: [
-            _switch('启用开屏页', splashEnable,
-                (v) => setState(() => splashEnable = v)),
+            _switch(
+              '启用开屏页',
+              splashEnable,
+              (v) => setState(() => splashEnable = v),
+            ),
             _field('开屏图片 URL', imgCtrl),
             _field('停留秒数（1-10）', secondsCtrl, keyboard: TextInputType.number),
             _field('点击跳转网址（选填）', urlCtrl),
@@ -337,23 +338,34 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         _card(
           title: '主页右上角按钮',
           children: [
-            _switch('显示「加群」按钮', feedGroupOn,
-                (v) => setState(() => feedGroupOn = v)),
+            _switch(
+              '显示「加群」按钮',
+              feedGroupOn,
+              (v) => setState(() => feedGroupOn = v),
+            ),
             _field('加群图片 URL / 链接', feedGroupCtrl),
             const SizedBox(height: 6),
-            _switch('显示「客服」按钮', feedUserOn,
-                (v) => setState(() => feedUserOn = v)),
+            _switch(
+              '显示「客服」按钮',
+              feedUserOn,
+              (v) => setState(() => feedUserOn = v),
+            ),
             _field('客服图片 URL / 链接', feedUserCtrl),
-            Text('用户点击后弹窗展示对应图片（留空会提示「暂未配置」）',
-                style: Ty.tiny.copyWith(color: context.t3)),
+            Text(
+              '用户点击后弹窗展示对应图片（留空会提示「暂未配置」）',
+              style: Ty.tiny.copyWith(color: context.t3),
+            ),
           ],
         ),
         const SizedBox(height: 12),
         _card(
           title: '关于软件',
           children: [
-            _switch('启用「关于软件」页', aboutEnable,
-                (v) => setState(() => aboutEnable = v)),
+            _switch(
+              '启用「关于软件」页',
+              aboutEnable,
+              (v) => setState(() => aboutEnable = v),
+            ),
             _field('应用名称', aboutNameCtrl),
             _field('版本号（展示用）', aboutVersionCtrl),
             _field('Logo 图片 URL', aboutLogCtrl),
@@ -369,19 +381,25 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         _card(
           title: '注册与界面风格',
           children: [
-            _switch('允许使用非 QQ 邮箱注册', emailNonQqOn,
-                (v) => setState(() => emailNonQqOn = v)),
+            _switch(
+              '允许使用非 QQ 邮箱注册',
+              emailNonQqOn,
+              (v) => setState(() => emailNonQqOn = v),
+            ),
             if (!emailNonQqOn)
-              Text('关闭时：注册页只显示 @qq.com，且其他邮箱会被拒绝',
-                  style: Ty.tiny.copyWith(color: C.warning)),
+              Text(
+                '关闭时：注册页只显示 @qq.com，且其他邮箱会被拒绝',
+                style: Ty.tiny.copyWith(color: C.warning),
+              ),
             if (emailNonQqOn) ...[
               _field('允许注册的邮箱域名（逗号分隔，留空=不限）', emailDomainsCtrl),
             ],
-            Text('例：qq.com,163.com,gmail.com —— 只允许这些邮箱注册；留空则任意邮箱都可注册',
-                style: Ty.tiny.copyWith(color: context.t3)),
+            Text(
+              '例：qq.com,163.com,gmail.com —— 只允许这些邮箱注册；留空则任意邮箱都可注册',
+              style: Ty.tiny.copyWith(color: context.t3),
+            ),
             const SizedBox(height: 12),
-            Text('全局主题配色（App 全站生效）',
-                style: Ty.h3.copyWith(fontSize: 13)),
+            Text('全局主题配色（App 全站生效）', style: Ty.h3.copyWith(fontSize: 13)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -392,7 +410,9 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                   onTap: () => setState(() => themePalette = p.key),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: sel ? p.brand.withAlpha(30) : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
@@ -413,15 +433,20 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                           ),
                         ),
                         const SizedBox(width: 7),
-                        Text(p.name,
-                            style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight:
-                                    sel ? FontWeight.w800 : FontWeight.w500)),
+                        Text(
+                          p.name,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
+                          ),
+                        ),
                         if (sel) ...[
                           const SizedBox(width: 5),
-                          Icon(Icons.check_circle_rounded,
-                              size: 14, color: p.brand),
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 14,
+                            color: p.brand,
+                          ),
                         ],
                       ],
                     ),
@@ -429,8 +454,10 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                 );
               }).toList(),
             ),
-            Text('建议到「界面」Tab 统一配置主题与开关（本页配置兼容保留）',
-                style: Ty.tiny.copyWith(color: context.t3)),
+            Text(
+              '建议到「界面」Tab 统一配置主题与开关（本页配置兼容保留）',
+              style: Ty.tiny.copyWith(color: context.t3),
+            ),
             const SizedBox(height: 12),
             Text('软件列表默认样式', style: Ty.h3.copyWith(fontSize: 13)),
             const SizedBox(height: 8),
@@ -441,10 +468,16 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                 _styleChip('compact', '紧凑列表', Icons.view_list_rounded),
                 const SizedBox(width: 7),
                 _styleChip('grid', '双列网格', Icons.grid_view_rounded),
+                const SizedBox(width: 7),
+                _styleChip('large', '封面大图', Icons.image_rounded),
+                const SizedBox(width: 7),
+                _styleChip('minimal', '极简单行', Icons.line_weight_rounded),
               ],
             ),
-            Text('v52：外观设置已统一到「界面」Tab，App 端不再提供用户切换',
-                style: Ty.tiny.copyWith(color: context.t3)),
+            Text(
+              'v52：外观设置已统一到「界面」Tab，App 端不再提供用户切换',
+              style: Ty.tiny.copyWith(color: context.t3),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -454,18 +487,26 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
             _field('用户协议内容（支持 HTML）', agreementCtrl, lines: 6),
             const SizedBox(height: 8),
             _field('隐私政策内容（支持 HTML）', privacyCtrl, lines: 6),
-            Text('App 端「我的 → 用户协议/隐私政策」会以美化页面展示这些内容',
-                style: Ty.tiny.copyWith(color: context.t3)),
+            Text(
+              'App 端「我的 → 用户协议/隐私政策」会以美化页面展示这些内容',
+              style: Ty.tiny.copyWith(color: context.t3),
+            ),
           ],
         ),
         const SizedBox(height: 12),
         _card(
           title: '公告弹窗',
           children: [
-            _switch('启用公告弹窗', noticeEnable,
-                (v) => setState(() => noticeEnable = v)),
-            _switch('强制阅读（不可关闭）', noticeForce,
-                (v) => setState(() => noticeForce = v)),
+            _switch(
+              '启用公告弹窗',
+              noticeEnable,
+              (v) => setState(() => noticeEnable = v),
+            ),
+            _switch(
+              '强制阅读（不可关闭）',
+              noticeForce,
+              (v) => setState(() => noticeForce = v),
+            ),
             _field('公告标题', noticeTitleCtrl),
             _field('公告内容（支持 HTML）', noticeContentCtrl, lines: 4),
           ],
@@ -474,8 +515,11 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         _card(
           title: '远程控制',
           children: [
-            _switch('开启维护模式（App 显示维护页）', maintainEnable,
-                (v) => setState(() => maintainEnable = v)),
+            _switch(
+              '开启维护模式（App 显示维护页）',
+              maintainEnable,
+              (v) => setState(() => maintainEnable = v),
+            ),
             _field('维护提示文案', maintainCtrl, lines: 2),
           ],
         ),
@@ -483,8 +527,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         _card(
           title: '会员支付',
           children: [
-            _switch('开启在线支付', payEnable,
-                (v) => setState(() => payEnable = v)),
+            _switch('开启在线支付', payEnable, (v) => setState(() => payEnable = v)),
             _field('支付接口地址 apiurl', payApiCtrl),
             _field('商户 PID', payPidCtrl),
             _field('商户 KEY（留空表示不修改）', payKeyCtrl),
@@ -503,7 +546,8 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                   Text(
                     payKeySet ? '密钥已设置' : '密钥尚未设置，支付无法使用',
                     style: Ty.tiny.copyWith(
-                        color: payKeySet ? C.success : C.warning),
+                      color: payKeySet ? C.success : C.warning,
+                    ),
                   ),
                 ],
               ),
@@ -511,24 +555,35 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
             Row(
               children: [
                 Expanded(
-                  child: _switch('支付宝', payAlipay,
-                      (v) => setState(() => payAlipay = v)),
+                  child: _switch(
+                    '支付宝',
+                    payAlipay,
+                    (v) => setState(() => payAlipay = v),
+                  ),
                 ),
                 Expanded(
-                  child: _switch('微信', payWxpay,
-                      (v) => setState(() => payWxpay = v)),
+                  child: _switch(
+                    '微信',
+                    payWxpay,
+                    (v) => setState(() => payWxpay = v),
+                  ),
                 ),
                 Expanded(
-                  child: _switch('QQ', payQqpay,
-                      (v) => setState(() => payQqpay = v)),
+                  child: _switch(
+                    'QQ',
+                    payQqpay,
+                    (v) => setState(() => payQqpay = v),
+                  ),
                 ),
               ],
             ),
             if (!payEnable)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
-                child: Text('未开启时 App 会员页会提示「支付暂未开放」',
-                    style: Ty.tiny.copyWith(color: context.t3)),
+                child: Text(
+                  '未开启时 App 会员页会提示「支付暂未开放」',
+                  style: Ty.tiny.copyWith(color: context.t3),
+                ),
               ),
           ],
         ),
@@ -587,8 +642,11 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         _card(
           title: '余额充值档位',
           children: [
-            _switch('允许余额充值', rechargeOn,
-                (v) => setState(() => rechargeOn = v)),
+            _switch(
+              '允许余额充值',
+              rechargeOn,
+              (v) => setState(() => rechargeOn = v),
+            ),
             Row(
               children: [
                 Expanded(child: _field('档位一（元）', recharge1Ctrl)),
@@ -600,8 +658,10 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
             ),
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: Text('用户在「我的 → 充值余额」看到这三档（也可自己输入金额）',
-                  style: Ty.tiny.copyWith(color: context.t3)),
+              child: Text(
+                '用户在「我的 → 充值余额」看到这三档（也可自己输入金额）',
+                style: Ty.tiny.copyWith(color: context.t3),
+              ),
             ),
           ],
         ),
@@ -609,8 +669,7 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         _card(
           title: '功能开关',
           children: [
-            _switch('开放注册', registerOn,
-                (v) => setState(() => registerOn = v)),
+            _switch('开放注册', registerOn, (v) => setState(() => registerOn = v)),
           ],
         ),
         const SizedBox(height: 16),
@@ -649,17 +708,22 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
             color: sel ? C.brand : context.t3.withAlpha(20),
             borderRadius: BorderRadius.circular(R.md),
             border: Border.all(
-                color: sel ? C.brand : C.stroke.withAlpha(60), width: 0.9),
+              color: sel ? C.brand : C.stroke.withAlpha(60),
+              width: 0.9,
+            ),
           ),
           child: Column(
             children: [
               Icon(icon, size: 18, color: sel ? Colors.white : context.t2),
               const SizedBox(height: 4),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: sel ? Colors.white : context.t2)),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: sel ? Colors.white : context.t2,
+                ),
+              ),
             ],
           ),
         ),
@@ -672,20 +736,19 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Expanded(
-              child: Text(label, style: const TextStyle(fontSize: 13.5))),
-          Switch(
-            value: value,
-            activeThumbColor: C.brand,
-            onChanged: onChanged,
-          ),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 13.5))),
+          Switch(value: value, activeThumbColor: C.brand, onChanged: onChanged),
         ],
       ),
     );
   }
 
-  Widget _field(String label, TextEditingController c,
-      {int lines = 1, TextInputType? keyboard}) {
+  Widget _field(
+    String label,
+    TextEditingController c, {
+    int lines = 1,
+    TextInputType? keyboard,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: TextField(
@@ -696,8 +759,10 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         decoration: InputDecoration(
           labelText: label,
           isDense: true,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(R.md)),
         ),
       ),

@@ -175,7 +175,10 @@ class AppDownloadLogic extends GetxController {
     // 先删本地文件
     if (taskId != null && taskId.isNotEmpty) {
       try {
-        await FlutterDownloader.remove(taskId: taskId, shouldDeleteContent: true);
+        await FlutterDownloader.remove(
+          taskId: taskId,
+          shouldDeleteContent: true,
+        );
       } catch (_) {}
     }
     // 删数据库记录
@@ -187,6 +190,50 @@ class AppDownloadLogic extends GetxController {
     downInfos?.removeWhere((e) => e.taskId == taskId);
     update(['downInfos']);
     ToastUtil.success('已删除');
+  }
+
+  /// 批量删除（v52f #2）
+  Future<void> deleteMany(List<DownInfo> items) async {
+    int ok = 0;
+    for (final d in items) {
+      final taskId = d.taskId;
+      final appId = d.appId;
+      if (taskId != null && taskId.isNotEmpty) {
+        try {
+          await FlutterDownloader.remove(
+            taskId: taskId,
+            shouldDeleteContent: true,
+          );
+        } catch (_) {}
+      }
+      if (appId != null && appId.isNotEmpty) {
+        try {
+          await downloadTaskDao.deleteDownloadTask(appId);
+        } catch (_) {}
+      }
+      downInfos?.removeWhere((e) => e.taskId == taskId);
+      ok++;
+    }
+    update(['downInfos']);
+    ToastUtil.success('已删除 $ok 项');
+  }
+
+  /// 清空失败任务（v52f #2）
+  Future<void> clearFailed() async {
+    final failed =
+        downInfos
+            ?.where(
+              (d) =>
+                  d.status == DownloadTaskStatus.failed ||
+                  d.status == DownloadTaskStatus.canceled,
+            )
+            .toList() ??
+        [];
+    if (failed.isEmpty) {
+      ToastUtil.info('没有失败任务');
+      return;
+    }
+    await deleteMany(failed);
   }
 
   /// 分享下载的文件（调用系统分享面板）—— 需求 #7
@@ -202,10 +249,9 @@ class AppDownloadLogic extends GetxController {
       return;
     }
     try {
-      await Share.shareXFiles(
-        [XFile(path)],
-        text: dowInfo?.appName ?? '分享一个安装包',
-      );
+      await Share.shareXFiles([
+        XFile(path),
+      ], text: dowInfo?.appName ?? '分享一个安装包');
     } catch (e) {
       ToastUtil.error('分享失败：$e');
     }
@@ -233,8 +279,10 @@ class AppDownloadLogic extends GetxController {
     }
     if (await ApkInstaller.install(path)) return;
     try {
-      await OpenFilex.open(path,
-          type: 'application/vnd.android.package-archive');
+      await OpenFilex.open(
+        path,
+        type: 'application/vnd.android.package-archive',
+      );
       return;
     } catch (_) {}
     ToastUtil.error('无法调起安装，请手动安装');
@@ -261,8 +309,10 @@ class AppDownloadLogic extends GetxController {
                 .where((f) => f.path.toLowerCase().endsWith('.apk'))
                 .toList();
             if (apks.isNotEmpty) {
-              apks.sort((a, b) =>
-                  b.statSync().modified.compareTo(a.statSync().modified));
+              apks.sort(
+                (a, b) =>
+                    b.statSync().modified.compareTo(a.statSync().modified),
+              );
               return apks.first.path;
             }
           }

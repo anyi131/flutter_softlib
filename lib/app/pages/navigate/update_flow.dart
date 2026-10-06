@@ -165,9 +165,7 @@ class _UpdateCardState extends State<_UpdateCard> {
   }
 
   void _fallbackBrowser() {
-    ToastUtil.info('应用内下载失败，尝试浏览器打开…');
     JumpUtil.openUrl(widget.url);
-    if (!widget.forced && mounted) Navigator.of(context).pop();
   }
 
   String _sizeText(int bytes) {
@@ -383,14 +381,13 @@ class _UpdateCardState extends State<_UpdateCard> {
     if (_phase == 'downloading') {
       return const SizedBox(height: 6);
     }
-    return Row(
-      children: [
-        if (!widget.forced) ...[
+    // 失败态：关闭 / 浏览器下载 / 重试（v52f #1）
+    if (_phase == 'failed') {
+      return Row(
+        children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: _phase == 'failed'
-                  ? () => Navigator.of(context).pop()
-                  : () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(context).pop(),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 side: BorderSide(
@@ -401,7 +398,85 @@ class _UpdateCardState extends State<_UpdateCard> {
                 ),
               ),
               child: Text(
-                _phase == 'failed' ? '关闭' : '稍后再说',
+                '关闭',
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? C.t2 : C.lt2,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _fallbackBrowser,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: C.brand.withAlpha(120)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.public_rounded, size: 16, color: C.brand),
+                  const SizedBox(width: 5),
+                  Text(
+                    '浏览器下载',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: C.brand,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: AppPressable(
+              onTap: () => setState(() => _phase = 'idle'),
+              child: Container(
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: C.brandGradient,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  '重试',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        if (!widget.forced) ...[
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(
+                  color: isDark ? C.t3.withAlpha(80) : C.lt3.withAlpha(70),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              child: Text(
+                '稍后再说',
                 style: TextStyle(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
@@ -415,9 +490,7 @@ class _UpdateCardState extends State<_UpdateCard> {
         Expanded(
           flex: 2,
           child: AppPressable(
-            onTap: _phase == 'failed'
-                ? () => setState(() => _phase = 'idle')
-                : _start,
+            onTap: _start,
             child: Container(
               height: 46,
               alignment: Alignment.center,
@@ -432,9 +505,9 @@ class _UpdateCardState extends State<_UpdateCard> {
                   ),
                 ],
               ),
-              child: Text(
-                _phase == 'failed' ? '重试' : '立即更新',
-                style: const TextStyle(
+              child: const Text(
+                '立即更新',
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
