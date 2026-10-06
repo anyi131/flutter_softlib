@@ -262,10 +262,15 @@ class _AppDetailsPageState extends State<AppDetailsPage>
                       ),
                 image: AppStyleController.instance.detailStyle.value ==
                         AppDetailStyle.poster
-                    ? DecorationImage(
-                        fit: BoxFit.cover,
-                        image: _posterProvider(info),
-                      )
+                    ? (info != null &&
+                            (logic.item?.screenshots.isNotEmpty == true ||
+                                (info.fileIcon ?? '').isNotEmpty ||
+                                (logic.item?.icon ?? '').isNotEmpty))
+                        ? DecorationImage(
+                            fit: BoxFit.cover,
+                            image: _posterProvider(info)!,
+                          )
+                        : null
                     : null,
                 borderRadius: BorderRadius.circular(R.xl),
               ),

@@ -51,7 +51,7 @@ class _HomeComponentState extends State<HomeComponent> {
 
   /// v52i #4：首页两套模板（后台「界面」Tab home.template 可切）
   Widget _homeBody() {
-    final tpl = widget.logic.configData?.uiConfig.homeTemplate ?? 'classic';
+    final tpl = logic.configData?.uiConfig.homeTemplate ?? 'classic';
     if (tpl == 'clean') {
       // 极简模板：问候 + 公告 + 推荐直出
       return CustomScrollView(
@@ -222,7 +222,7 @@ class _HomeComponentState extends State<HomeComponent> {
     // v52f #10：快捷入口去重 —— 移除与「我的/应用/线报 Tab」重复的
     // 下载管理/软件搜索/线报速递，换成独有功能
     // v52i #7：快捷入口由后台「界面」Tab 热配置（开关即时生效）
-    final ui = widget.logic.configData?.uiConfig;
+    final ui = logic.configData?.uiConfig;
     final all = [
       (
         _QI(Icons.emoji_events_rounded, '每日签到', C.amber),
@@ -236,7 +236,7 @@ class _HomeComponentState extends State<HomeComponent> {
       ),
       (
         _QI(Icons.headset_mic_rounded, '联系客服', C.cyan),
-        () => widget.logic.joinUser(),
+        () => logic.joinUser(),
         ui?.quickService ?? true,
       ),
       (
