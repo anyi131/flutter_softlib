@@ -35,7 +35,15 @@ class UiConfig {
 
   // ── 页面模板（v52i #4：每个界面都有可选模板）──
   final String homeTemplate; // classic 标准首页 / clean 极简首页
-  final String detailStyle; // standard 标准 / poster 海报式
+  final String detailStyle; // standard/poster/dark/minimal/compact 详情5模板
+
+  // ── v52m 全页面模板（#1-#9）──
+  final String tipsTemplate; // card 卡片 / compact 紧凑（线报）
+  final String mineTemplate; // classic / clean / gradient（我的）
+  final String splashTemplate; // fullscreen / banner / fade（开屏）
+  final String aboutTemplate; // card / hero / minimal（关于）
+  final String authTemplate; // classic / gradient / minimal（登录注册找回）
+  final String noticeTemplate; // card / banner / minimal（公告弹窗）
 
   // ── 首页快捷入口开关（v52g #7 热更新布局）──
   final bool quickSign;
@@ -63,6 +71,12 @@ class UiConfig {
     this.updateTemplate = 'classic',
     this.homeTemplate = 'classic',
     this.detailStyle = 'standard',
+    this.tipsTemplate = 'card',
+    this.mineTemplate = 'classic',
+    this.splashTemplate = 'fullscreen',
+    this.aboutTemplate = 'card',
+    this.authTemplate = 'classic',
+    this.noticeTemplate = 'card',
     this.quickSign = true,
     this.quickVip = true,
     this.quickService = true,
@@ -103,6 +117,12 @@ class UiConfig {
       updateTemplate: _s(json['update_template'], 'classic'),
       homeTemplate: _s(home['template'], 'classic'),
       detailStyle: _s(home['detail_style'], 'standard'),
+      tipsTemplate: _s(json['tips_template'], 'card'),
+      mineTemplate: _s(json['mine_template'], 'classic'),
+      splashTemplate: _s(json['splash_template'], 'fullscreen'),
+      aboutTemplate: _s(json['about_template'], 'card'),
+      authTemplate: _s(json['auth_template'], 'classic'),
+      noticeTemplate: _s(json['notice_template'], 'card'),
       quickSign: _b(home['quick_sign'], true),
       quickVip: _b(home['quick_vip'], true),
       quickService: _b(home['quick_service'], true),
@@ -126,6 +146,12 @@ class UiConfig {
       updateTemplate: base.updateTemplate,
       homeTemplate: base.homeTemplate,
       detailStyle: base.detailStyle,
+      tipsTemplate: base.tipsTemplate,
+      mineTemplate: base.mineTemplate,
+      splashTemplate: base.splashTemplate,
+      aboutTemplate: base.aboutTemplate,
+      authTemplate: base.authTemplate,
+      noticeTemplate: base.noticeTemplate,
       quickSign: base.quickSign,
       quickVip: base.quickVip,
       quickService: base.quickService,

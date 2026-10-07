@@ -48,6 +48,9 @@ class SoftService {
   Future<AppConfig?>? _configInflight;
   static const _configTtl = Duration(minutes: 10);
 
+  /// v52m #11：同步取最近一次配置（未拉取过返回 null）
+  AppConfig? get cachedConfig => _configCache;
+
   Future<AppConfig?> fetchConfig({bool force = false}) async {
     if (!force &&
         _configCache != null &&

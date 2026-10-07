@@ -78,6 +78,12 @@ AppDetailStyle parseDetailStyle(String? s) {
   switch ((s ?? '').trim().toLowerCase()) {
     case 'poster':
       return AppDetailStyle.poster;
+    case 'dark':
+      return AppDetailStyle.dark;
+    case 'minimal':
+      return AppDetailStyle.minimal;
+    case 'compact':
+      return AppDetailStyle.compact;
     default:
       return AppDetailStyle.standard;
   }

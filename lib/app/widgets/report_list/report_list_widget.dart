@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../generated/assets.dart';
 import '../../models/http/results/report_cat_list_model.dart';
+import '../../design/ui.dart';
 import '../../widgets/tab_bottom_pad.dart';
 import 'report_list_logic.dart';
 

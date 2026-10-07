@@ -48,6 +48,13 @@ class _AdminUiTabState extends State<AdminUiTab> {
   // 页面模板（v52i #4）
   String _homeTemplate = 'classic';
   String _detailStyle = 'standard';
+  // v52m 全页面模板
+  String _tipsTemplate = 'card';
+  String _mineTemplate = 'classic';
+  String _splashTemplate = 'fullscreen';
+  String _aboutTemplate = 'card';
+  String _authTemplate = 'classic';
+  String _noticeTemplate = 'card';
   // 首页快捷入口（v52g #7）
   bool _qSign = true, _qVip = true, _qService = true, _qUpdate = true;
 
@@ -104,6 +111,12 @@ class _AdminUiTabState extends State<AdminUiTab> {
         _updateTemplate = '${ui['update_template'] ?? 'classic'}';
         _homeTemplate = '${home['template'] ?? 'classic'}';
         _detailStyle = '${home['detail_style'] ?? 'standard'}';
+        _tipsTemplate = '${ui['tips_template'] ?? 'card'}';
+        _mineTemplate = '${ui['mine_template'] ?? 'classic'}';
+        _splashTemplate = '${ui['splash_template'] ?? 'fullscreen'}';
+        _aboutTemplate = '${ui['about_template'] ?? 'card'}';
+        _authTemplate = '${ui['auth_template'] ?? 'classic'}';
+        _noticeTemplate = '${ui['notice_template'] ?? 'card'}';
         _qSign = '${home['quick_sign'] ?? 1}' == '1';
         _qVip = '${home['quick_vip'] ?? 1}' == '1';
         _qService = '${home['quick_service'] ?? 1}' == '1';
@@ -532,6 +545,77 @@ class _AdminUiTabState extends State<AdminUiTab> {
       ],
     );
   }
+
+  Widget _chipRow(List<(String, String)> opts, String cur,
+      ValueChanged<String> onTap) {
+    return Wrap(
+      spacing: 9,
+      runSpacing: 9,
+      children: [
+        for (final o in opts)
+          AppPressable(
+            onTap: () => onTap(o.$1),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+              decoration: BoxDecoration(
+                color: cur == o.$1
+                    ? C.brand.withAlpha(26)
+                    : context.isDark
+                        ? Colors.white.withAlpha(8)
+                        : Colors.black.withAlpha(4),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                    color: cur == o.$1
+                        ? C.brand.withAlpha(150)
+                        : Colors.transparent,
+                    width: 1.3),
+              ),
+              child: Text(o.$2,
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: cur == o.$1 ? C.brand : context.t2)),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _tipsTemplatePicker() => _chipRow(const [
+        ('card', '卡片'),
+        ('compact', '紧凑'),
+      ], _tipsTemplate, (v) => setState(() => _tipsTemplate = v));
+
+  Widget _mineTemplatePicker() => _chipRow(const [
+        ('classic', '经典'),
+        ('clean', '极简'),
+        ('gradient', '渐变描边'),
+      ], _mineTemplate, (v) => setState(() => _mineTemplate = v));
+
+  Widget _splashTemplatePicker() => _chipRow(const [
+        ('fullscreen', '全屏图'),
+        ('banner', '卡片图'),
+        ('fade', '品牌渐变'),
+      ], _splashTemplate, (v) => setState(() => _splashTemplate = v));
+
+  Widget _aboutTemplatePicker() => _chipRow(const [
+        ('card', '经典'),
+        ('hero', '渐变横幅'),
+        ('minimal', '极简'),
+      ], _aboutTemplate, (v) => setState(() => _aboutTemplate = v));
+
+  Widget _authTemplatePicker() => _chipRow(const [
+        ('classic', '经典'),
+        ('gradient', '渐变横幅'),
+        ('minimal', '极简'),
+      ], _authTemplate, (v) => setState(() => _authTemplate = v));
+
+  Widget _noticeTemplatePicker() => _chipRow(const [
+        ('card', '经典弹窗'),
+        ('banner', '渐变横幅'),
+        ('minimal', '极简'),
+      ], _noticeTemplate, (v) => setState(() => _noticeTemplate = v));
 
   Widget _templatePicker() {
     const opts = [

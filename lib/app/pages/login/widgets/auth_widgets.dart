@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../api/soft_service.dart';
+import '../../../models/ui_config.dart';
 import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
@@ -28,6 +30,92 @@ class AuthScaffold extends StatelessWidget {
   });
 
   @override
+  /// v52m #8：auth_template classic / gradient / minimal
+  List<Widget> _header(
+      BuildContext context, String title, String subtitle, IconData icon) {
+    final tpl =
+        SoftService.instance.cachedConfig?.uiConfig.authTemplate ?? 'classic';
+    if (tpl == 'gradient') {
+      return [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 20),
+          decoration: BoxDecoration(
+            gradient: C.brandGradient,
+            borderRadius: BorderRadius.circular(R.xl),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(46),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 4),
+                    Text(subtitle,
+                        style: TextStyle(
+                            color: Colors.white.withAlpha(210),
+                            fontSize: 12.5)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 26),
+      ];
+    }
+    if (tpl == 'minimal') {
+      return [
+        Text(title,
+            style: Ty.display.copyWith(color: context.t1)),
+        const SizedBox(height: 7),
+        Text(subtitle, style: Ty.small.copyWith(color: context.t3)),
+        const SizedBox(height: 26),
+      ];
+    }
+    return [
+      Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          gradient: Deco.brandGradient,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: C.brand.withAlpha(80),
+              blurRadius: 22,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 32),
+      ),
+      const SizedBox(height: 18),
+      ShaderMask(
+        shaderCallback: (r) => Deco.aurora().createShader(r),
+        child: Text(title, style: Ty.display.copyWith(color: Colors.white)),
+      ),
+      const SizedBox(height: 7),
+      Text(subtitle, style: Ty.small.copyWith(color: context.t3)),
+      const SizedBox(height: 26),
+    ];
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -78,35 +166,8 @@ class AuthScaffold extends StatelessWidget {
                       padding: EdgeInsets.fromLTRB(
                           context.pagePadding, 12, context.pagePadding, 30),
                       children: [
-                        // 图标 + 标题
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            gradient: Deco.brandGradient,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: C.brand.withAlpha(80),
-                                blurRadius: 22,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child:
-                              Icon(icon, color: Colors.white, size: 32),
-                        ),
-                        const SizedBox(height: 18),
-                        ShaderMask(
-                          shaderCallback: (r) =>
-                              Deco.aurora().createShader(r),
-                          child: Text(title,
-                              style:
-                                  Ty.display.copyWith(color: Colors.white)),
-                        ),
-                        const SizedBox(height: 7),
-                        Text(subtitle,
-                            style: Ty.small.copyWith(color: context.t3)),
+                        // v52m #8：认证页三模板
+                        ..._header(context, title, subtitle, icon),
                         const SizedBox(height: 26),
                         ...children,
                       ],

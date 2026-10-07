@@ -72,15 +72,8 @@ class _AboutPageState extends State<AboutPage> {
                     children: [
                       _topBar(),
                       const SizedBox(height: 20),
-                      _hero(cfg),
-                      const SizedBox(height: 22),
-                      if ((cfg?.aboutDesc ?? '').isNotEmpty) ...[
-                        _descCard(cfg!.aboutDesc),
-                        const SizedBox(height: 14),
-                      ],
-                      _infoList(cfg),
-                      const SizedBox(height: 16),
-                      _extraEntries(cfg),
+                      // v52m #7：关于页三模板
+                      ..._aboutBody(cfg),
                       const SizedBox(height: 22),
                       _footer(cfg),
                     ],
@@ -124,6 +117,69 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   // ── 头部：Logo + 名称 + 版本 ──
+  /// v52m #7：关于页三模板 card / hero / minimal
+  List<Widget> _aboutBody(AppConfig? cfg) {
+    final tpl =
+        SoftService.instance.cachedConfig?.uiConfig.aboutTemplate ?? 'card';
+    if (tpl == 'hero') {
+      return [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+          decoration: BoxDecoration(
+            gradient: C.brandGradient,
+            borderRadius: BorderRadius.circular(R.xl),
+          ),
+          child: Column(
+            children: [
+              Text(cfg?.aboutName ?? '安逸软件库',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900)),
+              if ((cfg?.aboutSlogan ?? '').isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(cfg!.aboutSlogan,
+                    style: TextStyle(
+                        color: Colors.white.withAlpha(210), fontSize: 13)),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _hero(cfg),
+        const SizedBox(height: 22),
+        if ((cfg?.aboutDesc ?? '').isNotEmpty) ...[
+          _descCard(cfg!.aboutDesc),
+          const SizedBox(height: 14),
+        ],
+        _infoList(cfg),
+        const SizedBox(height: 16),
+        _extraEntries(cfg),
+      ];
+    }
+    if (tpl == 'minimal') {
+      return [
+        _hero(cfg),
+        const SizedBox(height: 16),
+        _infoList(cfg),
+        const SizedBox(height: 16),
+        _extraEntries(cfg),
+      ];
+    }
+    return [
+      _hero(cfg),
+      const SizedBox(height: 22),
+      if ((cfg?.aboutDesc ?? '').isNotEmpty) ...[
+        _descCard(cfg!.aboutDesc),
+        const SizedBox(height: 14),
+      ],
+      _infoList(cfg),
+      const SizedBox(height: 16),
+      _extraEntries(cfg),
+    ];
+  }
+
   Widget _hero(AppConfig? cfg) {
     final name = cfg?.aboutName ?? '安逸软件库';
     final logo = cfg?.aboutLogo ?? '';

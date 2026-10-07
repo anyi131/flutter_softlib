@@ -51,16 +51,18 @@ class _HomeComponentState extends State<HomeComponent> {
 
   /// v52i #4：首页两套模板（后台「界面」Tab home.template 可切）
   Widget _homeBody() {
-    final tpl = logic.configData?.uiConfig.homeTemplate ?? 'classic';
+    final uiCfg =
+        SoftService.instance.cachedConfig?.uiConfig ?? const UiConfig();
+    final tpl = uiCfg.homeTemplate;
     if (tpl == 'clean') {
       // 极简模板：问候 + 公告 + 推荐直出
       return CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(child: _header()),
-          SliverToBoxAdapter(child: _notice()),
-          _referralTitle(),
-          _referralGrid(),
+          if (uiCfg.featureNotice) SliverToBoxAdapter(child: _notice()),
+          if (uiCfg.featureReferral) _referralTitle(),
+          if (uiCfg.featureReferral) _referralGrid(),
           SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
         ],
       );
@@ -73,9 +75,9 @@ class _HomeComponentState extends State<HomeComponent> {
         SliverToBoxAdapter(child: _search()),
         SliverToBoxAdapter(child: _quickGrid()),
         SliverToBoxAdapter(child: _banner()),
-        SliverToBoxAdapter(child: _notice()),
-        _referralTitle(),
-        _referralGrid(),
+        if (uiCfg.featureNotice) SliverToBoxAdapter(child: _notice()),
+        if (uiCfg.featureReferral) _referralTitle(),
+        if (uiCfg.featureReferral) _referralGrid(),
         SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
       ],
     );

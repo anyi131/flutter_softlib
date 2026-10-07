@@ -7,6 +7,8 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:get/get.dart';
 
 import '../../../generated/assets.dart';
+import '../../../api/soft_service.dart';
+import '../../design/ui.dart';
 import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
 import '../../models/app_config.dart';
@@ -98,14 +100,256 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   /// 公告弹窗
+  /// v52m #6：开屏三模板 fullscreen / banner / fade
+  Widget _splashBody(AppConfig? cfg, String netImg) {
+    final tpl =
+        SoftService.instance.cachedConfig?.uiConfig.splashTemplate ??
+            'fullscreen';
+    final title = cfg?.splashTitle ?? '';
+    final desc = cfg?.splashDesc ?? '';
+
+    if (tpl == 'fade') {
+      // 品牌渐变 + 淡入标题（不用大图）
+      return Container(
+        decoration: const BoxDecoration(gradient: C.brandGradient),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.rocket_launch_rounded,
+                color: Colors.white, size: 64),
+            const SizedBox(height: 18),
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900)),
+            if (desc.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(desc,
+                  style: TextStyle(
+                      color: Colors.white.withAlpha(200), fontSize: 14)),
+            ],
+          ],
+        ),
+      );
+    }
+
+    if (tpl == 'banner') {
+      // 浅底 + 上图（圆角卡）+ 下标题
+      return SafeArea(
+        child: Column(
+          children: [
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 36),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: _localSplash.isNotEmpty
+                      ? Image.file(File(_localSplash), fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              _remoteOrDefault(netImg))
+                      : _remoteOrDefault(netImg),
+                ),
+              ),
+            ),
+            const Spacer(),
+            if (title.isNotEmpty)
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF181818))),
+            if (desc.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(desc,
+                  style: TextStyle(fontSize: 13.5, color: Colors.grey[600])),
+            ],
+            const SizedBox(height: 46),
+          ],
+        ),
+      );
+    }
+
+    // fullscreen（原版）：全屏图 + 底部标题
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (_localSplash.isNotEmpty)
+          Image.file(
+            File(_localSplash),
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _remoteOrDefault(netImg),
+          )
+        else
+          _remoteOrDefault(netImg),
+        if (title.isNotEmpty)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 120,
+            child: Column(
+              children: [
+                Text(title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF181818))),
+                if (desc.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(desc,
+                      textAlign: TextAlign.center,
+                      style:
+                          TextStyle(fontSize: 14, color: Colors.grey[600])),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   void _showNotice(AppConfig cfg) {
+    final tpl =
+        SoftService.instance.cachedConfig?.uiConfig.noticeTemplate ?? 'card';
+    final actions = [
+      if (cfg.noticeUrl.isNotEmpty)
+        TextButton(
+          onPressed: () {
+            JumpUtil.openUrl(cfg.noticeUrl);
+            if (!cfg.noticeForce) Navigator.of(Get.context!).pop();
+          },
+          child: const Text('查看详情'),
+        ),
+      if (!cfg.noticeForce)
+        FilledButton(
+          onPressed: () => Navigator.of(Get.context!).pop(),
+          child: const Text('我知道了'),
+        ),
+    ];
+    final body = SingleChildScrollView(
+      child: HtmlWidget(
+        cfg.noticeContent,
+        textStyle: const TextStyle(fontSize: 14.5, height: 1.6),
+      ),
+    );
+
+    // v52m #9：公告三模板 card / banner / minimal
+    if (tpl == 'banner') {
+      showDialog(
+        context: Get.context!,
+        barrierDismissible: !cfg.noticeForce,
+        builder: (ctx) => PopScope(
+          canPop: !cfg.noticeForce,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                color: context.isDark ? C.bg2 : Colors.white,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(gradient: C.brandGradient),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.campaign_rounded,
+                            color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(cfg.noticeTitle,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15.5)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(18),
+                      child: body,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: actions,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (tpl == 'minimal') {
+      showDialog(
+        context: Get.context!,
+        barrierDismissible: !cfg.noticeForce,
+        builder: (ctx) => PopScope(
+          canPop: !cfg.noticeForce,
+          child: Dialog(
+            backgroundColor: context.isDark ? C.bg2 : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                            gradient: C.brandGradient,
+                            borderRadius: BorderRadius.circular(2)),
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(cfg.noticeTitle,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w900, fontSize: 16)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Flexible(child: body),
+                  const SizedBox(height: 14),
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: actions),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // card（原版）
     showDialog(
       context: Get.context!,
       barrierDismissible: !cfg.noticeForce,
       builder: (ctx) => PopScope(
         canPop: !cfg.noticeForce,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
               const Icon(Icons.campaign, color: Color(0xFF465CFF)),
@@ -116,27 +360,8 @@ class _SplashPageState extends State<SplashPage> {
               ),
             ],
           ),
-          content: SingleChildScrollView(
-            child: HtmlWidget(
-              cfg.noticeContent,
-              textStyle: const TextStyle(fontSize: 14.5, height: 1.6),
-            ),
-          ),
-          actions: [
-            if (cfg.noticeUrl.isNotEmpty)
-              TextButton(
-                onPressed: () {
-                  JumpUtil.openUrl(cfg.noticeUrl);
-                  if (!cfg.noticeForce) Navigator.of(ctx).pop();
-                },
-                child: const Text('查看详情'),
-              ),
-            if (!cfg.noticeForce)
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('我知道了'),
-              ),
-          ],
+          content: body,
+          actions: actions,
         ),
       ),
     );
@@ -198,109 +423,7 @@ class _SplashPageState extends State<SplashPage> {
         : (cfg?.splashImage ?? '');
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 开屏图：本地优先，其次远程
-          if (_localSplash.isNotEmpty)
-            Image.file(
-              File(_localSplash),
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _remoteOrDefault(netImg),
-            )
-          else
-            _remoteOrDefault(netImg),
-
-          // 标题/副标题
-          if ((cfg?.splashTitle ?? '').isNotEmpty)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 120,
-              child: Column(
-                children: [
-                  Text(
-                    cfg?.splashTitle ?? '',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF181818),
-                    ),
-                  ),
-                  if ((cfg?.splashDesc ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      cfg?.splashDesc ?? '',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-          // 右上角跳过 / 倒计时
-          Positioned(
-            top: 52,
-            right: 18,
-            child: GestureDetector(
-              onTap: _enter,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(70),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _left > 0 ? '跳过 $_left' : '跳过',
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                ),
-              ),
-            ),
-          ),
-
-          // 底部品牌
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 34,
-            child: Column(
-              children: [
-                Text('安逸软件库',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.black.withAlpha(110),
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text('优质软件 · 持续更新',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.black.withAlpha(80))),
-              ],
-            ),
-          ),
-
-          // 点击开屏图跳转
-          if ((cfg?.splashUrl ?? '').isNotEmpty)
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () => JumpUtil.openUrl(cfg?.splashUrl ?? ''),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// 远程开屏图（无则用内置默认）
-  Widget _remoteOrDefault(String url) {
-    if (url.isEmpty) return _defaultSplash();
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      placeholder: (_, __) => const SizedBox.shrink(),
-      errorWidget: (_, __, ___) => _defaultSplash(),
+      body: _splashBody(cfg, netImg),
     );
   }
 

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/assets.dart';
+import '../../api/soft_service.dart';
+import '../../models/ui_config.dart';
 import '../../../api/user_service.dart';
 import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
@@ -21,6 +23,10 @@ import 'mine_logic.dart';
 ///  ⑤ 退出/登录按钮
 class MineComponent extends StatelessWidget {
   const MineComponent({super.key});
+
+  /// v52m #11：后台「功能开关」读取（无配置时全开）
+  static UiConfig get _uiCfg =>
+      SoftService.instance.cachedConfig?.uiConfig ?? const UiConfig();
 
   @override
   Widget build(BuildContext context) {
@@ -45,21 +51,7 @@ class MineComponent extends StatelessWidget {
                       context.pagePadding,
                       context.tabSpace + 40,
                     ),
-                    children: [
-                      _title(context),
-                      const SizedBox(height: 16),
-                      _profileCard(context, logic),
-                      const SizedBox(height: 14),
-                      _statsRow(context, logic),
-                      const SizedBox(height: 14),
-                      _vipBanner(context, logic),
-                      const SizedBox(height: 20),
-                      _sectionTitle(context, '我的服务'),
-                      const SizedBox(height: 10),
-                      _serviceGrid(context, logic),
-                      const SizedBox(height: 18),
-                      _actionButton(context, logic),
-                    ],
+                    children: _mineBody(context, logic),
                   ),
                 );
               },
@@ -102,15 +94,40 @@ class MineComponent extends StatelessWidget {
   }
 
   // ───────── ① 头像卡 ─────────
-  Widget _profileCard(BuildContext context, MineLogic logic) {
-    final logged = logic.isLoggedIn;
-    return Deco.glass(
-      context,
-      radius: R.xl,
-      alpha: 0.07,
-      padding: const EdgeInsets.all(18),
-      glow: C.brand,
-      child: Row(
+  /// v52m #5：我的页面模板 classic / clean / gradient
+  List<Widget> _mineBody(BuildContext context, MineLogic logic) {
+    final tpl =
+        SoftService.instance.cachedConfig?.uiConfig.mineTemplate ?? 'classic';
+    if (tpl == 'clean') {
+      return [
+        _title(context),
+        const SizedBox(height: 16),
+        _profileCard(context, logic),
+        const SizedBox(height: 20),
+        _sectionTitle(context, '我的服务'),
+        const SizedBox(height: 10),
+        _serviceGrid(context, logic),
+      ];
+    }
+    return [
+      _title(context),
+      const SizedBox(height: 16),
+      _profileCard(context, logic),
+      const SizedBox(height: 14),
+      _statsRow(context, logic),
+      const SizedBox(height: 14),
+      _vipBanner(context, logic),
+      const SizedBox(height: 20),
+      _sectionTitle(context, '我的服务'),
+      const SizedBox(height: 10),
+      _serviceGrid(context, logic),
+      const SizedBox(height: 18),
+      _actionButton(context, logic),
+    ];
+  }
+
+  Widget _profileCardInner(BuildContext context, MineLogic logic, bool logged) {
+    return Row(
         children: [
           // 头像 + 光晕环
           GestureDetector(
@@ -218,7 +235,39 @@ class MineComponent extends StatelessWidget {
           ),
           Icon(Icons.chevron_right_rounded, color: context.t3, size: 22),
         ],
-      ),
+      );
+  }
+
+  Widget _profileCard(BuildContext context, MineLogic logic) {
+    final logged = logic.isLoggedIn;
+    final grad =
+        (SoftService.instance.cachedConfig?.uiConfig.mineTemplate ?? '') ==
+            'gradient';
+    if (grad) {
+      // v52m #5：gradient 模板 —— 渐变描边
+      return Container(
+        padding: const EdgeInsets.all(1.4),
+        decoration: BoxDecoration(
+          gradient: C.brandGradient,
+          borderRadius: BorderRadius.circular(R.xl + 1.4),
+        ),
+        child: Deco.glass(
+          context,
+          radius: R.xl,
+          alpha: 0.07,
+          padding: const EdgeInsets.all(16.6),
+          glow: C.brand,
+          child: _profileCardInner(context, logic, logged),
+        ),
+      );
+    }
+    return Deco.glass(
+      context,
+      radius: R.xl,
+      alpha: 0.07,
+      padding: const EdgeInsets.all(18),
+      glow: C.brand,
+      child: _profileCardInner(context, logic, logged),
     );
   }
 
@@ -261,8 +310,10 @@ class MineComponent extends StatelessWidget {
         C.mint,
       ),
       (
-        '签到',
-        !logic.isLoggedIn ? '-' : (logic.signedToday ? '已签' : '签到'),
+        _uiCfg.featureCheckin
+            ? (!logic.isLoggedIn ? '-' : (logic.signedToday ? '已签' : '签到'))
+            : '-',
+        _uiCfg.featureCheckin ? '' : '未开放',
         Icons.verified_rounded,
         C.amber,
       ),
@@ -291,7 +342,7 @@ class MineComponent extends StatelessWidget {
                     return;
                   }
                   if (items[i].$1 == '签到') {
-                    logic.signIn();
+                    if (_uiCfg.featureCheckin) logic.signIn();
                   } else if (items[i].$1 == '消息') {
                     logic.openMessages();
                   }
@@ -415,12 +466,13 @@ class MineComponent extends StatelessWidget {
         C.mint,
         () => logic.recharge(),
       ),
-      _S(
-        '赞助排行',
-        Icons.emoji_events_rounded,
-        C.amber,
-        () => logic.sponsorRank(),
-      ),
+      if (_uiCfg.featureDonateRank)
+        _S(
+          '赞助排行',
+          Icons.emoji_events_rounded,
+          C.amber,
+          () => logic.sponsorRank(),
+        ),
       _S(
         '使用卡密',
         Icons.confirmation_number_rounded,
@@ -434,12 +486,13 @@ class MineComponent extends StatelessWidget {
         () => Get.toNamed(Routes.appDownload),
       ),
       _S('QQ通知群', Icons.forum_rounded, C.cyan, () => logic.joinGroup()),
-      _S(
-        '积分兑换',
-        Icons.monetization_on_rounded,
-        C.accentOrange,
-        () => logic.pointsExchange(),
-      ),
+      if (_uiCfg.featureExchange)
+        _S(
+          '积分兑换',
+          Icons.monetization_on_rounded,
+          C.accentOrange,
+          () => logic.pointsExchange(),
+        ),
       _S('关于软件', Icons.info_rounded, C.brandBright, () => logic.about(context)),
       _S(
         '用户协议',

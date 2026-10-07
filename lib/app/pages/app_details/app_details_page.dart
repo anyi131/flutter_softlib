@@ -157,6 +157,59 @@ class _AppDetailsPageState extends State<AppDetailsPage>
 
   /// 顶部返回/分享（悬浮玻璃）
   /// v52i #4：海报模板头图（截图 > 图标，都没有退品牌渐变）
+  /// v52m #2：头图高度（compact=46，minimal=0，其它 106）
+  double _headerHeight() {
+    final tpl = AppStyleController.instance.detailStyle.value;
+    if (tpl == AppDetailStyle.minimal) return 0;
+    if (tpl == AppDetailStyle.compact) return 46;
+    return 106;
+  }
+
+  /// v52m #2：头图装饰 —— standard渐变 / poster大图 / dark暗黑 / compact渐变 / minimal无
+  Decoration _headerDecoration(BuildContext context, LzyFileInfoData? info) {
+    final tpl = AppStyleController.instance.detailStyle.value;
+    final radius = BorderRadius.circular(R.xl);
+    if (tpl == AppDetailStyle.minimal) {
+      return BoxDecoration(borderRadius: radius);
+    }
+    if (tpl == AppDetailStyle.dark) {
+      return BoxDecoration(
+        color: C.bg0,
+        border: Border.all(color: C.brand.withAlpha(90)),
+        borderRadius: radius,
+      );
+    }
+    if (tpl == AppDetailStyle.poster) {
+      final has = info != null &&
+          (logic.item?.screenshots.isNotEmpty == true ||
+              (info.fileIcon ?? '').isNotEmpty ||
+              (logic.item?.icon ?? '').isNotEmpty);
+      return BoxDecoration(
+        image: has
+            ? DecorationImage(fit: BoxFit.cover, image: _posterProvider(info)!)
+            : null,
+        gradient: has
+            ? null
+            : LinearGradient(colors: [
+                C.brand.withAlpha(context.isDark ? 150 : 120),
+                C.violet.withAlpha(context.isDark ? 110 : 90),
+              ]),
+        borderRadius: radius,
+      );
+    }
+    return BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          C.brand.withAlpha(context.isDark ? 150 : 120),
+          C.violet.withAlpha(context.isDark ? 110 : 90),
+        ],
+      ),
+      borderRadius: radius,
+    );
+  }
+
   ImageProvider? _posterProvider(LzyFileInfoData? info) {
     final shots = logic.item?.screenshots ?? const [];
     if (shots.isNotEmpty) return CachedNetworkImageProvider(shots.first);
@@ -244,36 +297,11 @@ class _AppDetailsPageState extends State<AppDetailsPage>
         Stack(
           clipBehavior: Clip.none,
           children: [
-            // 渐变头图（v52i #4：poster 模板换封面大图，standard 用渐变）
+            // v52m #2：详情页头图（5 模板装饰见 _headerDecoration）
             Container(
-              height: 106,
+              height: _headerHeight(),
               margin: const EdgeInsets.only(bottom: 42),
-              decoration: BoxDecoration(
-                gradient: AppStyleController.instance.detailStyle.value ==
-                        AppDetailStyle.poster
-                    ? null
-                    : LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          C.brand.withAlpha(context.isDark ? 150 : 120),
-                          C.violet.withAlpha(context.isDark ? 110 : 90),
-                        ],
-                      ),
-                image: AppStyleController.instance.detailStyle.value ==
-                        AppDetailStyle.poster
-                    ? (info != null &&
-                            (logic.item?.screenshots.isNotEmpty == true ||
-                                (info.fileIcon ?? '').isNotEmpty ||
-                                (logic.item?.icon ?? '').isNotEmpty))
-                        ? DecorationImage(
-                            fit: BoxFit.cover,
-                            image: _posterProvider(info)!,
-                          )
-                        : null
-                    : null,
-                borderRadius: BorderRadius.circular(R.xl),
-              ),
+              decoration: _headerDecoration(context, info),
               child: Stack(
                 children: [
                   // 装饰光斑
