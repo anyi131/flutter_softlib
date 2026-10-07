@@ -7,9 +7,8 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:get/get.dart';
 
 import '../../../generated/assets.dart';
-import '../../../api/soft_service.dart';
-import '../../design/ui.dart';
 import '../../api/soft_service.dart';
+import '../../design/ui.dart';
 import '../../api/user_service.dart';
 import '../../models/app_config.dart';
 import '../../routes/app_pages.dart';
@@ -150,8 +149,8 @@ class _SplashPageState extends State<SplashPage> {
                   child: _localSplash.isNotEmpty
                       ? Image.file(File(_localSplash), fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
-                              _remoteOrDefault(netImg))
-                      : _remoteOrDefault(netImg),
+                              _defaultSplash())
+                      : _defaultSplash(),
                 ),
               ),
             ),
@@ -181,10 +180,10 @@ class _SplashPageState extends State<SplashPage> {
           Image.file(
             File(_localSplash),
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _remoteOrDefault(netImg),
+            errorBuilder: (_, __, ___) => _defaultSplash(),
           )
         else
-          _remoteOrDefault(netImg),
+          _defaultSplash(),
         if (title.isNotEmpty)
           Positioned(
             left: 0,

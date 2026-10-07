@@ -49,6 +49,9 @@ extension AppListStyleX on AppListStyle {
 enum AppDetailStyle {
   standard, // 标准（图标 + 信息卡 + Tab）
   poster, // 海报式（大图头图 + 悬浮信息）
+  dark, // 暗黑（v52m）
+  minimal, // 极简（无头图，v52m）
+  compact, // 紧凑（矮条头图，v52m）
 }
 
 extension AppDetailStyleX on AppDetailStyle {
