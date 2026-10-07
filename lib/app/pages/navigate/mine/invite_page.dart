@@ -261,7 +261,7 @@ class _InvitePageState extends State<InvitePage> {
                         const SizedBox(height: 2),
                         Text(
                           _code.isEmpty ? '—' : _code,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 3,
@@ -346,7 +346,7 @@ class _InvitePageState extends State<InvitePage> {
               Expanded(
                 child: Text(
                   _code.isEmpty ? '—' : _code,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 4,
@@ -467,7 +467,7 @@ class _InvitePageState extends State<InvitePage> {
             ),
             child: Text(
               n,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
                 color: C.brand,
