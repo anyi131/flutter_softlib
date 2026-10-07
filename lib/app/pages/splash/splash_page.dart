@@ -110,7 +110,7 @@ class _SplashPageState extends State<SplashPage> {
     if (tpl == 'fade') {
       // 品牌渐变 + 淡入标题（不用大图）
       return Container(
-        decoration: const BoxDecoration(gradient: C.brandGradient),
+        decoration: BoxDecoration(gradient: C.brandGradient),
         alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:marquee/marquee.dart';
 
 import '../../../../generated/assets.dart';
+import '../../../api/soft_service.dart';
+import '../../../models/ui_config.dart';
 import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
