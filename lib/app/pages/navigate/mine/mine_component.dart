@@ -51,7 +51,7 @@ class MineComponent extends StatelessWidget {
                       context.pagePadding,
                       context.tabSpace + 40,
                     ),
-                    children: _mineBody(context, logic),
+                    children: _mineBody(context, logic, SoftService.instance.configVersion.value),
                   ),
                 );
               },
@@ -95,14 +95,8 @@ class MineComponent extends StatelessWidget {
 
   // ───────── ① 头像卡 ─────────
   /// v52m #5：我的页面模板 classic / clean / gradient
-  List<Widget> _mineBody(BuildContext context, MineLogic logic) {
-    // v52q：监听配置版本，后台改模板立即重建
-    return Obx(() => _mineBodyInner(context, logic,
-        SoftService.instance.configVersion.value));
-  }
-
-  List<Widget> _mineBodyInner(
-      BuildContext context, MineLogic logic, int _) {
+  List<Widget> _mineBody(
+      BuildContext context, MineLogic logic, int configVer) {
     final tpl =
         SoftService.instance.cachedConfig?.uiConfig.mineTemplate ?? 'classic';
     if (tpl == 'clean') {

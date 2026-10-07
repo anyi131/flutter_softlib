@@ -2,6 +2,7 @@
 import '../../../api/soft_service.dart';
 import '../../../api/user_service.dart';
 import '../../../design/app_anim.dart';
+import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
 import '../../../utils/toast_util.dart';
@@ -335,7 +336,6 @@ class _InvitePageState extends State<InvitePage> {
     return KitCard(
       radius: R.xl,
       padding: const EdgeInsets.all(18),
-      glow: C.brand,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
