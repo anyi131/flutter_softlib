@@ -58,6 +58,9 @@ extension AppDetailStyleX on AppDetailStyle {
   String get label => switch (this) {
     AppDetailStyle.standard => '标准',
     AppDetailStyle.poster => '海报式',
+    AppDetailStyle.dark => '暗黑',
+    AppDetailStyle.minimal => '极简',
+    AppDetailStyle.compact => '紧凑',
   };
 }
 
