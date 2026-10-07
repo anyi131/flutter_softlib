@@ -365,11 +365,31 @@ class _SquareComponentState extends State<SquareComponent> {
                                   const SizedBox(width: 6),
                                 ],
                                 Text(
-                                  p.ipArea.isEmpty
-                                      ? p.relTime
-                                      : '${p.relTime} · IP属地${p.ipArea.split(' ').first}',
+                                  p.relTime,
                                   style: Ty.tiny.copyWith(color: context.t3),
                                 ),
+                                if (p.ipArea.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 1.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: context.isDark
+                                          ? Colors.white.withAlpha(14)
+                                          : Colors.black.withAlpha(10),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: Text(
+                                      'IP·${ipShort(p.ipArea)}',
+                                      style: Ty.tiny.copyWith(
+                                        fontSize: 9.5,
+                                        color: context.t3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ],
@@ -1035,4 +1055,24 @@ class _SquareComponentState extends State<SquareComponent> {
       ),
     );
   }
+}
+
+/// v52k #1：IP 属地短名 —— "江苏省苏州市 联通" → "江苏"，"北京市" → "北京"
+String ipShort(String raw) {
+  final a = raw.trim();
+  if (a.isEmpty) return '';
+  final first = a.split(' ').first; // 去掉运营商
+  if (first.length >= 3 && first.endsWith('省'))
+    return first.substring(0, first.length - 1);
+  if (first.length >= 3 && first.endsWith('市'))
+    return first.substring(0, first.length - 1);
+  if (first.contains('自治区')) {
+    final i = first.indexOf('自治区');
+    final head = first.substring(0, i);
+    return head.length > 4 ? head.substring(head.length - 2) : head;
+  }
+  if (first.length >= 3 && first.endsWith('特别行政区')) {
+    return first.replaceAll('特别行政区', '');
+  }
+  return first;
 }

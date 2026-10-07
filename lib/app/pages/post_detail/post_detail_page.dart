@@ -548,14 +548,26 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         color: context.t3,
                       ),
                     ),
-                    // v52j #1：IP 属地
+                    // v52k #1：IP 属地（小胶囊）
                     if ((c['ip_area'] ?? '').toString().isNotEmpty) ...[
                       const SizedBox(width: 8),
-                      Text(
-                        'IP属地${(c['ip_area']).toString().split(' ').first}',
-                        style: Ty.tiny.copyWith(
-                          fontSize: 10.5,
-                          color: context.t3,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.isDark
+                              ? Colors.white.withAlpha(14)
+                              : Colors.black.withAlpha(10),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          'IP·${ipShort((c['ip_area']).toString())}',
+                          style: Ty.tiny.copyWith(
+                            fontSize: 9.5,
+                            color: context.t3,
+                          ),
                         ),
                       ),
                     ],
@@ -1057,4 +1069,24 @@ class _PostDetailPageState extends State<PostDetailPage> {
       ),
     );
   }
+}
+
+/// v52k #1：IP 属地短名 —— "江苏省苏州市 联通" → "江苏"，"北京市" → "北京"
+String ipShort(String raw) {
+  final a = raw.trim();
+  if (a.isEmpty) return '';
+  final first = a.split(' ').first; // 去掉运营商
+  if (first.length >= 3 && first.endsWith('省'))
+    return first.substring(0, first.length - 1);
+  if (first.length >= 3 && first.endsWith('市'))
+    return first.substring(0, first.length - 1);
+  if (first.contains('自治区')) {
+    final i = first.indexOf('自治区');
+    final head = first.substring(0, i);
+    return head.length > 4 ? head.substring(head.length - 2) : head;
+  }
+  if (first.length >= 3 && first.endsWith('特别行政区')) {
+    return first.replaceAll('特别行政区', '');
+  }
+  return first;
 }

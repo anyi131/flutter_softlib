@@ -195,6 +195,6 @@ class AppConfig {
     appUiStyle: _s(json['app_ui_style']).isEmpty
         ? 'glass'
         : _s(json['app_ui_style']),
-    uiConfig: UiConfig.fromLegacy(json),
+    uiConfig: _parseUiConfig(json),
   );
 }

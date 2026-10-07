@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../api/admin_service.dart';
+import '../../../api/soft_service.dart';
 import '../../../design/app_anim.dart';
+import '../../../design/app_style_controller.dart';
 import '../../../design/theme_palette.dart';
 import '../../../design/ui.dart';
 import '../../../utils/toast_util.dart';
+import '../../../pages/navigate/navigate_logic.dart';
 
 /// ═══════════════════════════════════════════════════════════════
 /// 界面配置 Tab（v52 #6 / #10）
@@ -144,8 +147,25 @@ class _AdminUiTabState extends State<AdminUiTab> {
     setState(() => _saving = true);
     try {
       await _svc.saveConfig(_payload());
+      // v52k #2：保存后立即热应用（本会话直接生效，无需重启/重进）
+      try {
+        final cfg = await SoftService.instance.fetchConfig(force: true);
+        if (cfg != null) {
+          final ui = cfg.uiConfig;
+          await ThemeController.instance.setMode(switch (ui.themeMode) {
+            'dark' => ThemeMode.dark,
+            'system' => ThemeMode.system,
+            _ => ThemeMode.light,
+          });
+          ThemeController.instance.applyServerPalette(ui.themePalette);
+          AppStyleController.instance.applyServerDefault(ui.listStyle);
+          try {
+            Get.find<NavigateLogic>().applyUiConfig(force: true);
+          } catch (_) {}
+        }
+      } catch (_) {}
       if (mounted) {
-        ToastUtil.success('界面配置已保存，App 下次启动生效');
+        ToastUtil.success('已保存并即时生效');
       }
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
@@ -159,53 +179,62 @@ class _AdminUiTabState extends State<AdminUiTab> {
     if (_loading) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2.4));
     }
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 40),
+    return Stack(
       children: [
-        _card('主题配色', _palettePicker()),
-        _card('明暗模式', _modePicker()),
-        _card('底部导航开关', _tabSwitches()),
-        _card('功能开关', _featureSwitches()),
-        _card('软件列表默认样式', _listStylePicker()),
-        _card('更新弹窗模板', _templatePicker()),
-        _card('首页布局模板', _homeTemplatePicker()),
-        _card('软件详情页模板', _detailStylePicker()),
-        _card('首页快捷入口', _quickSwitches()),
-        const SizedBox(height: 16),
-        AppPressable(
-          onTap: _saving ? null : _save,
-          child: Container(
-            height: 48,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: C.brandGradient,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    '保存界面配置',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-          ),
+        ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 96),
+          children: [
+            _card('主题配色', _palettePicker()),
+            _card('明暗模式', _modePicker()),
+            _card('底部导航开关', _tabSwitches()),
+            _card('功能开关', _featureSwitches()),
+            _card('软件列表默认样式', _listStylePicker()),
+            _card('更新弹窗模板', _templatePicker()),
+            _card('首页布局模板', _homeTemplatePicker()),
+            _card('软件详情页模板', _detailStylePicker()),
+            _card('首页快捷入口', _quickSwitches()),
+          ],
         ),
-        const SizedBox(height: 10),
-        Center(
-          child: Text(
-            '保存后 App 下次启动时自动应用（用户端不可自行修改）',
-            style: TextStyle(fontSize: 11, color: context.t3),
+        // v52k #2：保存按钮固定底部，随时可见
+        Positioned(
+          left: 14,
+          right: 14,
+          bottom: 12,
+          child: AppPressable(
+            onTap: _saving ? null : _save,
+            child: Container(
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: C.brandGradient,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: C.brand.withAlpha(70),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      '保存界面配置（即时生效）',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+            ),
           ),
         ),
       ],
