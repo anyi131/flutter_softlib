@@ -122,13 +122,13 @@ class _SplashPageState extends State<SplashPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.rocket_launch_rounded,
+                Icon(Icons.rocket_launch_rounded,
                     color: C.brand, size: 52),
                 const SizedBox(height: 16),
                 if (title.isNotEmpty)
                   Text(title,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                           color: C.brand)),
