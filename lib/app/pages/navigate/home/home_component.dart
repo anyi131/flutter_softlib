@@ -74,6 +74,52 @@ class _HomeComponentState extends State<HomeComponent> {
         ],
       );
     }
+    if (tpl == 'focus') {
+      // v52t：搜索突出模板
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _search()),
+          SliverToBoxAdapter(child: _header()),
+          SliverToBoxAdapter(child: _quickGrid()),
+          if (uiCfg.featureNotice) SliverToBoxAdapter(child: _notice()),
+          if (uiCfg.featureReferral) _referralTitle(),
+          if (uiCfg.featureReferral) _referralGrid(),
+          SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+        ],
+      );
+    }
+    if (tpl == 'banner_top') {
+      // v52t：大banner置顶模板
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _banner()),
+          SliverToBoxAdapter(child: _header()),
+          SliverToBoxAdapter(child: _search()),
+          SliverToBoxAdapter(child: _quickGrid()),
+          if (uiCfg.featureNotice) SliverToBoxAdapter(child: _notice()),
+          if (uiCfg.featureReferral) _referralTitle(),
+          if (uiCfg.featureReferral) _referralGrid(),
+          SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+        ],
+      );
+    }
+    if (tpl == 'grid_quick') {
+      // v52t：宫格快捷模板（双行宫格置顶）
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _header()),
+          SliverToBoxAdapter(child: _quickGrid()),
+          SliverToBoxAdapter(child: _search()),
+          if (uiCfg.featureNotice) SliverToBoxAdapter(child: _notice()),
+          if (uiCfg.featureReferral) _referralTitle(),
+          if (uiCfg.featureReferral) _referralGrid(),
+          SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+        ],
+      );
+    }
     // classic 标准模板（原版全模块）
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),

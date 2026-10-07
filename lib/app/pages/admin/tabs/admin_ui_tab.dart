@@ -587,36 +587,49 @@ class _AdminUiTabState extends State<AdminUiTab> {
   Widget _tipsTemplatePicker() => _chipRow(const [
         ('card', '卡片'),
         ('compact', '紧凑'),
+        ('timeline', '时间轴'),
+        ('minimal_row', '极简行'),
+        ('rich', '大图卡'),
       ], _tipsTemplate, (v) => setState(() => _tipsTemplate = v));
 
   Widget _mineTemplatePicker() => _chipRow(const [
         ('classic', '经典'),
         ('clean', '极简'),
         ('gradient', '渐变描边'),
+        ('dark_card', '深色卡'),
+        ('split', '分样式'),
       ], _mineTemplate, (v) => setState(() => _mineTemplate = v));
 
   Widget _splashTemplatePicker() => _chipRow(const [
         ('fullscreen', '全屏图'),
         ('banner', '卡片图'),
         ('fade', '品牌渐变'),
+        ('split', '左右分栏'),
+        ('greeting', '时段问候'),
       ], _splashTemplate, (v) => setState(() => _splashTemplate = v));
 
   Widget _aboutTemplatePicker() => _chipRow(const [
         ('card', '经典'),
         ('hero', '渐变横幅'),
         ('minimal', '极简'),
+        ('dark_card', '深色卡'),
+        ('desk', '桌面风'),
       ], _aboutTemplate, (v) => setState(() => _aboutTemplate = v));
 
   Widget _authTemplatePicker() => _chipRow(const [
         ('classic', '经典'),
         ('gradient', '渐变横幅'),
         ('minimal', '极简'),
+        ('banner_top', '顶部横幅'),
+        ('centered', '居中卡'),
       ], _authTemplate, (v) => setState(() => _authTemplate = v));
 
   Widget _noticeTemplatePicker() => _chipRow(const [
         ('card', '经典弹窗'),
         ('banner', '渐变横幅'),
         ('minimal', '极简'),
+        ('sheet', '底部弹出'),
+        ('fullscreen', '全屏页'),
       ], _noticeTemplate, (v) => setState(() => _noticeTemplate = v));
 
   Widget _inviteTemplatePicker() => _chipRow(const [
