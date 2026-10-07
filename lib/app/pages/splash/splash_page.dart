@@ -90,7 +90,13 @@ class _SplashPageState extends State<SplashPage> {
     _entered = true;
     Navigator.of(context).pushReplacementNamed(Routes.index);
     final cfg = _config;
-    if (cfg != null && cfg.noticeEnable && cfg.noticeContent.trim().isNotEmpty) {
+    // v52p #11：后台功能开关 notice=0 → 启动公告也不弹
+    final noticeOn =
+        (SoftService.instance.cachedConfig?.uiConfig.featureNotice ?? true);
+    if (cfg != null &&
+        noticeOn &&
+        cfg.noticeEnable &&
+        cfg.noticeContent.trim().isNotEmpty) {
       // 等主界面挂载后再弹公告
       Future.delayed(const Duration(milliseconds: 600), () {
         _showNotice(cfg);

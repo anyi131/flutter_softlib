@@ -53,6 +53,11 @@ class _HomeComponentState extends State<HomeComponent> {
 
   /// v52i #4：首页两套模板（后台「界面」Tab home.template 可切）
   Widget _homeBody() {
+    // v52q：监听 configVersion —— 后台保存后本页立即重建
+    return Obx(() => _homeBodyInner(SoftService.instance.configVersion.value));
+  }
+
+  Widget _homeBodyInner(int _) {
     final uiCfg =
         SoftService.instance.cachedConfig?.uiConfig ?? const UiConfig();
     final tpl = uiCfg.homeTemplate;

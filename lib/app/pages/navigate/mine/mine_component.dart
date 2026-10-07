@@ -96,6 +96,13 @@ class MineComponent extends StatelessWidget {
   // ───────── ① 头像卡 ─────────
   /// v52m #5：我的页面模板 classic / clean / gradient
   List<Widget> _mineBody(BuildContext context, MineLogic logic) {
+    // v52q：监听配置版本，后台改模板立即重建
+    return Obx(() => _mineBodyInner(context, logic,
+        SoftService.instance.configVersion.value));
+  }
+
+  List<Widget> _mineBodyInner(
+      BuildContext context, MineLogic logic, int _) {
     final tpl =
         SoftService.instance.cachedConfig?.uiConfig.mineTemplate ?? 'classic';
     if (tpl == 'clean') {
@@ -459,7 +466,18 @@ class MineComponent extends StatelessWidget {
       SectionHeader(title: t);
 
   Widget _serviceGrid(BuildContext context, MineLogic logic) {
+    return Obx(() => _serviceGridInner(context, logic, SoftService.instance.configVersion.value));
+  }
+
+  Widget _serviceGridInner(BuildContext context, MineLogic logic, int _) {
     final items = <_S>[
+      if (_uiCfg.featureInvite)
+        _S(
+          '邀请好友',
+          Icons.card_giftcard_rounded,
+          C.rose,
+          () => Get.toNamed(Routes.invite),
+        ),
       _S(
         '充值余额',
         Icons.account_balance_wallet_rounded,

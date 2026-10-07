@@ -55,6 +55,7 @@ class _AdminUiTabState extends State<AdminUiTab> {
   String _aboutTemplate = 'card';
   String _authTemplate = 'classic';
   String _noticeTemplate = 'card';
+  String _inviteTemplate = 'classic';
   // 首页快捷入口（v52g #7）
   bool _qSign = true, _qVip = true, _qService = true, _qUpdate = true;
 
@@ -117,6 +118,7 @@ class _AdminUiTabState extends State<AdminUiTab> {
         _aboutTemplate = '${ui['about_template'] ?? 'card'}';
         _authTemplate = '${ui['auth_template'] ?? 'classic'}';
         _noticeTemplate = '${ui['notice_template'] ?? 'card'}';
+        _inviteTemplate = '${ui['invite_template'] ?? 'classic'}';
         _qSign = '${home['quick_sign'] ?? 1}' == '1';
         _qVip = '${home['quick_vip'] ?? 1}' == '1';
         _qService = '${home['quick_service'] ?? 1}' == '1';
@@ -616,6 +618,12 @@ class _AdminUiTabState extends State<AdminUiTab> {
         ('banner', '渐变横幅'),
         ('minimal', '极简'),
       ], _noticeTemplate, (v) => setState(() => _noticeTemplate = v));
+
+  Widget _inviteTemplatePicker() => _chipRow(const [
+        ('classic', '经典卡片'),
+        ('hero', '渐变横幅'),
+        ('minimal', '极简'),
+      ], _inviteTemplate, (v) => setState(() => _inviteTemplate = v));
 
   Widget _templatePicker() {
     const opts = [
