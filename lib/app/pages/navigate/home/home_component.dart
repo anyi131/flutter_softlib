@@ -105,6 +105,52 @@ class _HomeComponentState extends State<HomeComponent> {
         ],
       );
     }
+    if (tpl == 'cards') {
+      // v52w：双列大卡模板（banner+宫格推荐）
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _header()),
+          SliverToBoxAdapter(child: _banner()),
+          SliverToBoxAdapter(child: _quickGrid()),
+          SliverToBoxAdapter(child: _search()),
+          if (uiCfg.featureNotice) SliverToBoxAdapter(child: _notice()),
+          if (uiCfg.featureReferral) _referralTitle(),
+          if (uiCfg.featureReferral) referralGrid,
+          SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+        ],
+      );
+    }
+    if (tpl == 'feed') {
+      // v52w：信息流模板（公告置顶+搜索+推荐，去横幅）
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _header()),
+          SliverToBoxAdapter(child: _search()),
+          if (uiCfg.featureNotice) notice,
+          if (uiCfg.featureReferral) referralTitle,
+          if (uiCfg.featureReferral) referralGrid,
+          SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+        ],
+      );
+    }
+    if (tpl == 'compact_top') {
+      // v52w：紧凑顶部模板（全部压缩置顶：问候+搜索+快捷单行）
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _header()),
+          SliverToBoxAdapter(child: _search()),
+          SliverToBoxAdapter(child: _quickGrid()),
+          SliverToBoxAdapter(child: _banner()),
+          if (uiCfg.featureNotice) notice,
+          if (uiCfg.featureReferral) referralTitle,
+          if (uiCfg.featureReferral) referralGrid,
+          SliverToBoxAdapter(child: SizedBox(height: context.tabSpace + 40)),
+        ],
+      );
+    }
     if (tpl == 'grid_quick') {
       // v52t：宫格快捷模板（双行宫格置顶）
       return CustomScrollView(
