@@ -61,6 +61,9 @@ class _HomeComponentState extends State<HomeComponent> {
     final uiCfg =
         SoftService.instance.cachedConfig?.uiConfig ?? const UiConfig();
     final tpl = uiCfg.homeTemplate;
+    final notice = SliverToBoxAdapter(child: _notice());
+    final referralTitle = _referralTitle();
+    final referralGrid = _referralGrid();
     if (tpl == 'clean') {
       // 极简模板：问候 + 公告 + 推荐直出
       return CustomScrollView(
