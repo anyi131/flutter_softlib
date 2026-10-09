@@ -60,7 +60,7 @@ class _InvitePageState extends State<InvitePage> {
   int get _each => int.tryParse('${_stats?['score_each'] ?? 50}') ?? 50;
 
   String get _shareText =>
-      '【安逸软件库】发现一个宝藏软件库，资源全、更新快！'
+      '【安逸软件汇】发现一个宝藏软件库，资源全、更新快！'
       '注册时填我的邀请码 $_code，你我都能得 $_each 积分~';
 
   Future<void> _copy() async {
@@ -70,7 +70,7 @@ class _InvitePageState extends State<InvitePage> {
   }
 
   Future<void> _share() async {
-    await Share.share(_shareText, subject: '安逸软件库邀请');
+    await Share.share(_shareText, subject: '安逸软件汇邀请');
   }
 
   @override
