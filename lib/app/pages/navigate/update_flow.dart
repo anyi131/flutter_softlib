@@ -504,6 +504,13 @@ class _UpdateCardState extends State<_UpdateCard> {
         decoration: BoxDecoration(
           color: isDark ? C.bg2 : Colors.white,
           borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: C.brand.withAlpha(isDark ? 40 : 55),
+              blurRadius: 26,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -538,6 +545,22 @@ class _UpdateCardState extends State<_UpdateCard> {
                                 color: isDark ? C.t3 : C.lt3)),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 版本 NEW 渐变徽章
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      gradient: C.brandGradient,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text('NEW',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1)),
                   ),
                 ],
               ),
