@@ -59,9 +59,19 @@ class _InvitePageState extends State<InvitePage> {
   int get _score => int.tryParse('${_stats?['score'] ?? 0}') ?? 0;
   int get _each => int.tryParse('${_stats?['score_each'] ?? 50}') ?? 50;
 
-  String get _shareText =>
-      '【安逸软件汇】发现一个宝藏软件库，资源全、更新快！'
-      '注册时填我的邀请码 $_code，你我都能得 $_each 积分~';
+  /// ★ 邀请分享文案：优先用后台自定义；支持 {code} / {score} 占位符
+  String get _shareText {
+    final tpl = (SoftService.instance.cachedConfig?.uiConfig.inviteShareText ?? '')
+        .trim();
+    if (tpl.isEmpty) {
+      return '【安逸软件汇】发现一个宝藏软件库，资源全、更新快！'
+          '注册时填我的邀请码 $_code，你我都能得 $_each 积分~';
+    }
+    return tpl
+        .replaceAll('{code}', _code)
+        .replaceAll('{score}', '$_each')
+        .replaceAll('{each}', '$_each');
+  }
 
   Future<void> _copy() async {
     if (_code.isEmpty) return;
