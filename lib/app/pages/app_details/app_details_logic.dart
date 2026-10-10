@@ -16,6 +16,8 @@ import 'package:photo_view/photo_view.dart';
 import '../../config.dart';
 import '../../database/database.dart' as db;
 import '../../database/tables/download_task_table.dart';
+import '../../design/app_style.dart';
+import '../../design/app_style_controller.dart';
 import '../../design/ui.dart';
 import '../../models/app_item.dart';
 import '../../models/http/results/lzy_file_info_model.dart';
@@ -68,6 +70,17 @@ class AppDetailsLogic extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // ★ 修复：后台切换「软件详情页模板」不生效 ——
+    //   服务端下发的 ui_config.home.detail_style 之前没有任何地方应用到
+    //   AppStyleController.detailStyle，详情页永远落在默认分支。
+    //   进入详情页时以服务端配置强制同步（后台选哪个，详情页就变哪个）。
+    final serverDetail =
+        SoftService.instance.cachedConfig?.uiConfig.detailStyle;
+    if (serverDetail != null && serverDetail.isNotEmpty) {
+      AppStyleController.instance.detailStyle.value = parseDetailStyle(
+        serverDetail,
+      );
+    }
     downloadTaskDao = DownloadTaskDao(appDatabase);
     _parseArguments();
     // 浏览量 +1（真实数据采集）
