@@ -99,6 +99,37 @@ class MineComponent extends StatelessWidget {
       BuildContext context, MineLogic logic, int configVer) {
     final tpl =
         SoftService.instance.cachedConfig?.uiConfig.mineTemplate ?? 'classic';
+    if (tpl == 'gradient') {
+      // 渐变描边：品牌渐变描边头像卡 + 通栏服务分组
+      return [
+        _title(context),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(2.5),
+          decoration: BoxDecoration(
+            gradient: Deco.brandGradient,
+            borderRadius: BorderRadius.circular(R.xl),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: context.isDark ? C.bg1 : Colors.white,
+              borderRadius: BorderRadius.circular(R.xl - 2.5),
+            ),
+            child: _profileCardInner(context, logic, logic.isLoggedIn),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _statsRow(context, logic),
+        const SizedBox(height: 20),
+        _sectionTitle(context, '我的服务'),
+        const SizedBox(height: 10),
+        _serviceGrid(context, logic),
+        const SizedBox(height: 18),
+        _actionButton(context, logic),
+      ];
+    }
     if (tpl == 'clean') {
       return [
         _title(context),
