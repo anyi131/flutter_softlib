@@ -97,21 +97,42 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     return s;
   }
 
-  /// 判断一条采集结果是否成功
-  bool _isOk(Map<String, dynamic> r) => r['ok'] == true;
+  /// 判断一条采集结果是否成功（兼容 bool / 1 / "1" / "true"）
+  bool _isOk(Map<String, dynamic> r) {
+    final o = r['ok'];
+    return o == true || o == 1 || o == '1' || '${o}'.toLowerCase() == 'true';
+  }
 
-  /// 清洗站点实时日志：丢空行/base64 乱码行、超长截断、最多保留 50 行
+  /// 失败原因：上游 msg/reason/error 都没给就给个可操作的话术
+  String _failMsg(Map<String, dynamic> r) {
+    for (final k in ['msg', 'reason', 'error', 'err']) {
+      final v = '${r[k] ?? ''}'.trim();
+      if (v.isNotEmpty && v != 'null') return v;
+    }
+    return '上传失败，可重试';
+  }
+
+  /// 当前所有失败的结果项
+  List<Map<String, dynamic>> get _failedResults =>
+      _results.where((r) => !_isOk(r)).toList();
+
+  /// 清洗站点实时日志：
+  /// ① base64 / 不可读乱码行整行丢弃（[A-Za-z0-9+/=]{80,} 长串，或可读占比 <60%）
+  /// ② 超长行截断到 300 字符加省略号
+  /// ③ 最多保留最近 50 行
+  static final RegExp _b64Re = RegExp(r'[A-Za-z0-9+/=]{80,}');
   List<String> _cleanLogs(List<String> raw) {
     final out = <String>[];
     for (final line in raw) {
       final s = line.trim();
       if (s.isEmpty) continue;
-      // base64 长串 / 不可读乱码行直接丢掉
-      if (s.length > 120 && !s.contains(' ') && _readableRatio(s) < 0.6) {
-        continue;
-      }
-      out.add(s.length > 200 ? '${s.substring(0, 200)}…' : s);
+      // base64 长串直接丢（不占可读占比判定，先卡掉）
+      if (_b64Re.hasMatch(s)) continue;
+      // 不可读乱码行（中文 + ASCII 可打印占比过低）丢弃
+      if (_readableRatio(s) < 0.6) continue;
+      out.add(s.length > 300 ? '${s.substring(0, 300)}…' : s);
     }
+    // 只保留最近 50 行
     return out.length > 50 ? out.sublist(out.length - 50) : out;
   }
 
@@ -649,6 +670,89 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     );
   }
 
+  /// 按软件名反查上一轮提交时的采集参数（重试用）
+  Map<String, dynamic>? _appForName(String name) {
+    for (final a in _lastApps) {
+      if ('${a['appname'] ?? ''}' == name) return a;
+    }
+    return null;
+  }
+
+  /// 重试单条失败项：复用采集提交链路，只提交这一条
+  Future<void> _retryOne(Map<String, dynamic> r) async {
+    if (_running) return;
+    final name = '${r['name']}';
+    final app = _appForName(name);
+    if (app == null) {
+      ToastUtil.error('找不到该软件的采集参数，请回列表重新勾选采集');
+      return;
+    }
+    // 保留上一轮所有结果，除了正在重试的这一条（避免被新一轮覆盖）
+    final keep = _results.where((x) => '${x['name']}' != name).toList();
+    await _submitCollect([app], keep: keep);
+  }
+
+  /// 批量重试全部失败项
+  Future<void> _retryFailed() async {
+    if (_running) return;
+    final failed = _failedResults;
+    if (failed.isEmpty) return;
+    final apps = <Map<String, dynamic>>[];
+    final failedNames = <String>{};
+    for (final r in failed) {
+      final app = _appForName('${r['name']}');
+      if (app != null) {
+        apps.add(app);
+        failedNames.add('${r['name']}');
+      }
+    }
+    if (apps.isEmpty) {
+      ToastUtil.error('找不到失败软件的采集参数，请回列表重新勾选采集');
+      return;
+    }
+    // 保留上一轮成功的结果；没找到参数的失败项也保留（提示过用户了）
+    final keep = _results
+        .where((x) => _isOk(x) || !failedNames.contains('${x['name']}'))
+        .toList();
+    await _submitCollect(apps, keep: keep);
+  }
+
+  /// 采集提交（开始采集与失败重试共用）：提交任务 → 清空状态 → 开始轮询
+  /// [keep] 为重试场景要保留的上一轮结果（成功的 + 不重跑的失败项）
+  Future<void> _submitCollect(
+    List<Map<String, dynamic>> apps, {
+    List<Map<String, dynamic>> keep = const [],
+  }) async {
+    try {
+      final taskId = await _svc.collectStart(apps);
+      if (taskId.isEmpty) {
+        ToastUtil.error('任务提交失败');
+        return;
+      }
+      setState(() {
+        _taskId = taskId;
+        _running = true;
+        _cur = 0;
+        _total = apps.length;
+        _ok = 0;
+        _fail = 0;
+        _status = '';
+        _results = List.of(keep);
+        _retryKept = List.of(keep);
+        _logs = [];
+        _lastLogCount = 0;
+        // 记录本次要采集的软件名（完成后到日志页反查链接用）
+        _pendingNames = apps
+            .map((a) => '${a['appname'] ?? ''}')
+            .where((s) => s.isNotEmpty)
+            .toList();
+      });
+      _startPoll();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
   Future<void> _start() async {
     // ★ 需求 #5：跨页勾选只用于「计数展示」，
     //   真正提交采集的始终只有【当前页面】勾选的软件
@@ -696,33 +800,8 @@ class _AdminCollectTabState extends State<AdminCollectTab>
       ),
     );
     if (go != true) return;
-    try {
-      final taskId = await _svc.collectStart(apps);
-      if (taskId.isEmpty) {
-        ToastUtil.error('任务提交失败');
-        return;
-      }
-      setState(() {
-        _taskId = taskId;
-        _running = true;
-        _cur = 0;
-        _total = apps.length;
-        _ok = 0;
-        _fail = 0;
-        _status = '';
-        _results = [];
-        _logs = [];
-        _retryKept = [];
-        // 记录本次要采集的软件名（完成后到日志页反查链接用）
-        _pendingNames = apps
-            .map((a) => '${a['appname'] ?? ''}')
-            .where((s) => s.isNotEmpty)
-            .toList();
-      });
-      _startPoll();
-    } catch (e) {
-      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
-    }
+    _lastApps = apps;
+    await _submitCollect(apps);
   }
 
   void _startPoll() {
@@ -857,8 +936,8 @@ class _AdminCollectTabState extends State<AdminCollectTab>
         _status = 'done';
         if (list.isNotEmpty) {
           _results = list;
-          _ok = list.where((x) => x['ok'] == true).length;
-          _fail = list.where((x) => x['ok'] != true).length;
+          _ok = list.where(_isOk).length;
+          _fail = list.where((x) => !_isOk(x)).length;
           // 进度只增不减，避免把已经跑满的进度条退回去
           _cur = list.length > _cur ? list.length : _cur;
           _total = _cur > _total ? _cur : _total;
@@ -1020,6 +1099,102 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                 icon: Icons.download_done_rounded,
                 height: 42,
                 onPressed: () => _import(doneLinks),
+              ),
+            ],
+            // ★ 失败分组：结束后展示失败软件 + 原因，可单条或批量重试
+            if (!_running && _failedResults.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.error_outline_rounded, size: 14, color: C.danger),
+                  const SizedBox(width: 5),
+                  Text(
+                    '失败（${_failedResults.length}）',
+                    style: Ty.tiny.copyWith(
+                      color: C.danger,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _retryFailed,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: C.danger.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(R.sm),
+                      ),
+                      child: Text(
+                        '重试失败项（${_failedResults.length}）',
+                        style: Ty.tiny.copyWith(
+                          color: C.danger,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ..._failedResults.map(
+                (r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(
+                          Icons.cancel_outline_rounded,
+                          size: 13,
+                          color: C.danger,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${r['name']}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Ty.tiny.copyWith(color: context.t1),
+                            ),
+                            Text(
+                              _failMsg(r),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Ty.tiny.copyWith(
+                                fontSize: 10.5,
+                                color: context.isDark
+                                    ? C.danger.withValues(alpha: 0.85)
+                                    : C.danger,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => _retryOne(r),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            '重试',
+                            style: Ty.tiny.copyWith(
+                              color: C.brand,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
             if (!_running && _logs.isEmpty && doneLinks.isEmpty) ...[
