@@ -59,6 +59,12 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   List<String> _pendingNames = [];
   List<Map<String, dynamic>> _results = [];
   List<String> _logs = [];
+
+  /// 重试时保留的上一轮结果（成功的 + 未重试的失败项），避免被新一轮覆盖
+  List<Map<String, dynamic>> _retryKept = [];
+
+  /// 最近一次提交的采集参数（重试时按 appname 反查 config_id/dir_id）
+  List<Map<String, dynamic>> _lastApps = [];
   Timer? _poll;
 
   @override
@@ -89,6 +95,34 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     if (s.contains('登录') || s.contains('Cookie')) return s;
     if (s.contains('timeout') || s.contains('超时')) return '网络超时，请重试';
     return s;
+  }
+
+  /// 判断一条采集结果是否成功
+  bool _isOk(Map<String, dynamic> r) => r['ok'] == true;
+
+  /// 清洗站点实时日志：丢空行/base64 乱码行、超长截断、最多保留 50 行
+  List<String> _cleanLogs(List<String> raw) {
+    final out = <String>[];
+    for (final line in raw) {
+      final s = line.trim();
+      if (s.isEmpty) continue;
+      // base64 长串 / 不可读乱码行直接丢掉
+      if (s.length > 120 && !s.contains(' ') && _readableRatio(s) < 0.6) {
+        continue;
+      }
+      out.add(s.length > 200 ? '${s.substring(0, 200)}…' : s);
+    }
+    return out.length > 50 ? out.sublist(out.length - 50) : out;
+  }
+
+  /// 可读字符（中英文/数字/常见标点）占比
+  double _readableRatio(String s) {
+    if (s.isEmpty) return 0;
+    var n = 0;
+    for (final c in s.codeUnits) {
+      if ((c >= 0x20 && c < 0x7f) || c > 0x2e7f) n++; // ASCII 可打印 + CJK
+    }
+    return n / s.length;
   }
 
   Future<void> _init() async {
@@ -592,8 +626,8 @@ class _AdminCollectTabState extends State<AdminCollectTab>
     final label = _selected.isEmpty
         ? '请选择要采集的软件'
         : (pageCount == _selected.length
-            ? '开始采集（$pageCount）'
-            : '开始采集本页（$pageCount） · 跨页共选 ${_selected.length}');
+              ? '开始采集（$pageCount）'
+              : '开始采集本页（$pageCount） · 跨页共选 ${_selected.length}');
     return SafeArea(
       top: false,
       child: Padding(
@@ -632,6 +666,13 @@ class _AdminCollectTabState extends State<AdminCollectTab>
         )
         .toList();
     if (apps.isEmpty) return;
+    _lastApps = apps;
+    // ★ 重试场景：新一轮只提交了部分软件（失败项）时，
+    //   保留上一轮「不在本次提交名单里」的结果，避免被清空覆盖
+    final retryNames = apps.map((a) => '${a['appname'] ?? ''}').toSet();
+    _retryKept = _results
+        .where((r) => !retryNames.contains('${r['name']}'))
+        .toList();
     final extra = _selected.length - apps.length;
     final go = await Get.dialog<bool>(
       AlertDialog(
@@ -671,6 +712,7 @@ class _AdminCollectTabState extends State<AdminCollectTab>
         _status = '';
         _results = [];
         _logs = [];
+        _retryKept = [];
         // 记录本次要采集的软件名（完成后到日志页反查链接用）
         _pendingNames = apps
             .map((a) => '${a['appname'] ?? ''}')
@@ -714,13 +756,16 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           _cur = (r['current'] as num?)?.toInt() ?? _cur;
           _ok = (r['success'] as num?)?.toInt() ?? _ok;
           _fail = (r['fail'] as num?)?.toInt() ?? _fail;
-          _results = ((r['results'] as List?) ?? [])
+          // ★ 重试时保留上一轮结果（成功的 + 未重试的失败项）
+          final fresh = ((r['results'] as List?) ?? [])
               .map((e) => Map<String, dynamic>.from(e))
               .toList();
+          _results = [..._retryKept, ...fresh];
           // ★ 站点每 2 秒返回真实进度日志，直接展示，用户能实时看到在干什么
-          _logs = ((r['logs'] as List?) ?? [])
-              .map((e) => e.toString())
-              .toList();
+          //   （先清洗：超长截断 / 丢不可读与 base64 乱码行 / 最多保留 50 行）
+          _logs = _cleanLogs(
+            ((r['logs'] as List?) ?? []).map((e) => e.toString()).toList(),
+          );
         });
         // 有新日志就自动滚到底部，保证最新一条始终可见
         if (_logs.length != _lastLogCount) {
@@ -728,10 +773,9 @@ class _AdminCollectTabState extends State<AdminCollectTab>
           _scrollLogToEnd();
         }
         // 一旦站点给了结果，立刻刷新成功数（不要等任务结束）
-        if (_results.isNotEmpty &&
-            _ok != _results.where((x) => x['ok'] == true).length) {
+        if (_results.isNotEmpty && _ok != _results.where(_isOk).length) {
           setState(() {
-            _ok = _results.where((x) => x['ok'] == true).length;
+            _ok = _results.where(_isOk).length;
           });
         }
 
@@ -755,7 +799,7 @@ class _AdminCollectTabState extends State<AdminCollectTab>
         : _results.map((r) => '${r['name']}').toList();
     // ★ 先保住已经拿到的真实结果：站点 done 时会直接带 results，
     //   这些数据比「事后去日志反查」可靠得多，绝不能被覆盖成失败
-    final known = _results.where((r) => r['ok'] == true).toList();
+    final known = _results.where(_isOk).toList();
     try {
       final r = await _svc.collectResults(names, at: _taskAt);
       if (!mounted) return;
@@ -1096,11 +1140,15 @@ class _AdminCollectTabState extends State<AdminCollectTab>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('批量设置（导入前）',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              const Text(
+                '批量设置（导入前）',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
               const SizedBox(height: 4),
-              Text('为本次导入的软件统一设置分类与下载权限',
-                  style: Ty.tiny.copyWith(color: ctx.t3)),
+              Text(
+                '为本次导入的软件统一设置分类与下载权限',
+                style: Ty.tiny.copyWith(color: ctx.t3),
+              ),
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
                 initialValue: catId,
@@ -1112,18 +1160,23 @@ class _AdminCollectTabState extends State<AdminCollectTab>
                 items: [
                   const DropdownMenuItem(value: null, child: Text('不设置')),
                   const DropdownMenuItem(value: 0, child: Text('未分类')),
-                  ...cats.map((c) => DropdownMenuItem(
-                        value: int.tryParse('${c['id']}') ?? 0,
-                        child: Text('${c['title']}'),
-                      )),
+                  ...cats.map(
+                    (c) => DropdownMenuItem(
+                      value: int.tryParse('${c['id']}') ?? 0,
+                      child: Text('${c['title']}'),
+                    ),
+                  ),
                 ],
                 onChanged: (v) => setD(() => catId = v),
               ),
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Icon(Icons.workspace_premium_rounded,
-                      size: 18, color: C.gold),
+                  Icon(
+                    Icons.workspace_premium_rounded,
+                    size: 18,
+                    color: C.gold,
+                  ),
                   const SizedBox(width: 8),
                   const Expanded(child: Text('会员专享')),
                   Switch(
@@ -1136,8 +1189,9 @@ class _AdminCollectTabState extends State<AdminCollectTab>
               if (isVip)
                 TextField(
                   controller: price,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: '会员价 / 购买价（¥，可留空）',
                     isDense: true,
