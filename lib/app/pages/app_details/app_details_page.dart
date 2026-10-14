@@ -1666,41 +1666,35 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     // 本地初步判断：会员专享 或 设置了会员价
     final localNeedPay = isVipItem || (logic.item?.hasPrice ?? false);
 
-    // 未登录：只有「确认免费」才允许直接下载
+    // ═══════ ★ 1014 需求：全量强制登录 + 服务端鉴权 ═══════
+    // 免费资源也必须登录后才能下载，不再有「未登录直接下」的快捷路径。
     if (!loggedIn) {
-      if (!localNeedPay) {
-        logic.unlockVerified = true; // 免费资源
-        runDownloadWithOverlay(() => logic.addDownload(fileName));
-      } else {
-        _dialog('需要登录', '该资源为付费资源，请先登录账号', '去登录', Routes.login);
-      }
+      _dialog(
+        '需要登录',
+        localNeedPay
+            ? '该资源为付费资源，请先登录账号'
+            : '下载前请先登录账号（所有下载都需要经过服务端校验）',
+        '去登录',
+        Routes.login,
+      );
       return;
     }
 
     // 已登录：一律向服务端确认（服务端是唯一权威，避免本地数据过期被绕过）
-    // ★ 1014 安全修复：原代码 appId<=0 时「两个分支都下载」——
-    //   付费资源只要 id 缺失（如从蓝奏云文件夹分类进入）就能免费下载。
-    //   现在改为：本地判定免费才放行，判定需付费则用名称走服务端兜底校验。
+    // ★ 没有 id 时（如蓝奏云文件夹里的软件）按标题反查库里的 id，拿到才校验。
     if (appId <= 0) {
-      if (!localNeedPay) {
-        logic.unlockVerified = true; // 免费资源
-        runDownloadWithOverlay(() => logic.addDownload(fileName));
-        return;
-      }
-      // 本地判定为付费资源 → 绝不放行，走「按标题查库」的兜底校验
       final resolvedId = await _resolveAppIdByTitle();
       if (!mounted) return;
       if (resolvedId <= 0) {
-        // 服务端也查不到该资源 → 拒绝下载（宁可误拦，不能放行付费资源）
         _dialog(
           '无法校验',
-          '该资源需要付费/会员才能下载，但暂时无法确认它的归属。\n请从软件列表或搜索页重新进入后下载。',
+          '暂时无法确认该资源在软件库中的归属，出于安全考虑已停止下载。\n请从软件列表或搜索页重新进入后下载。',
           '知道了',
           null,
         );
         return;
       }
-      // 用查到的 id 继续走下面正常的服务端校验流程
+      // 用查到的 id 继续走正常的服务端校验流程
       return _onDownloadWithId(resolvedId, fileName, isVipUser);
     }
 
@@ -1708,13 +1702,8 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     try {
       st = await UnlockService.instance.status(appId);
     } catch (e) {
-      // 服务端不可达时：本地判定免费就放行，否则提示（避免网络抖动卡死下载）
-      if (!localNeedPay) {
-        logic.unlockVerified = true; // 免费资源
-        runDownloadWithOverlay(() => logic.addDownload(fileName));
-      } else {
-        ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
-      }
+      // ★ 服务端不可达 → 一律拒绝（不再按本地判断放行，避免离线绕过）
+      ToastUtil.error('无法连接服务器完成校验，请检查网络后重试');
       return;
     }
     if (!mounted) return;

@@ -539,17 +539,17 @@ class AppDetailsLogic extends GetxController {
   ///
   /// ★ 需求 #2：直链解析失败时，不只是 Toast 提示，
   ///   要弹窗让用户选择「用浏览器打开原链接下载」。
-  /// ★ 1014 安全：付费校验是否已通过。
+  /// ★ 1014 安全：是否已通过服务端鉴权。
   /// 只有 app_details_page._onDownload 完成服务端校验后才会置 true；
-  /// 其他路径（重试等）必须依赖它，避免绕过付费墙。
+  /// 任何其他路径（重试等）都依赖它，避免绕过鉴权。
   bool unlockVerified = false;
 
   Future<void> addDownload(String fileName, [String? lzyUrl]) async {
-    // ★ 1014 安全兜底：付费资源未经服务端确认，一律拒绝下载。
-    //   原来 addDownload 是「裸下载器」，任何调用点都能免检下载。
-    if ((item?.needUnlock ?? false) && !unlockVerified) {
+    // ★ 1014 安全兜底（全量强制鉴权）：无论免费还是付费，
+    //   未经服务端校验一律不允许发起下载。
+    if (!unlockVerified) {
       ResolveOverlay.dismiss();
-      ToastUtil.error('该资源需要付费/开通会员后下载');
+      ToastUtil.error('该资源尚未通过服务端校验，已停止下载');
       return;
     }
     // v52 #3：解析阶段显示加载浮层，任务创建成功/失败后关闭
