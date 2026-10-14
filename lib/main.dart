@@ -76,6 +76,16 @@ Future<void> _initializeServices() async {
   Get.lazyPut(() => HttpApi(_createDioInstance()));
   // 恢复登录态（读取本地 token + 用户资料）
   await UserService.instance.restore();
+  // ★ 1014 修复：恢复后立刻向服务端拉一次最新资料。
+  //   本地缓存的会员/管理员状态可能已过期或格式不一致，
+  //   会造成「明明是会员/管理员，下载却要付费」的误判。
+  try {
+    if (UserService.instance.isLoggedIn) {
+      await UserService.instance.refreshProfile();
+    }
+  } catch (_) {
+    // 刷新失败不影响启动，后续页面仍会用缓存
+  }
   // 恢复主题设置
   await ThemeController.instance.restore();
   // 界面样式（软件列表风格，需求 #9）
