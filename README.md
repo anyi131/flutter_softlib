@@ -36,3 +36,5 @@ managing downloads.
 ## License / 许可证
 
 - Released under the [MIT License](LICENSE). Please use this project responsibly and lawfully.
+
+<!-- build trigger 1791983660 -->
