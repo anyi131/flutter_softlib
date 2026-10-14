@@ -87,8 +87,11 @@ class HomeLogic extends GetxController {
   ///跳转加群（★ v331z2：解析 qun.qq.com 分享链接里的群号 → mqqapi scheme
   /// 直达 QQ 加群界面；解析失败退网页打开。原来只会把链接当图片展示）
   void joinGroup() {
-    String? groupUrl = configData?.feedbackGroup;
-    if (groupUrl == null || groupUrl.isEmpty) {
+    // ★ v331z3：优先实时缓存配置（configData 可能因加载时序为 null → 误报「暂未配置」）
+    final cached = SoftService.instance.cachedConfig;
+    final groupUrl = configData?.feedbackGroup ??
+        (cached?.feedbackGroup ?? '');
+    if (groupUrl.isEmpty) {
       ToastUtil.error('暂未配置');
       return;
     }
@@ -135,14 +138,16 @@ class HomeLogic extends GetxController {
     return null;
   }
 
-  ///跳转加客服
+  ///跳转加客服（★ v331z3：实时缓存兜底 + 直接打开链接，原来只会把链接当图片展示）
   void joinUser() {
-    String? userUrl = configData?.feedbackUser;
-    if (userUrl != null && userUrl.isNotEmpty) {
-      showImage(userUrl);
-    } else {
+    final cached = SoftService.instance.cachedConfig;
+    final userUrl =
+        configData?.feedbackUser ?? (cached?.feedbackUser ?? '');
+    if (userUrl.isEmpty) {
       ToastUtil.error('暂未配置');
+      return;
     }
+    JumpUtil.openUrl(userUrl);
   }
 
   ///弹窗显示图片
