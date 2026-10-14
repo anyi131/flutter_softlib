@@ -1707,7 +1707,7 @@ class _AppDetailsPageState extends State<AppDetailsPage>
       return;
     }
     if (!mounted) return;
-    await _applyUnlockResult(st, fileName, isVipUser);
+    await _applyUnlockResult(st, fileName, isVipUser, appId: appId);
   }
 
   /// ★ 1014：按标题向服务端查软件 id（无 id 时的付费兜底校验）
@@ -1748,15 +1748,16 @@ class _AppDetailsPageState extends State<AppDetailsPage>
       return;
     }
     if (!mounted) return;
-    await _applyUnlockResult(st, fileName, isVipUser);
+    await _applyUnlockResult(st, fileName, isVipUser, appId: appId);
   }
 
   /// ★ 1014：把服务端判定结果落到 UI（抽出来便于兜底分支复用）
   Future<void> _applyUnlockResult(
     UnlockStatus st,
     String fileName,
-    bool isVipUser,
-  ) async {
+    bool isVipUser, {
+    int appId = 0,
+  }) async {
     if (!mounted) return;
     if (st.canDownload) {
       // ★ 1014：服务端已确认可下载 → 放行标志交给 addDownload
@@ -1903,17 +1904,19 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     }
   }
 
-  void _dialog(String title, String msg, String okText, String route) {
+  /// 提示弹窗。route 为空时只显示「知道了」关闭，不做跳转。
+  void _dialog(String title, String msg, String okText, String? route) {
     Get.dialog(
       AlertDialog(
         title: Text(title),
         content: Text(msg),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+          if (route != null && route.isNotEmpty)
+            TextButton(onPressed: () => Get.back(), child: const Text('取消')),
           FilledButton(
             onPressed: () {
               Get.back();
-              Get.toNamed(route);
+              if (route != null && route.isNotEmpty) Get.toNamed(route);
             },
             child: Text(okText),
           ),
