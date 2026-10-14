@@ -9,6 +9,8 @@ import 'package:open_filex/open_filex.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../api/unlock_service.dart';
+import '../../api/user_service.dart';
 import '../../utils/apk_installer.dart';
 import '../../utils/toast_util.dart';
 
@@ -108,6 +110,35 @@ class AppDownloadLogic extends GetxController {
     update(['${dowInfo?.appId}']);
   }
 
+  /// ★ 1014 安全：续传/重试前必须重新通过服务端鉴权。
+  /// 原来这两个入口直接调 FlutterDownloader.resume/retry，复用任务库里的旧 URL，
+  /// 完全不问服务端 —— 只要任务表里还有一条暂停/失败任务，
+  /// 未登录或会员已过期也能把 APK 拉完。现在统一在此拦截。
+  Future<bool> _recheckAuth(DownInfo? dowInfo) async {
+    if (!UserService.instance.isLoggedIn) {
+      ToastUtil.error('请先登录后再下载');
+      return false;
+    }
+    final appId = int.tryParse('${dowInfo?.appId ?? 0}') ?? 0;
+    if (appId <= 0) {
+      ToastUtil.error('无法确认该资源的归属，出于安全考虑已停止下载');
+      return false;
+    }
+    try {
+      final st = await UnlockService.instance.status(appId);
+      if (!st.canDownload) {
+        ToastUtil.error(st.price.isNotEmpty && (double.tryParse(st.price) ?? 0) > 0
+            ? '该资源需支付 ¥${st.price} 后下载'
+            : '该资源需要开通会员后下载');
+        return false;
+      }
+      return true;
+    } catch (_) {
+      ToastUtil.error('无法连接服务器完成校验，请检查网络后重试');
+      return false;
+    }
+  }
+
   ///恢复下载
   Future<void> resumeDownload(DownInfo? dowInfo) async {
     String? taskId = dowInfo?.taskId;
@@ -115,6 +146,8 @@ class AppDownloadLogic extends GetxController {
       ToastUtil.error('下载任务ID无效，请稍后重试');
       return;
     }
+    // ★ 1014 安全：续传前重新鉴权
+    if (!await _recheckAuth(dowInfo)) return;
     String? taskIdTemp = await FlutterDownloader.resume(taskId: taskId);
     if (taskIdTemp == null) {
       ToastUtil.error('恢复下载失败，请稍后重试');
@@ -138,6 +171,8 @@ class AppDownloadLogic extends GetxController {
       ToastUtil.error('下载任务ID无效，请稍后重试');
       return;
     }
+    // ★ 1014 安全：重试前重新鉴权
+    if (!await _recheckAuth(dowInfo)) return;
     String? taskIdTemp = await FlutterDownloader.retry(taskId: taskId);
     if (taskIdTemp == null) {
       ToastUtil.error('重试下载失败，请稍后重试');
