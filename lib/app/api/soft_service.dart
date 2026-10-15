@@ -518,6 +518,20 @@ extension ToolboxService on SoftService {
     return _jzsCache;
   }
 
+  /// ★ 1015：通用接口代理 —— 后台配好地址就能出工具
+  /// （走服务端中转，避免第三方 UA/CORS 拦截；服务端带 5 分钟缓存）
+  Future<Map<String, dynamic>> toolboxProxy(String url, {bool fresh = false}) async {
+    final r = await dio.get(
+      '/api/softlib/toolbox/proxy',
+      queryParameters: {'url': url, if (fresh) 'fresh': 1},
+      options: Options(receiveTimeout: const Duration(seconds: 25)),
+    );
+    if (r.data is Map && r.data['code'] == 1) {
+      return Map<String, dynamic>.from(r.data as Map);
+    }
+    throw Exception((r.data is Map ? r.data['msg'] : null)?.toString() ?? '接口请求失败');
+  }
+
   /// 工具搜索
   Future<List<Map<String, dynamic>>> jzsSearch(String kw) async {
     try {
