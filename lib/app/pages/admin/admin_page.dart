@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'tabs/collect_stats_card.dart';
+
 import '../../api/admin_service.dart';
 import '../../api/user_service.dart';
 import '../../design/adaptive.dart';
@@ -340,6 +342,9 @@ class _OverviewTabState extends State<_OverviewTab> {
                 )
                 .toList(),
           ),
+          // ═════ ★ 1016 软件数据（商业化总览，异步加载）═════
+          const SizedBox(height: 20),
+          const CollectStatsCard(),
           // ═════ 启动数据 ═════
           const SizedBox(height: 20),
           SectionHeader(
@@ -355,7 +360,11 @@ class _OverviewTabState extends State<_OverviewTab> {
               children: [
                 Row(
                   children: [
-                    _miniStat('今日启动', '${_d['boot_today'] ?? 0}', C.brandBright),
+                    _miniStat(
+                      '今日启动',
+                      '${_d['boot_today'] ?? 0}',
+                      C.brandBright,
+                    ),
                     const SizedBox(width: 10),
                     _miniStat(
                       '今日设备',
@@ -365,14 +374,12 @@ class _OverviewTabState extends State<_OverviewTab> {
                     const SizedBox(width: 10),
                     _miniStat(
                       '昨日启动',
-                      '${
-                        (() {
-                          final bt = (_d['boot_trend'] as List?) ?? [];
-                          if (bt.length < 2) return 0;
-                          final y = bt[bt.length - 2];
-                          return y is Map ? (y['count'] ?? 0) : 0;
-                        })()
-                      }',
+                      '${(() {
+                        final bt = (_d['boot_trend'] as List?) ?? [];
+                        if (bt.length < 2) return 0;
+                        final y = bt[bt.length - 2];
+                        return y is Map ? (y['count'] ?? 0) : 0;
+                      })()}',
                       C.accentOrange,
                     ),
                   ],
@@ -440,11 +447,7 @@ class _OverviewTabState extends State<_OverviewTab> {
                   children: [
                     _miniStat('24 小时', '${_d['online_24h'] ?? 0}', C.violet),
                     const SizedBox(width: 10),
-                    _miniStat(
-                      '活跃会话',
-                      '${_d['active_tokens'] ?? 0}',
-                      C.amber,
-                    ),
+                    _miniStat('活跃会话', '${_d['active_tokens'] ?? 0}', C.amber),
                     const SizedBox(width: 10),
                     _miniStat(
                       '今日登录用户',
@@ -473,11 +476,7 @@ class _OverviewTabState extends State<_OverviewTab> {
                   children: [
                     _miniStat('今日下载', '${_d['down_today'] ?? 0}', C.mint),
                     const SizedBox(width: 10),
-                    _miniStat(
-                      '今日失败',
-                      '${_d['down_today_fail'] ?? 0}',
-                      C.rose,
-                    ),
+                    _miniStat('今日失败', '${_d['down_today_fail'] ?? 0}', C.rose),
                     const SizedBox(width: 10),
                     _miniStat('累计下载', '${_d['total_down'] ?? 0}', C.cyan),
                   ],
@@ -517,7 +516,9 @@ class _OverviewTabState extends State<_OverviewTab> {
                                     width: 62,
                                     child: Text(
                                       '${r['time_text'] ?? ''}',
-                                      style: Ty.tiny.copyWith(color: context.t3),
+                                      style: Ty.tiny.copyWith(
+                                        color: context.t3,
+                                      ),
                                     ),
                                   ),
                                   Expanded(
@@ -692,8 +693,11 @@ class _OverviewTabState extends State<_OverviewTab> {
             children: [
               _dlRow('时间', '${r['time_text'] ?? ''}'),
               _dlRow('软件', '${r['app_title'] ?? ''}'),
-              _dlRow('用户', '${r['nickname'] ?? ''}'
-                  '${(r['user_id'] ?? 0).toString() == '0' ? '（未登录）' : ' (ID ${r['user_id']})'}'),
+              _dlRow(
+                '用户',
+                '${r['nickname'] ?? ''}'
+                    '${(r['user_id'] ?? 0).toString() == '0' ? '（未登录）' : ' (ID ${r['user_id']})'}',
+              ),
               _dlRow('状态', ok ? '成功' : '失败'),
               _dlRow('IP', '${r['ip'] ?? '-'}'),
               _dlRow('设备', '${r['device'] ?? '-'}'),
