@@ -216,6 +216,23 @@ class UserService {
     return true;
   }
 
+  /// ★ 1016：把 QQ 绑定到**当前已登录账号**
+  ///   场景：老用户先用自己的邮箱账号登录 → 绑定 QQ →
+  ///        以后 QQ 一键登录直接进这个号（不会再自动开一个新号）。
+  Future<Map<String, dynamic>> bindQQ({
+    required String openid,
+    required String accessToken,
+  }) async {
+    final r = await _dio.post(
+      '/api/softlib/user/bind_qq',
+      data: {'token': _token, 'openid': openid, 'access_token': accessToken},
+    );
+    if (r.data is! Map) throw Exception('绑定失败：返回格式异常');
+    final d = Map<String, dynamic>.from(r.data as Map);
+    if (d['code'] != 1) throw Exception('${d['msg'] ?? '绑定失败'}');
+    return Map<String, dynamic>.from((d['data'] as Map?) ?? {});
+  }
+
   /// 启动时恢复登录态
   Future<void> restore() async {
     final sp = await SharedPreferences.getInstance();
