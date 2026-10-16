@@ -37,6 +37,9 @@ class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
   bool _qqOn = false;
 
+  /// 进页面时拉到的配置（appId 等），点击登录时直接复用，省一次往返
+  Map<String, dynamic>? _qqCfg;
+
   String _errAccount = '';
   String _errServer = '';
 
@@ -67,7 +70,19 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final r = await UserService.instance.fetchConfig();
       if (!mounted) return;
+      // ★ 1016：进页面时就拉一次配置并留用 —— 原来点「QQ 登录」时又拉了一遍，
+      //   白白多等一个网络往返（体感就是「点了半天没反应」）。
+      _qqCfg = r;
       setState(() => _qqOn = r['qq_login_on'] == true || r['qq_login_on'] == 1);
+    } catch (_) {}
+  }
+
+  /// ★ 1016：登录成功后同步刷新「我的」页 —— 原来只有密码登录做了这件事，
+  ///   QQ 登录不做 → 明明登录成功，「我的」还是未登录的样子。
+  Future<void> _notifyMine() async {
+    try {
+      final mine = Get.find<MineLogic>(tag: 'mine');
+      await mine.load();
     } catch (_) {}
   }
 
@@ -76,8 +91,9 @@ class _LoginPageState extends State<LoginPage> {
     //   原来只能走 WebView —— 但 QQ 授权页在第三方 WebView 里检测不到 QQ App，
     //   会提示「请安装 QQ 手机版」并卡在「正在拉起QQ手机版…」，根本登录不了。
     try {
-      // 取 AppID（服务端下发）
-      final cfg = await UserService.instance.fetchConfig();
+      // 取 AppID（服务端下发；进页面时已拉过就直接用缓存，省一个网络往返）
+      final cfg = _qqCfg ?? await UserService.instance.fetchConfig();
+      _qqCfg = cfg;
       final appId = '${cfg['qq_app_id'] ?? ''}';
       if (appId.isEmpty) {
         ToastUtil.error('QQ 登录未配置（后台缺少 AppID）');
@@ -110,6 +126,7 @@ class _LoginPageState extends State<LoginPage> {
         nickname: '${res['nickname'] ?? ''}',
         avatar: '${res['avatar'] ?? ''}',
       );
+      await _notifyMine();
       if (!mounted) return;
       ToastUtil.success('QQ 登录成功');
       Navigator.of(context).pop(true);
@@ -137,6 +154,7 @@ class _LoginPageState extends State<LoginPage> {
           nickname: (res['nickname'] ?? '').toString(),
           avatar: (res['avatar'] ?? '').toString(),
         );
+        await _notifyMine();
         if (!mounted) return;
         ToastUtil.success('QQ 登录成功');
         Navigator.of(context).pop(true);
