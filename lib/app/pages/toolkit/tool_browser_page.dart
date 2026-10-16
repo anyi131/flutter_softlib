@@ -9,6 +9,7 @@ import '../../design/app_anim.dart';
 import '../../design/adaptive.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
+import '../../api/soft_service.dart';
 import '../../utils/toast_util.dart';
 import 'tool_kit.dart';
 
@@ -84,6 +85,14 @@ class _ToolBrowserPageState extends State<ToolBrowserPage> {
                 _loading = false;
                 _err = e.description;
               });
+              // ★ 1016：外链工具打不开时上报（后台可查 fa_softlib_crash_log）
+              try {
+                SoftService.reportLogStatic(
+                  tag: 'tool',
+                  error:
+                      '[webview] ${widget.title} ${widget.url} -> ${e.errorCode} ${e.description}',
+                ).catchError((_) {});
+              } catch (_) {}
             }
           },
           // 站内跳转继续在 App 内打开；外部协议交给系统
@@ -131,7 +140,6 @@ class _ToolBrowserPageState extends State<ToolBrowserPage> {
     }
   }
 
-
   @override
   void dispose() {
     // ★★★ 1015 致命修复：原来没有 dispose！
@@ -157,10 +165,18 @@ class _ToolBrowserPageState extends State<ToolBrowserPage> {
         backgroundColor: context.isDark ? C.bg2 : Colors.white,
         title: Text(
           widget.title.isEmpty ? '网页' : widget.title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: context.t1),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: context.t1,
+          ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 19, color: context.t1),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 19,
+            color: context.t1,
+          ),
           onPressed: () async {
             if (await _c.canGoBack()) {
               _c.goBack();
@@ -178,7 +194,7 @@ class _ToolBrowserPageState extends State<ToolBrowserPage> {
       ),
       body: Stack(
         children: [
-          Expanded(child: WebViewWidget(controller: _c)),
+          Positioned.fill(child: WebViewWidget(controller: _c)),
           if (_loading && _progress < 100)
             Positioned(
               top: 0,
@@ -211,13 +227,28 @@ class _ToolBrowserPageState extends State<ToolBrowserPage> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  ToolButton(
-                    label: '重试',
-                    icon: Icons.refresh_rounded,
-                    onPressed: () {
-                      setState(() => _err = null);
-                      _c.reload();
-                    },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ToolButton(
+                        label: '重试',
+                        icon: Icons.refresh_rounded,
+                        onPressed: () {
+                          setState(() => _err = null);
+                          _c.reload();
+                        },
+                      ),
+                      const SizedBox(width: 10),
+                      // ★ 1016：内置 WebView 打不开时，允许用系统浏览器打开（兜底可用）
+                      ToolButton(
+                        label: '用浏览器打开',
+                        icon: Icons.open_in_new_rounded,
+                        onPressed: () => launchUrlString(
+                          widget.url,
+                          mode: LaunchMode.externalApplication,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
