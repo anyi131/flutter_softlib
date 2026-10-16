@@ -53,7 +53,8 @@ class _QQLoginPageState extends State<QQLoginPage> {
           },
           // ★ 1016：QQ 授权过程中可能触发 wtloginmqq:// 等私有协议。
           //   WebView 打不开会报 ERR_UNKNOWN_URL_SCHEME（页面「无法打开」），
-          //   这里统一交给系统处理，并且**不弹 Toast**（避免跳转风暴卡死）。
+          //   而且这类跳转在加载期可能被批量触发 → 一律**静默拦截**，
+          //   只放行 tel:/mailto:，避免任何拉起风暴导致卡死。
           onNavigationRequest: (req) {
             final u = req.url;
             if (u.startsWith('http://') ||
@@ -62,10 +63,13 @@ class _QQLoginPageState extends State<QQLoginPage> {
                 u.startsWith('javascript:')) {
               return NavigationDecision.navigate;
             }
-            launchUrlString(
-              u,
-              mode: LaunchMode.externalApplication,
-            ).catchError((_) => false);
+            final low = u.toLowerCase();
+            if (low.startsWith('tel:') || low.startsWith('mailto:')) {
+              launchUrlString(
+                u,
+                mode: LaunchMode.externalApplication,
+              ).catchError((_) => false);
+            }
             return NavigationDecision.prevent;
           },
         ),

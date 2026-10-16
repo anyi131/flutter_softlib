@@ -132,7 +132,31 @@ class _ToolBrowserPageState extends State<ToolBrowserPage> {
   ///   （每个资源请求、每次重定向都触发），于是弹了几十个 Toast → UI 卡死。
   ///   修复：① 用系统真正打开该协议（原来只是弹提示，没真跳转）
   ///        ② 去掉 Toast（避免风暴）
+  ///
+  /// ★★ 1016 加固：只放行**确实该交给系统**的协议白名单
+  ///   （快递100 这类站点会埋一堆 `kuaidi100://ilovegirl/...`「打开App」链接，
+  ///    没装 App 时每次都会失败；若在页面加载阶段被批量触发，仍会卡顿）。
+  ///   其余私有协议一律忽略，且同一地址 2 秒内只尝试一次。
+  static const _allowSchemes = [
+    'tel:',
+    'mailto:',
+    'sms:',
+    'geo:',
+    'weixin:',
+    'mqqwpa:',
+    'alipays:',
+  ];
+
+  String _lastExternal = '';
+  int _lastExternalAt = 0;
+
   Future<void> _openExternal(String u) async {
+    final ok = _allowSchemes.any((s) => u.toLowerCase().startsWith(s));
+    if (!ok) return; // 非白名单协议：静默忽略（不要弹提示、不要尝试拉起）
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (u == _lastExternal && now - _lastExternalAt < 2000) return; // 去抖
+    _lastExternal = u;
+    _lastExternalAt = now;
     try {
       await launchUrlString(u, mode: LaunchMode.externalApplication);
     } catch (_) {
