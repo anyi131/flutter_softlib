@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'admin_shell_v2.dart';
+
 import 'tabs/collect_stats_card.dart';
 
 import '../../api/admin_service.dart';
@@ -104,9 +106,10 @@ class _AdminPageState extends State<AdminPage>
     }
 
     // v54：管理后台整体界面模板（light_card/dark_console/minimal/brand/desk）
-    final tpl = adminTemplateCurrent;
-    if (adminTemplateNotifier.value != tpl) adminTemplateNotifier.value = tpl;
-    return AdminTemplateShell(
+    // ★ 1016 后台外壳重做：改用新的商业化导航壳 AdminShellV2
+    //   （旧 AdminTemplateShell 的 12 个胶囊挤一行 → 现在分组 + 图标 + 横向滚动）
+    //   功能不变：仍是同样的 12 个子页
+    return AdminShellV2(
       tab: _tab,
       onRefresh: () => setState(() {}),
       children: const [
