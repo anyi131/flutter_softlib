@@ -664,6 +664,7 @@ class AppDetailsLogic extends GetxController {
     String originUrl = '';
     if (item != null && item!.canDirectDownload) {
       parseUrl = item!.file; // 服务器直传：无需解析
+      SoftService.lastParseChannel = 'direct';
     } else {
       final target = (lzyUrl != null && lzyUrl.isNotEmpty)
           ? lzyUrl
@@ -681,7 +682,11 @@ class AppDetailsLogic extends GetxController {
       if (isFree && LzyLocalParser.isLzyUrl(target)) {
         ResolveOverlay.stage('本地解析中…');
         try {
+          SoftService.lastParseChannel = '';
           parseUrl = await LzyLocalParser.parse(target);
+          if (parseUrl != null && parseUrl.isNotEmpty) {
+            SoftService.lastParseChannel = 'local';
+          }
         } catch (e) {
           logger.e('[local-parse] $e');
         }
