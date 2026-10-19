@@ -130,10 +130,15 @@ class MineLogic extends GetxController {
     }
     if (_binding || BlockingDialog.isOpen) return;
     _binding = true;
+    // ★★ 1020 修复「点击后没有任何加载动画」：
+    //   原来先 await fetchConfig() 才弹加载层 —— 网络慢时用户点了像没反应，
+    //   于是反复点、以为坏了。现在**先弹反馈，再做请求**。
+    BlockingDialog.show(text: '正在准备 QQ 授权…', sub: '请稍候');
     try {
       final cfg = await UserService.instance.fetchConfig();
       final appId = '${cfg['qq_app_id'] ?? ''}';
       if (appId.isEmpty) {
+        BlockingDialog.hide();
         ToastUtil.error('后台还没配置 QQ 互联 AppID');
         return;
       }
