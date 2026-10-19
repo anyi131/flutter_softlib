@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
-
-import '../../utils/err_text.dart';
+import 'package:get/get.dart';
 
 import '../../api/admin_service.dart';
 import '../../design/adaptive.dart';
 import '../../design/ui.dart';
+import '../../utils/err_text.dart';
+import '../../utils/toast_util.dart';
 import 'admin_ui_kit.dart';
+import 'mini_chart.dart';
 
 /// ═══════════════════════════════════════════════════════════════
-/// ★ 1016：管理后台 · 概览（商业化仪表盘 · 彻底重写）
+/// 管理后台 · 概览（★ 1020 重做）
 ///
-/// 相比旧版：不再是一堆零散卡片，而是按「运营视角」分组的数据面板：
-///   ① 系统状态     ② 核心指标（软件/用户/会员/今日注册）
-///   ③ 软件行为数据（版权梦：启动/加群/联系作者/分享 + 最活跃）
-///   ④ 启动数据（今日/设备/昨日 + 7日趋势）
-///   ⑤ 在线数据（5/15/60 分 + 活跃会话 + 今日登录）
-///   ⑥ 下载数据（今日/失败/累计 + 最近记录可点开看详情）
-///   ⑦ 经营数据（累计/今日收入 + 已付/待付订单）
-///   ⑧ 热门软件 Top5 + 近 7 日趋势
+/// 用户反馈：「样式太丑陋了太垃圾了根本数据不详细」
+///
+/// 旧版问题：
+///   ① 所有指标平铺成一堆 AdMetric 小卡，没有主次
+///   ② 只有数字，没有趋势 —— 看不出「今天比昨天好还是差」
+///   ③ 信息重复（累计/今日/在线各自一堆卡）
+///   ④ 数据虽多但串不起来，看完不知道「现在该关注什么」
+///
+/// 新版结构（从上到下，按「先看关键 → 再看细节」）：
+///   ① 今日健康度大卡     —— 一句话结论 + 三个核心数（今日下载/新增用户/活跃）
+///   ② 7 日趋势图         —— 用户 / 下载两条折线，看得见走势
+///   ③ 实时在线条         —— 5/15/60 分钟 + 今日活跃
+///   ④ 收入卡             —— 累计/本月/今日三档 + 订单状态
+///   ⑤ 软件表现           —— Top5 条形榜 + 下载失败率
+///   ⑥ 需要处理           —— 待付款/待审/举报，红点提示
+///   ⑦ 最近下载流         —— 可点开看详情
+///   ⑧ 今日启动用户       —— 具体是谁
 /// ═══════════════════════════════════════════════════════════════
 class AdminOverviewV2 extends StatefulWidget {
   const AdminOverviewV2({super.key});
@@ -30,7 +41,6 @@ class _AdminOverviewV2State extends State<AdminOverviewV2> {
   final _svc = AdminService.instance;
 
   Map<String, dynamic> _d = {};
-  // 软件数据（版权梦）单独异步加载
   Map<String, dynamic>? _appStats;
   bool _loading = true;
   bool _statsLoading = true;
@@ -82,879 +92,807 @@ class _AdminOverviewV2State extends State<AdminOverviewV2> {
     }
   }
 
-  /// 取数值（保留 1 位小数，用于失败率等）
-  String _dbl(String k) {
-    final v = _d[k];
-    if (v == null) return '0';
-    if (v is num) return v.toStringAsFixed(v == v.roundToDouble() ? 0 : 1);
-    return '$v';
-  }
-
-  /// 评价等指标：主数值 + 孤儿残留提示（如「2（残留16）」）
-  String _orphanHint(String mainKey, String orphanKey) {
-    final v = _i(mainKey);
-    final o = _i(orphanKey);
-    return o > 0 ? '$v' : '$v';
-  }
-
   int _i(String k) => int.tryParse('${_d[k] ?? 0}') ?? 0;
   String _s(String k) => '${_d[k] ?? ''}';
+  double _dbl(String k) =>
+      double.tryParse('${_d[k] ?? 0}'.replaceAll('%', '')) ?? 0;
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.only(top: 40),
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      );
-    }
+    if (_loading) return const LoadingState(text: '加载概览…');
     if (_err.isNotEmpty) {
-      return Padding(
-        padding: EdgeInsets.all(context.pagePadding),
-        child: AdCard(
-          child: Column(
-            children: [
-              const Icon(Icons.error_outline_rounded, size: 30, color: C.rose),
-              const SizedBox(height: 8),
-              Text('概览加载失败', style: Ty.h3.copyWith(color: context.t1)),
-              const SizedBox(height: 4),
-              Text(
-                _err,
-                textAlign: TextAlign.center,
-                style: Ty.tiny.copyWith(color: context.t3),
-              ),
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: _load,
-                child: Text('点此重试', style: Ty.small.copyWith(color: C.brand)),
-              ),
-            ],
-          ),
-        ),
+      return EmptyState(
+        icon: Icons.cloud_off_rounded,
+        text: '概览加载失败',
+        hint: _err,
       );
     }
-
     return RefreshIndicator(
       onRefresh: () async {
-        await _load();
-        await _loadAppStats();
+        await Future.wait([_load(), _loadAppStats(force: true)]);
       },
+      color: C.brand,
       child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
         padding: EdgeInsets.fromLTRB(
           context.pagePadding,
-          4,
+          8,
           context.pagePadding,
           30,
         ),
         children: [
-          _statusRow(),
-          const SizedBox(height: Ad.gapL),
-
-          // ② 核心指标
-          AdSection(title: '待处理', subtitle: '需要你尽快处理的事项', accent: C.warning),
-          AdCard(
-            child: Row(
-              children: [
-                Expanded(
-                  child: AdMetric(
-                    label: '待发货订单',
-                    value: '${_i('pending_orders')}',
-                    color: C.warning,
-                    icon: Icons.local_shipping_outlined,
-                    compact: true,
-                  ),
-                ),
-                const SizedBox(width: Ad.gapS),
-                Expanded(
-                  child: AdMetric(
-                    label: '待审评价',
-                    value: '${_i('reviewsPending')}',
-                    color: C.rose,
-                    icon: Icons.rate_review_outlined,
-                    compact: true,
-                  ),
-                ),
-                const SizedBox(width: Ad.gapS),
-                Expanded(
-                  child: AdMetric(
-                    label: '未处理举报',
-                    value: '${_i('open_reports')}',
-                    color: C.violet,
-                    icon: Icons.flag_outlined,
-                    compact: true,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          AdSection(title: '核心指标', accent: C.brand),
-          _coreGrid(),
-          const SizedBox(height: Ad.gapL),
-
-          // ③ 软件行为数据（版权梦）
-          // ★ 1016：版权梦 VIP 到期 → 明确提示，而不是只显示一排 0
-          if ('${(_appStats?['vip_expired'] ?? false)}' == 'true')
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: AdCard(
-                accent: C.warning,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      size: 16,
-                      color: C.warning,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '${_appStats?['vip_msg'] ?? '版权梦 VIP 已到期，统计数据暂停'}',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: context.t2,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          AdSection(
-            title: '软件行为数据',
-            subtitle: '启动 / 加群 / 联系作者 / 分享（版权梦统计，缓存 10 分钟）',
-            accent: C.violet,
-            trailing: GestureDetector(
-              onTap: () => _loadAppStats(force: true),
-              child: Icon(Icons.refresh_rounded, size: 16, color: context.t3),
-            ),
-          ),
-          _appStatsCard(),
-          const SizedBox(height: Ad.gapL),
-
-          // ④ 启动数据
-          AdSection(
-            title: '启动数据',
-            subtitle: 'App 每次启动都会上报',
-            accent: C.brandBright,
-          ),
-          AdCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: AdMetric(
-                        label: '今日启动',
-                        value: '${_i('boot_today')}',
-                        color: C.brandBright,
-                        icon: Icons.rocket_launch_rounded,
-                      ),
-                    ),
-                    const SizedBox(width: Ad.gapS),
-                    Expanded(
-                      child: AdMetric(
-                        label: '今日设备',
-                        value: '${_i('boot_devices_today')}',
-                        color: C.mint,
-                        icon: Icons.devices_rounded,
-                      ),
-                    ),
-                    const SizedBox(width: Ad.gapS),
-                    Expanded(
-                      child: AdMetric(
-                        label: '昨日启动',
-                        value: '${_yesterdayBoots()}',
-                        color: C.accentOrange,
-                        icon: Icons.history_rounded,
-                      ),
-                    ),
-                  ],
-                ),
-                if (_bootTrend().isNotEmpty) ...[
-                  const SizedBox(height: 13),
-                  AdTrendList(rows: _bootTrend(), barColor: C.brandBright),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: Ad.gapL),
-
-          // ⑤ 在线数据
-          AdSection(title: '在线数据', subtitle: '按最后活跃时间统计', accent: C.mint),
-          AdCard(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: AdMetric(
-                        label: '5 分钟',
-                        value: '${_i('online_5m')}',
-                        color: C.mint,
-                        icon: Icons.bolt_rounded,
-                        compact: true,
-                      ),
-                    ),
-                    const SizedBox(width: Ad.gapS),
-                    Expanded(
-                      child: AdMetric(
-                        label: '15 分钟',
-                        value: '${_i('online_15m')}',
-                        color: C.cyan,
-                        icon: Icons.schedule_rounded,
-                        compact: true,
-                      ),
-                    ),
-                    const SizedBox(width: Ad.gapS),
-                    Expanded(
-                      child: AdMetric(
-                        label: '60 分钟',
-                        value: '${_i('online_60m')}',
-                        color: C.brand,
-                        icon: Icons.timelapse_rounded,
-                        compact: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Ad.gapS),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AdMetric(
-                        label: '24 小时',
-                        value: '${_i('online_24h')}',
-                        color: C.violet,
-                        compact: true,
-                      ),
-                    ),
-                    const SizedBox(width: Ad.gapS),
-                    Expanded(
-                      child: AdMetric(
-                        label: '活跃会话',
-                        value: '${_i('active_tokens')}',
-                        color: C.amber,
-                        compact: true,
-                      ),
-                    ),
-                    const SizedBox(width: Ad.gapS),
-                    Expanded(
-                      child: AdMetric(
-                        label: '今日登录',
-                        value: '${_i('today_active_users')}',
-                        color: C.pink,
-                        compact: true,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: Ad.gapL),
-
-          // ⑥ 下载数据
-          AdSection(
-            title: '下载数据',
-            subtitle: '失败率 ${_dbl('down_fail_rate')}% · 点记录可看详情',
-            accent: C.cyan,
-          ),
-          AdCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: AdMetric(
-                        label: '今日下载',
-                        value: '${_i('down_today')}',
-                        color: C.mint,
-                        icon: Icons.download_rounded,
-                        compact: true,
-                      ),
-                    ),
-                    const SizedBox(width: Ad.gapS),
-                    Expanded(
-                      child: AdMetric(
-                        label: '今日失败',
-                        value: '${_i('down_today_fail')}',
-                        color: C.rose,
-                        icon: Icons.error_outline_rounded,
-                        compact: true,
-                      ),
-                    ),
-                    const SizedBox(width: Ad.gapS),
-                    Expanded(
-                      child: AdMetric(
-                        label: '累计下载',
-                        value: '${_i('total_down')}',
-                        color: C.cyan,
-                        icon: Icons.all_inclusive_rounded,
-                        compact: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _recentDownloads(),
-              ],
-            ),
-          ),
-          const SizedBox(height: Ad.gapL),
-
-          // ⑦ 经营数据
-          AdSection(title: '经营数据', accent: C.gold),
-          AdCard(
-            child: Row(
-              children: [
-                Expanded(
-                  child: AdMetric(
-                    label: '累计收入',
-                    value: '¥${_s('total_money')}',
-                    color: C.gold,
-                    icon: Icons.account_balance_wallet_rounded,
-                    compact: true,
-                  ),
-                ),
-                const SizedBox(width: Ad.gapS),
-                Expanded(
-                  child: AdMetric(
-                    label: '今日收入',
-                    value: '¥${_s('today_money')}',
-                    color: C.success,
-                    icon: Icons.trending_up_rounded,
-                    compact: true,
-                  ),
-                ),
-                const SizedBox(width: Ad.gapS),
-                Expanded(
-                  child: AdMetric(
-                    label: '已付/待付',
-                    value: '${_i('paid_orders')}/${_i('unpaid_orders')}',
-                    color: C.brand,
-                    compact: true,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ═════ ★ 今日启动用户（具体是谁）═════
-          if ((_d?['boot_users'] as List?)?.isNotEmpty ?? false) ...[
-            const SizedBox(height: 10),
-            AdCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.people_outline_rounded,
-                        size: 15,
-                        color: C.brand,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '今日启动用户',
-                        style: Ty.small.copyWith(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: context.t1,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  for (final u
-                      in ((_d?['boot_users'] as List?) ?? const []).take(8))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${u is Map ? u['nickname'] ?? '未登录' : ''}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Ty.tiny.copyWith(
-                                fontSize: 12,
-                                color: context.t2,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '${u is Map ? u['count'] ?? 0 : 0} 次',
-                            style: Ty.tiny.copyWith(
-                              fontSize: 11.5,
-                              color: C.brand,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${u is Map ? u['last'] ?? '' : ''}',
-                            style: Ty.tiny.copyWith(
-                              fontSize: 11,
-                              color: context.t3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-
-          // ═════ ★ 累计规模 ═════
-          const SizedBox(height: 20),
-          AdSection(title: '累计规模', accent: C.cyan),
-          AdCard(
-            child: Row(
-              children: [
-                Expanded(
-                  child: AdMetric(
-                    label: '总浏览',
-                    value: '${_i('total_views')}',
-                    color: C.brand,
-                    icon: Icons.visibility_outlined,
-                    compact: true,
-                  ),
-                ),
-                const SizedBox(width: Ad.gapS),
-                Expanded(
-                  child: AdMetric(
-                    label: '总下载',
-                    value: '${_i('total_down_all')}',
-                    color: C.mint,
-                    icon: Icons.download_outlined,
-                    compact: true,
-                  ),
-                ),
-                const SizedBox(width: Ad.gapS),
-                Expanded(
-                  child: AdMetric(
-                    label: '总评论',
-                    value: '${_i('total_comments')}',
-                    color: C.violet,
-                    icon: Icons.chat_bubble_outline_rounded,
-                    compact: true,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          // ⑧ 热门软件
-          if (((_d['top_apps'] as List?) ?? []).isNotEmpty) ...[
-            const SizedBox(height: Ad.gapL),
-            AdSection(title: '热门软件 Top5', subtitle: '按下载量排序', accent: C.rose),
-            AdCard(
-              child: AdRankList(
-                accent: C.rose,
-                rows: ((_d['top_apps'] as List?) ?? [])
-                    .whereType<Map>()
-                    .map(
-                      (a) => (
-                        '${a['title'] ?? ''}',
-                        '下载 ${a['down_count'] ?? 0}',
-                        '浏览 ${a['views'] ?? 0}',
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ],
-
-          // 近 7 日趋势
-          if (((_d['trend'] as List?) ?? []).isNotEmpty) ...[
-            const SizedBox(height: Ad.gapL),
-            AdSection(title: '近 7 日趋势', subtitle: '新增用户 / 收入', accent: C.brand),
-            AdCard(
-              child: AdTrendList(
-                barColor: C.mint,
-                rows: ((_d['trend'] as List?) ?? [])
-                    .whereType<Map>()
-                    .map(
-                      (t) => (
-                        '${t['date'] ?? ''}',
-                        double.tryParse('${t['users'] ?? 0}') ?? 0,
-                        '+${t['users'] ?? 0}人',
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ],
+          _healthCard(),
+          const SizedBox(height: 14),
+          _trendCard(),
+          const SizedBox(height: 14),
+          _onlineCard(),
+          const SizedBox(height: 14),
+          _moneyCard(),
+          const SizedBox(height: 14),
+          _todoCard(),
+          const SizedBox(height: 14),
+          _appCard(),
+          const SizedBox(height: 14),
+          _recentCard(),
+          const SizedBox(height: 14),
+          _bootUsersCard(),
         ],
       ),
     );
   }
 
-  /// ① 系统状态
-  Widget _statusRow() {
-    return AdCard(
-      accent: C.mint,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: C.mint.withAlpha(context.isDark ? 44 : 26),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: const Icon(
-              Icons.verified_user_rounded,
-              size: 19,
-              color: C.mint,
-            ),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('系统运行正常', style: Ty.h3.copyWith(color: context.t1)),
-                Text(
-                  'API · 数据库 · 采集服务 · 支付通道',
-                  style: Ty.tiny.copyWith(fontSize: 10.5, color: context.t3),
-                ),
-              ],
-            ),
-          ),
-          AdTag(text: '在线', color: C.mint),
-        ],
-      ),
-    );
-  }
+  // ═══════════ ① 今日健康度 ═══════════
 
-  /// ② 核心指标（2 行 × 2）
-  Widget _coreGrid() {
-    final items = [
-      ('软件总数', '${_i('apps')}', C.brand, Icons.apps_rounded),
-      ('用户总数', '${_i('users')}', C.mint, Icons.people_rounded),
-      (
-        '今日注册',
-        '${_i('today_users')}',
-        C.accentOrange,
-        Icons.person_add_rounded,
-      ),
-      ('会员数', '${_i('vip_users')}', C.amber, Icons.workspace_premium_rounded),
-      ('动态数', '${_i('posts')}', C.violet, Icons.forum_rounded),
-      (
-        '评价数',
-        _orphanHint('reviews', 'reviewsOrphan'),
-        C.pink,
-        Icons.rate_review_rounded,
-      ),
-    ];
-    return AdCard(
-      padding: const EdgeInsets.all(11),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              for (int i = 0; i < 3; i++) ...[
-                if (i > 0) const SizedBox(width: Ad.gapS),
-                Expanded(
-                  child: AdMetric(
-                    label: items[i].$1,
-                    value: items[i].$2,
-                    color: items[i].$3,
-                    icon: items[i].$4,
-                    compact: true,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: Ad.gapS),
-          Row(
-            children: [
-              for (int i = 3; i < 6; i++) ...[
-                if (i > 3) const SizedBox(width: Ad.gapS),
-                Expanded(
-                  child: AdMetric(
-                    label: items[i].$1,
-                    value: items[i].$2,
-                    color: items[i].$3,
-                    icon: items[i].$4,
-                    compact: true,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _healthCard() {
+    final downToday = _i('down_today');
+    final newUsers = _i('today_users');
+    final active = _i('today_active_users');
+    final boot = _i('boot_today');
+    final failRate = _dbl('down_fail_rate');
 
-  /// ③ 软件行为数据卡
-  Widget _appStatsCard() {
-    if (_statsLoading) {
-      return AdCard(
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 15,
-              height: 15,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 10),
-            Text('正在统计软件数据…', style: Ty.tiny.copyWith(color: context.t3)),
-          ],
-        ),
-      );
+    // 一句话结论：先给判断，再给数字
+    final String verdict;
+    final Color verdictColor;
+    if (failRate > 15) {
+      verdict = '下载失败率偏高，建议检查解析通道';
+      verdictColor = C.danger;
+    } else if (downToday == 0 && boot > 0) {
+      verdict = '有人打开但没人下载，检查首页推荐';
+      verdictColor = C.amber;
+    } else if (downToday > 0 && newUsers > 0) {
+      verdict = '运行正常，今日有新增用户与下载';
+      verdictColor = C.mint;
+    } else {
+      verdict = '今日暂无活动';
+      verdictColor = context.t3;
     }
-    final d = _appStats;
-    if (d == null || d['ok'] != true) {
-      return AdCard(
-        child: AdEmpty(
-          text: '软件数据暂不可用',
-          hint: '版权梦接口未返回，可稍后重试',
-          icon: Icons.insights_rounded,
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(R.xl),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: context.isDark
+              ? [const Color(0xFF232A42), const Color(0xFF1A1E2E)]
+              : [const Color(0xFFF2F5FF), const Color(0xFFFFFFFF)],
         ),
-      );
-    }
-    final totals = (d['totals'] is Map)
-        ? Map<String, dynamic>.from(d['totals'] as Map)
-        : <String, dynamic>{};
-    int v(String k) => int.tryParse('${totals[k] ?? 0}') ?? 0;
-    final top = ((d['top'] as List?) ?? [])
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
-    return AdCard(
-      accent: C.violet,
+        border: Border.all(
+          color: C.brand.withAlpha(context.isDark ? 60 : 40),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: C.brand.withAlpha(context.isDark ? 30 : 20),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(
-                child: AdMetric(
-                  label: '总启动',
-                  value: '${v('启动次数')}',
-                  color: C.brandBright,
-                  icon: Icons.play_circle_fill_rounded,
-                  compact: true,
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: verdictColor,
+                  shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: Ad.gapS),
-              Expanded(
-                child: AdMetric(
-                  label: '总加群',
-                  value: '${v('加群次数')}',
-                  color: C.mint,
-                  icon: Icons.group_add_rounded,
-                  compact: true,
+              const SizedBox(width: 7),
+              Text(
+                '今日概况',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: context.t2,
+                  letterSpacing: 0.3,
                 ),
               ),
-              const SizedBox(width: Ad.gapS),
-              Expanded(
-                child: AdMetric(
-                  label: '联系作者',
-                  value: '${v('联系作者')}',
-                  color: C.accentOrange,
-                  icon: Icons.support_agent_rounded,
-                  compact: true,
-                ),
-              ),
-              const SizedBox(width: Ad.gapS),
-              Expanded(
-                child: AdMetric(
-                  label: '总分享',
-                  value: '${v('分享次数')}',
-                  color: C.violet,
-                  icon: Icons.share_rounded,
-                  compact: true,
-                ),
+              const Spacer(),
+              Text(
+                _dateText(),
+                style: Ty.tiny.copyWith(fontSize: 10.5, color: context.t3),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
-            '最活跃软件（已统计 ${d['count'] ?? 0} 个）',
-            style: Ty.tiny.copyWith(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-              color: context.t3,
+            verdict,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              fontWeight: FontWeight.w700,
+              color: verdictColor == context.t3 ? context.t2 : verdictColor,
             ),
           ),
-          const SizedBox(height: 7),
-          AdRankList(
-            accent: C.violet,
-            rows: top.map((t) {
-              final st = (t['stats'] is Map)
-                  ? Map<String, dynamic>.from(t['stats'] as Map)
-                  : <String, dynamic>{};
-              return (
-                '${t['title'] ?? ''}',
-                '启动 ${st['启动次数'] ?? 0}',
-                '加群 ${st['加群次数'] ?? 0}',
-              );
-            }).toList(),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _bigStat('$downToday', '今日下载', C.brand),
+              _vline(),
+              _bigStat('$newUsers', '新增用户', C.mint),
+              _vline(),
+              _bigStat('$active', '活跃用户', C.violet),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: context.isDark ? Colors.white.withAlpha(8) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _tinyStat(
+                    '启动次数',
+                    '$boot',
+                    Icons.rocket_launch_rounded,
+                  ),
+                ),
+                Expanded(
+                  child: _tinyStat(
+                    '失败率',
+                    '${failRate.toStringAsFixed(1)}%',
+                    Icons.error_outline_rounded,
+                    warn: failRate > 10,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// 启动趋势（日期 + 次数）
-  List<(String, double, String)> _bootTrend() {
-    final bt = (_d['boot_trend'] as List?) ?? [];
-    return bt
-        .whereType<Map>()
-        .map(
-          (b) => (
-            '${b['date'] ?? ''}',
-            double.tryParse('${b['count'] ?? 0}') ?? 0,
-            '${b['count'] ?? 0}次',
+  String _dateText() {
+    final n = DateTime.now();
+    const w = ['一', '二', '三', '四', '五', '六', '日'];
+    return '${n.month}月${n.day}日 周${w[n.weekday - 1]}';
+  }
+
+  Widget _bigStat(String value, String label, Color c) => Expanded(
+    child: Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 26,
+            height: 1,
+            fontWeight: FontWeight.w900,
+            color: c,
+            letterSpacing: -1.2,
           ),
-        )
-        .toList();
+        ),
+        const SizedBox(height: 5),
+        Text(label, style: Ty.tiny.copyWith(fontSize: 10, color: context.t3)),
+      ],
+    ),
+  );
+
+  Widget _vline() => Container(
+    width: 1,
+    height: 30,
+    color: context.isDark ? Colors.white12 : Colors.black.withAlpha(10),
+  );
+
+  Widget _tinyStat(
+    String label,
+    String value,
+    IconData icon, {
+    bool warn = false,
+  }) => Row(
+    children: [
+      Icon(icon, size: 12, color: warn ? C.danger : context.t3),
+      const SizedBox(width: 4),
+      Text(label, style: Ty.tiny.copyWith(fontSize: 10, color: context.t3)),
+      const SizedBox(width: 5),
+      Text(
+        value,
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w800,
+          color: warn ? C.danger : context.t1,
+        ),
+      ),
+    ],
+  );
+
+  // ═══════════ ② 7 日趋势 ═══════════
+
+  Widget _trendCard() {
+    final trend = (_d['trend'] as List?) ?? const [];
+    if (trend.isEmpty) return const SizedBox.shrink();
+
+    final users = <double>[];
+    final downs = <double>[];
+    final labels = <String>[];
+    for (final e in trend) {
+      final m = Map<String, dynamic>.from(e as Map);
+      users.add((m['users'] as num?)?.toDouble() ?? 0);
+      downs.add((m['downs'] as num?)?.toDouble() ?? 0);
+      labels.add('${m['date'] ?? ''}');
+    }
+
+    return _card(
+      title: '近 7 日趋势',
+      icon: Icons.show_chart_rounded,
+      trailing: Row(
+        children: [
+          _legend('新增用户', C.mint),
+          const SizedBox(width: 10),
+          _legend('下载', C.brand),
+        ],
+      ),
+      child: Column(
+        children: [
+          MiniLineChart(
+            values: users,
+            labels: labels,
+            color: C.mint,
+            height: 88,
+          ),
+          const SizedBox(height: 8),
+          MiniLineChart(
+            values: downs,
+            labels: labels,
+            color: C.brand,
+            height: 88,
+          ),
+        ],
+      ),
+    );
   }
 
-  /// 昨日启动数（趋势里倒数第二条）
-  int _yesterdayBoots() {
-    final bt = (_d['boot_trend'] as List?) ?? [];
-    if (bt.length < 2) return 0;
-    final y = bt[bt.length - 2];
-    if (y is Map) return int.tryParse('${y['count'] ?? 0}') ?? 0;
-    return 0;
+  Widget _legend(String text, Color c) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 7,
+        height: 7,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 4),
+      Text(text, style: Ty.tiny.copyWith(fontSize: 9.5, color: context.t3)),
+    ],
+  );
+
+  // ═══════════ ③ 实时在线 ═══════════
+
+  Widget _onlineCard() {
+    return _card(
+      title: '实时在线',
+      icon: Icons.wifi_tethering_rounded,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _pulse('5 分钟', _i('online_5m'), C.mint),
+              _pulse('15 分钟', _i('online_15m'), C.brand),
+              _pulse('60 分钟', _i('online_60m'), C.violet),
+              _pulse('24 小时', _i('online_24h'), context.t3),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _kv('有效会话', '${_i('active_tokens')}'),
+              _kv('今日登录', '${_i('today_active_users')}'),
+              _kv('启动设备', '${_i('boot_devices_today')}'),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
-  /// 最近下载记录（可点开看详情）
-  Widget _recentDownloads() {
-    final list = ((_d['recent_downloads'] as List?) ?? [])
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
-    if (list.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Text(
-          '暂无下载记录（App 下载成功/失败都会上报）',
-          style: Ty.tiny.copyWith(color: context.t3),
+  Widget _pulse(String label, int n, Color c) => Expanded(
+    child: Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '$n',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: c,
+                letterSpacing: -0.6,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Text(label, style: Ty.tiny.copyWith(fontSize: 9.5, color: context.t3)),
+      ],
+    ),
+  );
+
+  Widget _kv(String k, String v) => Expanded(
+    child: Column(
+      children: [
+        Text(
+          v,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w800,
+            color: context.t1,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(k, style: Ty.tiny.copyWith(fontSize: 9.5, color: context.t3)),
+      ],
+    ),
+  );
+
+  // ═══════════ ④ 收入 ═══════════
+
+  Widget _moneyCard() {
+    return _card(
+      title: '收入',
+      icon: Icons.account_balance_wallet_rounded,
+      iconColor: C.gold,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _money('累计', '¥${_s('total_money')}', C.gold),
+              _vline(),
+              _money('本月', '¥${_s('month_money')}', C.amber),
+              _vline(),
+              _money('今日', '¥${_s('today_money')}', C.mint),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _kv('已付订单', '${_i('paid_orders')}'),
+              _kv('待付订单', '${_i('unpaid_orders')}'),
+              _kv('今日订单', '${_i('today_orders')}'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _money(String label, String v, Color c) => Expanded(
+    child: Column(
+      children: [
+        Text(
+          v,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            color: c,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(label, style: Ty.tiny.copyWith(fontSize: 9.5, color: context.t3)),
+      ],
+    ),
+  );
+
+  // ═══════════ ⑤ 需要处理 ═══════════
+
+  Widget _todoCard() {
+    final pending = _i('pending_orders');
+    final unpaid = _i('unpaid_orders');
+    final reviews = _i('reviewsPending');
+    final reports = _i('open_reports');
+    final total = pending + unpaid + reviews + reports;
+
+    return _card(
+      title: '需要处理',
+      icon: Icons.pending_actions_rounded,
+      iconColor: total > 0 ? C.danger : C.mint,
+      trailing: total > 0
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: C.danger,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$total',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+            )
+          : null,
+      child: total == 0
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, size: 16, color: C.mint),
+                  const SizedBox(width: 6),
+                  Text(
+                    '没有待处理事项',
+                    style: TextStyle(fontSize: 12.5, color: context.t2),
+                  ),
+                ],
+              ),
+            )
+          : Row(
+              children: [
+                _todoItem('待发货订单', pending, C.amber),
+                _todoItem('未付订单', unpaid, C.violet),
+                _todoItem('待审评价', reviews, C.brand),
+                _todoItem('未处理举报', reports, C.danger),
+              ],
+            ),
+    );
+  }
+
+  Widget _todoItem(String label, int n, Color c) => Expanded(
+    child: Column(
+      children: [
+        Text(
+          '$n',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            color: n > 0 ? c : context.t3,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: Ty.tiny.copyWith(fontSize: 9, color: context.t3),
+        ),
+      ],
+    ),
+  );
+
+  // ═══════════ ⑥ 软件表现 ═══════════
+
+  Widget _appCard() {
+    final topApps = (_d['top_apps'] as List?) ?? const [];
+    final items = <MapEntry<String, double>>[];
+    for (final a in topApps) {
+      final m = Map<String, dynamic>.from(a as Map);
+      items.add(
+        MapEntry(
+          '${m['title'] ?? ''}',
+          (m['down_count'] as num?)?.toDouble() ?? 0,
         ),
       );
     }
-    return Column(
-      children: [
-        for (final r in list)
-          Builder(
-            builder: (c) {
-              final ok = '${r['status']}' == 'ok';
-              return GestureDetector(
-                onTap: () => _showDownloadDetail(r),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: ok ? C.mint : C.rose,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      SizedBox(
-                        width: 62,
-                        child: Text(
-                          '${r['time_text'] ?? ''}',
-                          style: Ty.tiny.copyWith(
-                            fontSize: 10.5,
-                            color: context.t3,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
+    final downTop = (_d['down_top'] as List?) ?? const [];
+    final todayItems = <MapEntry<String, double>>[];
+    for (final a in downTop) {
+      final m = Map<String, dynamic>.from(a as Map);
+      todayItems.add(
+        MapEntry('${m['title'] ?? ''}', (m['c'] as num?)?.toDouble() ?? 0),
+      );
+    }
+
+    return _card(
+      title: '软件表现',
+      icon: Icons.apps_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _kv('在库软件', '${_i('apps')}'),
+              _kv('总下载', '${_i('total_down_all')}'),
+              _kv('总浏览', '${_i('total_views')}'),
+            ],
+          ),
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              '累计下载 Top 5',
+              style: Ty.tiny.copyWith(
+                fontSize: 10.5,
+                color: context.t3,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            MiniBarList(items: items, maxItems: 5),
+          ],
+          if (todayItems.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              '今日下载 Top 5',
+              style: Ty.tiny.copyWith(
+                fontSize: 10.5,
+                color: context.t3,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            MiniBarList(items: todayItems, color: C.mint, maxItems: 5),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ═══════════ ⑦ 最近下载 ═══════════
+
+  Widget _recentCard() {
+    final list = (_d['recent_downloads'] as List?) ?? const [];
+    if (list.isEmpty) return const SizedBox.shrink();
+    return _card(
+      title: '最近下载',
+      icon: Icons.download_rounded,
+      child: Column(
+        children: list.take(8).map((e) {
+          final r = Map<String, dynamic>.from(e as Map);
+          final ok = '${r['status']}' == 'ok';
+          return InkWell(
+            onTap: () => _showDownloadDetail(r),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(
+                children: [
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: ok ? C.mint : C.danger,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
                           '${r['app_title'] ?? ''}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Ty.small.copyWith(
-                            fontSize: 12,
-                            color: ok ? context.t1 : C.rose,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: context.t1,
                           ),
                         ),
-                      ),
-                      if ('${r['channel'] ?? ''}'.isNotEmpty) ...[
-                        AdTag(
-                          text: switch ('${r['channel']}') {
-                            'local' => '本地',
-                            'api' => '接口',
-                            'server' => '服务端',
-                            'direct' => '直链',
-                            _ => '${r['channel']}',
-                          },
-                          color: C.violet,
-                        ),
-                        const SizedBox(width: 5),
+                        if (!ok && '${r['error'] ?? ''}'.isNotEmpty)
+                          Text(
+                            '${r['error']}'.split('\n').first,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Ty.tiny.copyWith(
+                              fontSize: 9.5,
+                              color: C.danger.withAlpha(200),
+                            ),
+                          ),
                       ],
-                      AdTag(
-                        text: ok ? '成功' : '失败',
-                        color: ok ? C.mint : C.rose,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-      ],
+                  const SizedBox(width: 8),
+                  Text(
+                    '${r['time_text'] ?? ''}',
+                    style: Ty.tiny.copyWith(fontSize: 9.5, color: context.t3),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
   void _showDownloadDetail(Map<String, dynamic> r) {
-    final ok = '${r['status']}' == 'ok';
-    showDialog<void>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Text(ok ? '下载成功' : '下载失败'),
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          '${r['app_title'] ?? '下载详情'}',
+          style: const TextStyle(fontSize: 15),
+        ),
         content: SingleChildScrollView(
-          child: AdKvList(
-            rows: [
-              ('时间', '${r['time_text'] ?? ''}'),
-              ('软件', '${r['app_title'] ?? ''}'),
-              (
-                '用户',
-                '${r['nickname'] ?? ''}'.isEmpty
-                    ? '未登录 / ID ${r['user_id'] ?? 0}'
-                    : '${r['nickname']} (ID ${r['user_id'] ?? 0})',
-              ),
-              ('状态', ok ? '成功' : '失败'),
-              ('IP', '${r['ip'] ?? '-'}'),
-              (
-                '解析方式',
-                switch ('${r['channel'] ?? ''}') {
-                  'local' => '本地解析（客户端）',
-                  'api' => '自建解析接口',
-                  'server' => '服务端兜底解析',
-                  'direct' => '服务器直链（无解析）',
-                  _ => '未记录',
-                },
-              ),
-              ('设备', '${r['device'] ?? '-'}'),
-              if (!ok) ('失败原因', '${r['error'] ?? ''}'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _row('状态', '${r['status']}' == 'ok' ? '成功' : '失败'),
+              if ('${r['error'] ?? ''}'.isNotEmpty)
+                _row('失败原因', '${r['error']}'),
+              if ('${r['channel'] ?? ''}'.isNotEmpty)
+                _row('解析方式', '${r['channel']}'),
+              if ('${r['nickname'] ?? ''}'.isNotEmpty)
+                _row('用户', '${r['nickname']}'),
+              if ('${r['device'] ?? ''}'.isNotEmpty)
+                _row('设备', '${r['device']}'),
+              if ('${r['ip'] ?? ''}'.isNotEmpty) _row('IP', '${r['ip']}'),
+              if ('${r['time_text'] ?? ''}'.isNotEmpty)
+                _row('时间', '${r['time_text']}'),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c),
-            child: const Text('关闭'),
+          TextButton(onPressed: () => Get.back(), child: const Text('关闭')),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String k, String v) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(k, style: TextStyle(fontSize: 10.5, color: context.t3)),
+        const SizedBox(height: 2),
+        SelectableText(
+          v,
+          style: TextStyle(fontSize: 12.5, height: 1.5, color: context.t1),
+        ),
+      ],
+    ),
+  );
+
+  // ═══════════ ⑧ 今日启动用户 ═══════════
+
+  Widget _bootUsersCard() {
+    final list = (_d['boot_users'] as List?) ?? const [];
+    if (list.isEmpty) return const SizedBox.shrink();
+    return _card(
+      title: '今日启动用户',
+      icon: Icons.people_alt_rounded,
+      child: Column(
+        children: list.take(8).map((e) {
+          final u = Map<String, dynamic>.from(e as Map);
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: C.brand.withAlpha(22),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${u['nickname'] ?? '?'}'.characters.first,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: C.brand,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${u['nickname'] ?? ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: context.t1,
+                        ),
+                      ),
+                      Text(
+                        '${u['version'] ?? ''} · ${u['last'] ?? ''}',
+                        style: Ty.tiny.copyWith(
+                          fontSize: 9.5,
+                          color: context.t3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '${u['count']} 次',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: C.brand,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // ═══════════ 通用卡片 ═══════════
+
+  Widget _card({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    Color? iconColor,
+    Widget? trailing,
+  }) {
+    final c = iconColor ?? C.brand;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(R.lg),
+        border: Border.all(
+          color: context.isDark
+              ? Colors.white.withAlpha(12)
+              : Colors.black.withAlpha(7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(context.isDark ? 40 : 10),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
           ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 15, color: c),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: context.t1,
+                ),
+              ),
+              const Spacer(),
+              if (trailing != null) trailing,
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
         ],
       ),
     );
