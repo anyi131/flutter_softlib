@@ -688,7 +688,6 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                       loading: '处理中…',
                       success: isAdmin ? '已取消管理员' : '已设为管理员',
                     );
-                    ToastUtil.success(isAdmin ? '已取消' : '已设为管理员');
                     _load();
                   },
                 ),
@@ -702,7 +701,6 @@ class _AdminUsersTabState extends State<AdminUsersTab>
                       loading: '处理中…',
                       success: banned ? '已解禁' : '已禁用',
                     );
-                    ToastUtil.success(banned ? '已解禁' : '已禁用');
                     _load();
                   },
                 ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../../utils/sound_util.dart';
+import '../../../utils/app_action.dart';
 import '../../../utils/err_text.dart';
 
 import 'dart:io';
@@ -109,13 +110,14 @@ class MineLogic extends GetxController {
       ),
     );
     if (ok != true) return;
-    try {
-      await _userService.unbindQQ();
+    final done = await AppAction.act(
+      () => _userService.unbindQQ(),
+      loading: '正在解绑…',
+      success: '已解绑 QQ',
+    );
+    if (done) {
       qqBound = false;
       update();
-      ToastUtil.success('已解绑 QQ');
-    } catch (e) {
-      ToastUtil.error(ErrText.of(e));
     }
   }
 
@@ -367,16 +369,15 @@ class MineLogic extends GetxController {
       ),
     );
     if (ok != true) return;
-    try {
-      await _userService.updateProfile({
+    final done = await AppAction.act(
+      () => _userService.updateProfile({
         'nickname': nickCtrl.text.trim(),
         'qq': qqCtrl.text.trim(),
-      });
-      await load();
-      ToastUtil.success('资料已更新');
-    } catch (e) {
-      toast(ErrText.of(e));
-    }
+      }),
+      loading: '保存中…',
+      success: '资料已更新',
+    );
+    if (done) await load();
   }
 
   /// 退出登录
@@ -398,16 +399,21 @@ class MineLogic extends GetxController {
       ),
     );
     if (yes != true) return;
-    await _userService.logout();
+    await AppAction.act(
+      () => _userService.logout(),
+      loading: '正在退出…',
+      success: '已退出登录',
+    );
     _clearToGuest();
     update();
-    ToastUtil.success('已退出登录');
   }
 
   /// 签到 +5（后端落库，每天一次）
   Future<void> signIn() async {
     if (!isLoggedIn) return openLogin();
     if (signedToday) return toast('今天已经签到过啦');
+    // ★ 1020：签到加 loading（原来点完没反应，网络慢时用户会连点）
+    AppAction.showLoading('签到中…');
     try {
       final score = await _userService.signIn();
       signedDate = _today();
@@ -415,9 +421,11 @@ class MineLogic extends GetxController {
       final sp = await SharedPreferences.getInstance();
       await sp.setString(_kSignDate, signedDate);
       update();
+      AppAction.hideLoading();
       SoundUtil.playSign(); // ★ 音效：签到成功
       ToastUtil.success('签到成功 +5 积分');
     } catch (e) {
+      AppAction.hideLoading();
       toast(ErrText.of(e));
     }
   }

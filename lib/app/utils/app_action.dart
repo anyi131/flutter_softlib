@@ -76,6 +76,31 @@ class AppAction {
     }
   }
 
+  /// 包一次「提交/删除」类操作：自动 loading + 异常兜底 + 一定关闭 loading
+  ///
+  /// ★ 1020：后台大量删除/保存按钮原来是「点了没反应」或「异常后 loading 卡死」。
+  ///   这个封装保证：
+  ///     · 点击立刻有 loading
+  ///     · 无论成功/失败/异常，loading 一定被关掉
+  ///     · 失败自动 Toast 人话错误
+  static Future<bool> act(
+    Future<void> Function() action, {
+    String loading = '处理中…',
+    String? success,
+  }) async {
+    showLoading(loading);
+    try {
+      await action();
+      if (success != null) ToastUtil.success(success);
+      return true;
+    } catch (e) {
+      ToastUtil.error(ErrText.of(e));
+      return false;
+    } finally {
+      hideLoading();
+    }
+  }
+
   /// 手动控制（复杂场景）
   static void showLoading([String text = '处理中…']) {
     EasyLoading.show(status: text, maskType: EasyLoadingMaskType.clear);

@@ -1022,17 +1022,16 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
                     onPressed: () async {
                       if (t.text.trim().isEmpty) return;
                       Navigator.pop(dctx);
-                      try {
-                        await _svc.saveCat({
+                      final ok = await AppAction.act(
+                        () => _svc.saveCat({
                           'id': c?['id'] ?? 0,
                           'title': t.text.trim(),
                           'weigh': int.tryParse(w.text) ?? 0,
-                        });
-                        ToastUtil.success('已保存');
-                        await reload();
-                      } catch (e) {
-                        ToastUtil.error(ErrText.of(e));
-                      }
+                        }),
+                        loading: '保存中…',
+                        success: '已保存',
+                      );
+                      if (ok) await reload();
                     },
                     child: const Text('保存'),
                   ),
