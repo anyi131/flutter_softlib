@@ -1365,7 +1365,9 @@ class MineComponent extends StatelessWidget {
         () => Get.toNamed(Routes.appDownload),
       ),
       if (_uiCfg.featureQqGroup)
-        _S('QQ通知群', Icons.forum_rounded, C.cyan, () => logic.joinGroup()),
+        _S('QQ通知群', Icons.forum_rounded, C.cyan, () {
+          logic.joinGroup();
+        }),
       // ★ 1014 需求3：分享本软件（分享文案后台可配）
       if (_uiCfg.featureShareApp)
         _S('分享软件', Icons.share_rounded, C.brandBright, () => logic.shareApp()),

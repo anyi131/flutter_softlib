@@ -88,7 +88,11 @@ class HomeLogic extends GetxController {
 
   ///跳转加群（★ v331z2：解析 qun.qq.com 分享链接里的群号 → mqqapi scheme
   /// 直达 QQ 加群界面；解析失败退网页打开。原来只会把链接当图片展示）
-  void joinGroup() {
+  ///
+  /// ★ 1020：后台填的常是 qm.qq.com/q/xxx 短链，本地解析不出群号，
+  ///   于是直接丢给浏览器 → 用户看到网页而不是 QQ（反馈 #3）。
+  ///   现在短链先问服务端要群号，拿到就直达 QQ。
+  Future<void> joinGroup() async {
     // ★ v331z3：优先实时缓存配置（configData 可能因加载时序为 null → 误报「暂未配置」）
     final cached = SoftService.instance.cachedConfig;
     final groupUrl = configData?.feedbackGroup ??
@@ -104,19 +108,17 @@ class HomeLogic extends GetxController {
       return;
     }
     // 2) 从 qun.qq.com/universal-share 分享链接里挖 groupCode
-    final code = _extractGroupCode(groupUrl);
+    var code = _extractGroupCode(groupUrl);
+    // 3) 本地挖不到 → 问服务端（qm.qq.com 短链只有服务端抓页面才拿得到群号）
+    code ??= await SoftService.instance.resolveQqGroup(groupUrl);
     if (code != null && code.isNotEmpty) {
       JumpUtil.openUrl(
         'mqqapi://card/show_pslcard?src_type=internal&version=1'
         '&uin=$code&card_type=group&source=qrcode',
       );
-      // 唤起失败（未装QQ等）2秒后兜底开网页
-      Future.delayed(const Duration(seconds: 2), () {
-        JumpUtil.openUrl(groupUrl);
-      });
       return;
     }
-    // 3) 其他链接 → 网页打开
+    // 4) 其他链接 → 网页打开
     JumpUtil.openUrl(groupUrl);
   }
 

@@ -20,6 +20,7 @@ import '../../api/unlock_service.dart';
 import 'dart:ui';
 
 import '../../config.dart';
+import '../../design/glass_theme.dart';
 import '../../design/adaptive.dart';
 import '../../design/app_style.dart';
 import '../../design/app_style_controller.dart';
@@ -893,7 +894,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: context.isDark ? Colors.white.withAlpha(8) : Colors.white,
+        color: GlassTheme.enabled
+            ? GlassTheme.cardColor(context)
+            : (context.isDark ? Colors.white.withAlpha(8) : Colors.white),
         borderRadius: BorderRadius.circular(R.lg),
         border: Border.all(
           color: context.isDark
@@ -951,7 +954,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
   Widget _tabBarCard(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withAlpha(14) : Colors.white,
+        color: GlassTheme.enabled
+            ? GlassTheme.cardColor(context)
+            : (isDark ? Colors.white.withAlpha(14) : Colors.white),
         borderRadius: BorderRadius.circular(R.lg),
         border: Border.all(
           color: isDark
@@ -1292,7 +1297,9 @@ class _AppDetailsPageState extends State<AppDetailsPage>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       decoration: BoxDecoration(
-        color: isDark ? C.bg2 : Colors.white,
+        color: GlassTheme.enabled
+            ? GlassTheme.cardColor(context)
+            : (isDark ? C.bg2 : Colors.white),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
