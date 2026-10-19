@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+
 import '../utils/err_text.dart';
+
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
 
@@ -403,9 +405,7 @@ class SoftService {
     //   「解析凭证无效或已过期，请重新从详情页下载」（真机复现过）。
     final ticket2 = await _applyParseTicket(lzyUrl);
     if (ticket2 == null) {
-      lastParseError = lastParseError.isEmpty
-          ? '重新申请解析凭证失败'
-          : lastParseError;
+      lastParseError = lastParseError.isEmpty ? '重新申请解析凭证失败' : lastParseError;
       return null;
     }
     final sv = await resolveLzyByServer(lzyUrl, ticket: ticket2);

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_softlib/app/http/http_api.dart';
@@ -95,15 +96,13 @@ class HomeLogic extends GetxController {
   Future<void> joinGroup() async {
     // ★ v331z3：优先实时缓存配置（configData 可能因加载时序为 null → 误报「暂未配置」）
     final cached = SoftService.instance.cachedConfig;
-    final groupUrl = configData?.feedbackGroup ??
-        (cached?.feedbackGroup ?? '');
+    final groupUrl = configData?.feedbackGroup ?? (cached?.feedbackGroup ?? '');
     if (groupUrl.isEmpty) {
       ToastUtil.error('暂未配置');
       return;
     }
     // 1) 已经是 mqqapi/tencent 协议 → 直接跳
-    if (groupUrl.startsWith('mqqapi://') ||
-        groupUrl.startsWith('tencent://')) {
+    if (groupUrl.startsWith('mqqapi://') || groupUrl.startsWith('tencent://')) {
       JumpUtil.openUrl(groupUrl);
       return;
     }
@@ -131,9 +130,9 @@ class HomeLogic extends GetxController {
     final b = RegExp(r'busi_data=([A-Za-z0-9%+/=]+)').firstMatch(url);
     if (b != null) {
       try {
-        final decoded = utf8.decode(base64Decode(
-          Uri.decodeComponent(b.group(1)!).replaceAll(' ', '+'),
-        ));
+        final decoded = utf8.decode(
+          base64Decode(Uri.decodeComponent(b.group(1)!).replaceAll(' ', '+')),
+        );
         final j = jsonDecode(decoded);
         final g = '${j['groupCode'] ?? ''}';
         if (g.isNotEmpty) return g;
@@ -145,8 +144,7 @@ class HomeLogic extends GetxController {
   ///跳转加客服（★ v331z3：实时缓存兜底 + 直接打开链接，原来只会把链接当图片展示）
   void joinUser() {
     final cached = SoftService.instance.cachedConfig;
-    final userUrl =
-        configData?.feedbackUser ?? (cached?.feedbackUser ?? '');
+    final userUrl = configData?.feedbackUser ?? (cached?.feedbackUser ?? '');
     if (userUrl.isEmpty) {
       ToastUtil.error('暂未配置');
       return;

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import '../../../utils/sound_util.dart';
 import '../../../utils/err_text.dart';
 
@@ -594,7 +595,13 @@ class _AdminUiTabState extends State<AdminUiTab> {
   }
 
   Widget _soundSwitches() {
-    Widget row(String t, String sub, bool on, ValueChanged<bool> cb, {bool disabled = false}) {
+    Widget row(
+      String t,
+      String sub,
+      bool on,
+      ValueChanged<bool> cb, {
+      bool disabled = false,
+    }) {
       return Opacity(
         opacity: disabled ? 0.45 : 1,
         child: Padding(
@@ -605,9 +612,21 @@ class _AdminUiTabState extends State<AdminUiTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(t, style: Ty.body.copyWith(fontSize: 13.5, color: context.t1)),
+                    Text(
+                      t,
+                      style: Ty.body.copyWith(
+                        fontSize: 13.5,
+                        color: context.t1,
+                      ),
+                    ),
                     if (sub.isNotEmpty)
-                      Text(sub, style: Ty.tiny.copyWith(fontSize: 11, color: context.t3)),
+                      Text(
+                        sub,
+                        style: Ty.tiny.copyWith(
+                          fontSize: 11,
+                          color: context.t3,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -642,8 +661,10 @@ class _AdminUiTabState extends State<AdminUiTab> {
           setState(() {});
         }, disabled: !SoundUtil.master),
         const SizedBox(height: 4),
-        Text('提示：音效跟随系统静音设置，静音后自动不响',
-            style: Ty.tiny.copyWith(fontSize: 11, color: context.t3)),
+        Text(
+          '提示：音效跟随系统静音设置，静音后自动不响',
+          style: Ty.tiny.copyWith(fontSize: 11, color: context.t3),
+        ),
       ],
     );
   }
