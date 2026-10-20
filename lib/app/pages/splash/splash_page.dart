@@ -233,6 +233,94 @@ class _SplashPageState extends State<SplashPage> {
     final title = cfg?.splashTitle ?? '';
     final desc = cfg?.splashDesc ?? '';
 
+    // ★★ 1020 开屏重构：只要配置了网络图，就用**统一的全屏图模板**。
+    //   原来的 split/greeting/poster_center/fade 等模板各有各的问题
+    //   （有的根本没有图片槽位、有的布局错位），现在统一收敛到这一套：
+    //   图片铺满 + 深色蒙层 + 居中品牌文案。
+    //   没配图时才走下面的旧模板（兼容老配置）。
+    if (_netSplash.isNotEmpty) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          _splashImage(),
+          // 上下压暗，保证文字可读
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x66000000),
+                  Color(0x22000000),
+                  Color(0xCC000000),
+                ],
+                stops: [0.0, 0.45, 1.0],
+              ),
+            ),
+          ),
+          // 品牌文案（底部）
+          Positioned(
+            left: 28,
+            right: 28,
+            bottom: 96,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.isEmpty ? '安逸软件汇' : title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    height: 1.25,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  desc.isEmpty ? '优质软件 · 持续更新' : desc,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(210),
+                    fontSize: 13.5,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 右下角倒计时
+          if (_left > 0)
+            Positioned(
+              right: 20,
+              top: MediaQuery.of(context).padding.top + 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(90),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white.withAlpha(60)),
+                ),
+                child: Text(
+                  '$_left s',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
     if (tpl == 'split') {
       // v52t：左右分栏（左文字/logo，右图）
       return Row(
