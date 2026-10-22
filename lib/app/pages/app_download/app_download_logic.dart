@@ -10,6 +10,11 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../api/unlock_service.dart';
+import '../../utils/jump_util.dart';
+
+import 'package:flutter/services.dart';
+
+import '../../utils/app_action.dart';
 import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
 import '../../utils/apk_installer.dart';
@@ -200,28 +205,145 @@ class AppDownloadLogic extends GetxController {
   }
 
   ///重试下载
+  /// 重试下载
+  ///
+  /// ★★ 1020 重做：原来直接 FlutterDownloader.retry(taskId)，
+  ///   复用的是**任务里存的旧直链**。而蓝奏云直链几小时就过期，
+  ///   所以「直链过期」这一类失败，点多少次重试都是同一个结果。
+  ///
+  ///   现在：先重新走一遍解析拿新直链；拿到就新建任务，拿不到就
+  ///   给用户「浏览器打开」兜底，别让人卡在原地。
   Future<void> retryDownload(DownInfo? dowInfo) async {
-    String? taskId = dowInfo?.taskId;
+    final taskId = dowInfo?.taskId;
     if (taskId == null || taskId.isEmpty) {
       ToastUtil.error('下载任务ID无效，请稍后重试');
       return;
     }
-    // ★ 1014 安全：重试前重新鉴权
     if (!await _recheckAuth(dowInfo)) return;
-    String? taskIdTemp = await FlutterDownloader.retry(taskId: taskId);
+
+    // ① 找到原始分享链接（lanzou 页面地址）
+    String rawUrl = '';
+    try {
+      final appId = int.tryParse('${dowInfo?.appId ?? 0}') ?? 0;
+      if (appId > 0) {
+        final it = await SoftService.instance.fetchAppDetail(id: appId);
+        rawUrl = it?.url ?? '';
+      }
+    } catch (_) {}
+
+    // ② 重新解析拿新直链
+    if (rawUrl.isNotEmpty) {
+      AppAction.showLoading('正在重新获取下载地址…');
+      String? fresh;
+      try {
+        fresh = await SoftService.instance.resolveLzy(rawUrl);
+      } catch (_) {}
+      AppAction.hideLoading();
+
+      if (fresh != null && fresh.isNotEmpty) {
+        try {
+          await FlutterDownloader.remove(
+            taskId: taskId,
+            shouldDeleteContent: true,
+          );
+        } catch (_) {}
+        final newId = await FlutterDownloader.enqueue(
+          url: fresh,
+          fileName: _retryFileName(dowInfo),
+          savedDir: await DownloadDir.path(),
+          showNotification: true,
+          saveInPublicStorage: false,
+          openFileFromNotification: true,
+        );
+        if (newId != null) {
+          try {
+            await downloadTaskDao.updateDownloadTask(
+              appId: dowInfo!.appId ?? '',
+              taskId: newId,
+              appSize: dowInfo.appSize ?? '',
+              appName: dowInfo.appName ?? '',
+              appIcon: dowInfo.appIcon ?? '',
+            );
+          } catch (_) {}
+          ToastUtil.success('已重新开始下载');
+          getAllDownInfos();
+          return;
+        }
+      }
+
+      // ③ 重新解析失败 → 给浏览器兜底
+      _showBrowserFallback(rawUrl);
+      return;
+    }
+
+    // ④ 拿不到原始链接 → 退回原来的原地重试
+    final taskIdTemp = await FlutterDownloader.retry(taskId: taskId);
     if (taskIdTemp == null) {
       ToastUtil.error('重试下载失败，请稍后重试');
       return;
     }
-    taskId = taskIdTemp;
-    downloadTaskDao.updateDownloadTask(
-      appId: dowInfo!.appId!,
-      taskId: taskId,
-      appSize: dowInfo.appSize!,
-      appName: dowInfo.appName!,
-      appIcon: dowInfo.appIcon!,
-    );
+    try {
+      await downloadTaskDao.updateDownloadTask(
+        appId: dowInfo!.appId ?? '',
+        taskId: taskIdTemp,
+        appSize: dowInfo.appSize ?? '',
+        appName: dowInfo.appName ?? '',
+        appIcon: dowInfo.appIcon ?? '',
+      );
+    } catch (_) {}
     update(['${dowInfo.appId}']);
+  }
+
+  /// 重试时的文件名（带时间戳，避免和旧文件冲突）
+  String _retryFileName(DownInfo? d) {
+    var name = (d?.appName ?? d?.fileName ?? 'download').replaceAll(' ', '_');
+    name = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    if (name.toLowerCase().endsWith('.apk')) {
+      name = name.substring(0, name.length - 4);
+    }
+    name = name.replaceAll(RegExp(r'_\d{10,}$'), '');
+    return '${name}_${DateTime.now().millisecondsSinceEpoch}.apk';
+  }
+
+  /// 解析不了时：让用户用浏览器打开原链接
+  void _showBrowserFallback(String rawUrl) {
+    Get.dialog<void>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('暂时无法自动下载', style: TextStyle(fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '下载地址获取失败，可能是源站限制。\n你可以用浏览器打开原页面手动下载。',
+              style: TextStyle(fontSize: 13, height: 1.7),
+            ),
+            const SizedBox(height: 10),
+            SelectableText(
+              rawUrl,
+              style: TextStyle(fontSize: 10.5, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: rawUrl));
+              ToastUtil.success('链接已复制');
+            },
+            child: const Text('复制链接'),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              JumpUtil.openUrl(rawUrl);
+            },
+            child: const Text('浏览器打开'),
+          ),
+        ],
+      ),
+    );
   }
 
   ///取消下载
