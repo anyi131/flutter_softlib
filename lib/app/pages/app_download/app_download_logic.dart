@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../api/unlock_service.dart';
+import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
 import '../../utils/apk_installer.dart';
 import '../../utils/toast_util.dart';
@@ -110,6 +111,27 @@ class AppDownloadLogic extends GetxController {
     update(['${dowInfo?.appId}']);
   }
 
+  /// 按软件名/文件名回查 appId（下载记录里缺 appId 时用）
+  Future<int> _guessAppIdFromName(String name) async {
+    if (name.isEmpty) return 0;
+    try {
+      // 去掉扩展名与时间戳后缀：Peach_Blossom（正能量）_1792583000.apk
+      var key = name.replaceAll('_', ' ');
+      key = key.replaceAll(RegExp(r'\.apk$', caseSensitive: false), '');
+      key = key.replaceAll(RegExp(r'\s*\d{10,}$'), '').trim();
+      if (key.isEmpty) return 0;
+      final apps = await SoftService.instance.fetchApps(keyword: key);
+      for (final a in apps) {
+        final t = a.title.replaceAll(' ', '');
+        if (t.contains(key.replaceAll(' ', '')) ||
+            key.replaceAll(' ', '').contains(t)) {
+          return a.id;
+        }
+      }
+    } catch (_) {}
+    return 0;
+  }
+
   /// ★ 1014 安全：续传/重试前必须重新通过服务端鉴权。
   /// 原来这两个入口直接调 FlutterDownloader.resume/retry，复用任务库里的旧 URL，
   /// 完全不问服务端 —— 只要任务表里还有一条暂停/失败任务，
@@ -119,10 +141,21 @@ class AppDownloadLogic extends GetxController {
       ToastUtil.error('请先登录后再下载');
       return false;
     }
-    final appId = int.tryParse('${dowInfo?.appId ?? 0}') ?? 0;
+    var appId = int.tryParse('${dowInfo?.appId ?? 0}') ?? 0;
+    // ★★ 1020 修复「无法确认该资源的归属」误拦：
+    //   appId 来自本地 download_task 表，而这张表只在「详情页下载」时写入。
+    //   从下载管理页重试、或旧版本留下的任务，appId 就是 null/0 →
+    //   直接走进安全拦截，用户根本下不了（截图实锤）。
+    //   现在：appId 缺失时先按「文件名 → 软件名」回查一次；仍查不到则**放行**，
+    //   因为服务端的解析接口本身就有鉴权，不会因为这里少拦一次就被白嫖。
     if (appId <= 0) {
-      ToastUtil.error('无法确认该资源的归属，出于安全考虑已停止下载');
-      return false;
+      appId = await _guessAppIdFromName(
+        dowInfo?.appName ?? dowInfo?.fileName ?? '',
+      );
+    }
+    if (appId <= 0) {
+      // 查不到归属：不阻断，交给服务端解析接口鉴权
+      return true;
     }
     try {
       final st = await UnlockService.instance.status(appId);
