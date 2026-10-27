@@ -339,7 +339,7 @@ class _AdminAppsTabState extends State<AdminAppsTab> {
       ToastUtil.error(ErrText.of(e));
       return;
     }
-    await showModalBottomSheet(
+    await showGlassSheet(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => Container(
