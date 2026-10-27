@@ -13,7 +13,7 @@ import '../../api/review_service.dart';
 import '../../api/user_service.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
-import '../../design/glass.dart'
+import '../../design/glass.dart';
 import '../../models/review_item.dart';
 import '../../routes/app_pages.dart';
 import 'star_rating.dart';

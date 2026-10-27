@@ -16,7 +16,7 @@ import 'package:marquee/marquee.dart';
 import '../../../generated/assets.dart';
 import '../../api/soft_service.dart';
 import '../../design/ui.dart';
-import '../../design/glass.dart'
+import '../../design/glass.dart';
 import '../../api/user_service.dart';
 import '../../models/app_config.dart';
 import '../../routes/app_pages.dart';

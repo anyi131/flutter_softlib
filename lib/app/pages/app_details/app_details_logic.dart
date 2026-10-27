@@ -26,7 +26,7 @@ import '../../database/tables/download_task_table.dart';
 import '../../design/app_style.dart';
 import '../../design/app_style_controller.dart';
 import '../../design/ui.dart';
-import '../../design/glass.dart'
+import '../../design/glass.dart';
 import '../../models/app_item.dart';
 import '../../routes/app_pages.dart';
 import '../../models/http/results/lzy_file_info_model.dart';

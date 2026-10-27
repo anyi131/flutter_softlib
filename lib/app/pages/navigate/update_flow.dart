@@ -13,7 +13,7 @@ import 'package:get/get.dart';
 import '../../api/soft_service.dart';
 import '../../design/app_anim.dart';
 import '../../design/ui.dart';
-import '../../design/glass.dart'
+import '../../design/glass.dart';
 import '../../utils/apk_installer.dart';
 import '../../utils/download_dir.dart';
 import '../../utils/jump_util.dart';

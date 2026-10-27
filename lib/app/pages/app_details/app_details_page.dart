@@ -29,7 +29,7 @@ import '../../design/app_style.dart';
 import '../../design/app_style_controller.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
-import '../../design/glass.dart'
+import '../../design/glass.dart';
 import '../../utils/jump_util.dart';
 import '../../utils/toast_util.dart';
 import '../../models/app_item.dart';

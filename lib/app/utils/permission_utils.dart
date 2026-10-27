@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/app/design/glass.dart';
+import '../design/glass.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// 处理常用应用权限的工具类。

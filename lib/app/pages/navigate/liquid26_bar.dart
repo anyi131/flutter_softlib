@@ -22,7 +22,7 @@ class Liquid26Bar {
     final bottom = (inset > 0 ? inset : 8) + 10;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(14, 8, 14, bottom),
+      padding: EdgeInsets.fromLTRB(14, 8, 14, bottom + 0.0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
         child: BackdropFilter(

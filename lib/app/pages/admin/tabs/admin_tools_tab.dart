@@ -9,7 +9,7 @@ import '../../../api/admin_service.dart';
 import '../../../design/app_anim.dart';
 import '../../../design/kit.dart';
 import '../../../design/ui.dart';
-import '../../../design/glass.dart'
+import '../../../design/glass.dart';
 import '../../../utils/toast_util.dart';
 
 /// ═══════════════════════════════════════════════════════════════
