@@ -671,10 +671,9 @@ class _AdminCollectTabState extends State<AdminCollectTab>
   }
 
   void _showAccountSheet() {
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
           color: ctx.isDark ? C.bg2 : Colors.white,

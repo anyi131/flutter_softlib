@@ -26,6 +26,7 @@ import '../../database/tables/download_task_table.dart';
 import '../../design/app_style.dart';
 import '../../design/app_style_controller.dart';
 import '../../design/ui.dart';
+import '../../design/glass.dart'
 import '../../models/app_item.dart';
 import '../../routes/app_pages.dart';
 import '../../models/http/results/lzy_file_info_model.dart';
@@ -1650,7 +1651,7 @@ class AppDetailsLogic extends GetxController {
   /// 分享：会员资源不允许分享下载链接（防止绕过会员校验）
   void showSharePopUps(BuildContext context) {
     if (item?.isVipItem == true) {
-      showDialog(
+      showGlassDialog(
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('会员专享资源'),
@@ -1666,7 +1667,7 @@ class AppDetailsLogic extends GetxController {
       return;
     }
     // 分享出去的是「详情页地址」而不是下载直链，避免直链被直接拿走
-    showDialog(
+    showGlassDialog(
       context: context,
       builder: (_) => PostersWidget(
         appInfo: appInfo,
@@ -1694,7 +1695,7 @@ class AppDetailsLogic extends GetxController {
   void showPreviewImage(String imageUrl) {
     final _ctx = SafeCtx.of();
     if (_ctx == null) return;
-    showDialog(
+    showGlassDialog(
       context: _ctx,
       builder: (context) {
         return GestureDetector(
