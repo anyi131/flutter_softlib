@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import '../../design/glass.dart';
 import '../../../utils/err_text.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
