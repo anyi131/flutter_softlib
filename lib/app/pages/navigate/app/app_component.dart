@@ -316,7 +316,7 @@ class _AppComponentState extends State<AppComponent> {
   Future<void> _search() async {
     final ctrl = TextEditingController(text: _kw);
     final v = await Get.dialog<String>(
-      AlertDialog(
+      AppDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(R.lg),
         ),

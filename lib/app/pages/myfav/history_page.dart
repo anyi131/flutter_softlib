@@ -138,7 +138,7 @@ class _HistoryPageState extends State<HistoryPage> {
         onTap: () {
           if (days == 0) {
             Get.dialog<bool>(
-              AlertDialog(
+              AppDialog(
                 title: const Text('清空全部历史'),
                 content: const Text('将删除所有工具使用记录，不可恢复。'),
                 actions: [

@@ -491,7 +491,7 @@ class _ReviewTabState extends State<ReviewTab> {
     final isAdmin = UserService.instance.user?.isAdmin == true;
     if (rp.userId != myId && !isAdmin) return;
     final ok = await Get.dialog<bool>(
-      AlertDialog(
+      AppDialog(
         title: const Text('删除回复'),
         content: Text('确定删除这条回复吗？\n「${rp.content}」'),
         actions: [
@@ -527,7 +527,7 @@ class _ReviewTabState extends State<ReviewTab> {
   Future<void> _openReply(ReviewItem r) async {
     if (!UserService.instance.isLoggedIn) {
       final go = await Get.dialog<bool>(
-        AlertDialog(
+        AppDialog(
           title: const Text('需要登录'),
           content: const Text('回复需要先登录账号'),
           actions: [
@@ -552,7 +552,7 @@ class _ReviewTabState extends State<ReviewTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) {
-          return AlertDialog(
+          return AppDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(R.md),
             ),
@@ -642,7 +642,7 @@ class _ReviewTabState extends State<ReviewTab> {
   Future<void> _openCompose() async {
     if (!UserService.instance.isLoggedIn) {
       final go = await Get.dialog<bool>(
-        AlertDialog(
+        AppDialog(
           title: const Text('需要登录'),
           content: const Text('评价软件需要先登录账号'),
           actions: [

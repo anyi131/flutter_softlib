@@ -15,6 +15,7 @@ import '../../design/adaptive.dart';
 import '../../design/ui.dart';
 import '../../utils/jump_util.dart';
 import '../../utils/toast_util.dart';
+import '../../design/kit.dart';
 
 /// ★ 1016：赏帮赚新手任务 → 领会员
 class TaskPage extends StatefulWidget {
@@ -107,7 +108,7 @@ class _TaskPageState extends State<TaskPage> {
     }
     showDialog<void>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => AppDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         titlePadding: const EdgeInsets.only(top: 22),
         title: const Text(
