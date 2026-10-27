@@ -44,6 +44,12 @@ Future<void> main() async {
     };
     // 未捕获的异步错误
     PlatformDispatcher.instance.onError = (error, stack) {
+      // ★ 1028：图片网络抖动同样走这条路，静默忽略，别刷错误提醒
+      final em = error.toString();
+      if (_isNetErr(em) && _looksLikeImage(em)) {
+        debugPrint('[Softlib][img] 异步图片失败: $em');
+        return true;
+      }
       _logError('PlatformDispatcher', error, stack);
       return true; // 已处理，避免崩溃
     };
@@ -73,7 +79,12 @@ Future<void> main() async {
             ex.contains('HttpException') ||
             ex.contains('NetworkImage') ||
             ex.contains('CachedNetworkImage') ||
-            ex.contains('Image provider')) {
+            ex.contains('Image provider') ||
+            // ★ 1028：第三方图床（app.125ks.cn 等）偶发 TLS/连接中断，
+            //   会以 ClientException「Connection closed before full header was received」
+            //   形式冒到 FlutterError，被当成 App 崩溃上报（route=/appDetails）。
+            //   图片加载失败有 errorWidget 兜底，属可恢复的网络抖动，不该进错误提醒。
+            (_isNetErr(ex) && _looksLikeImage(ex))) {
           debugPrint('[Softlib][img] 图片加载失败: $ex');
           return;
         }
@@ -112,6 +123,27 @@ Future<void> main() async {
 /// 统一错误日志（不弹窗、不中断用户操作）
 /// ★ 1015：同时上报到服务器，方便排查真机闪退（release 看不到 debugPrint）
 int _reportCount = 0;
+/// 网络类异常判定（图片加载抖动用）
+bool _isNetErr(String e) =>
+    e.contains('ClientException') ||
+    e.contains('SocketException') ||
+    e.contains('HandshakeException') ||
+    e.contains('Connection closed') ||
+    e.contains('Connection reset') ||
+    e.contains('Connection timed out') ||
+    e.contains('Failed host lookup') ||
+    e.contains('HttpException');
+
+/// 是否指向图片资源
+bool _looksLikeImage(String e) =>
+    e.contains('.jpg') ||
+    e.contains('.jpeg') ||
+    e.contains('.png') ||
+    e.contains('.webp') ||
+    e.contains('.gif') ||
+    e.contains('/images/') ||
+    e.contains('image');
+
 void _logError(String tag, Object error, StackTrace? stack) {
   debugPrint('[Softlib][$tag] $error');
   if (stack != null) debugPrint(stack.toString());
