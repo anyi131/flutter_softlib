@@ -82,6 +82,68 @@ class GlassShell extends StatelessWidget {
   }
 }
 
+/// 自绘弹窗底板（写评论 / 分享海报等自定义排版用）
+///
+/// AlertDialog 那种「自己管背景」的壳子已不再套 GlassShell（1027 白底叠白底），
+/// 但这些自定义弹窗又必须两种模式都好看，于是统一走这里：
+/// - 玻璃开 → GlassShell 磨砂底
+/// - 玻璃关 → 自绘实底圆角卡（带描边 + 投影），不会出现内容裸浮在遮罩上
+/// 调用方用透明 Dialog 承载它即可，保证任何模式下都只有一层背景。
+class PanelSurface extends StatelessWidget {
+  const PanelSurface({
+    super.key,
+    required this.child,
+    this.radius = 24,
+    this.clip = true,
+  });
+
+  final Widget child;
+  final double radius;
+  final bool clip;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = Theme.of(context).brightness == Brightness.dark;
+    if (GlassTheme.enabled) {
+      return GlassShell(
+        radius: radius,
+        dark: d,
+        topHighlight: false,
+        child: clip
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(radius),
+                child: child,
+              )
+            : child,
+      );
+    }
+    final card = Container(
+      decoration: BoxDecoration(
+        color: d ? const Color(0xFF1A1E29) : Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: d ? Colors.white.withAlpha(24) : Colors.black.withAlpha(10),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(d ? 120 : 46),
+            blurRadius: 34,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: clip
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              child: child,
+            )
+          : child,
+    );
+    return card;
+  }
+}
+
 /// ★ 1027 玻璃组件总开关：glass_mode=off 时弹窗/弹层回退原生样式。
 /// glass_mode 只控制页面毛玻璃档位，不经过这里——必须独立判断，
 /// 否则服务器关闭玻璃后弹窗仍是玻璃渲染（1027 真机翻车根因）。
