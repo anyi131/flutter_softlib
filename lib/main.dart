@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_softlib/app/debug/self_check.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_softlib/app/database/database.dart';
 import 'package:flutter_softlib/app/http/http_api.dart';
@@ -334,7 +335,11 @@ class SoftLibApp extends StatelessWidget {
         getPages: AppPages.routes,
         builder: (context, child) {
           // 全局高刷：常驻 Ticker 请求设备最高刷新率
-          return HighRefreshScope(child: EasyLoading.init()(context, child));
+          // ★ 1028 真机自检：最外层挂 RepaintBoundary，供 SelfCheck 截整屏
+          return RepaintBoundary(
+            key: SelfCheck.boundaryKey,
+            child: HighRefreshScope(child: EasyLoading.init()(context, child)),
+          );
         },
         // 统一使用 iOS 风格右滑过渡（GetX 路由）
         // ★ 关键：opaqueRoute 必须为 false！
