@@ -1000,7 +1000,7 @@ class _TaskPageState extends State<TaskPage> {
                           ),
                           isDense: true,
                           filled: true,
-                          fillColor: const Color(0xFFF8F9FC),
+                          fillColor: context.isDark ? C.bg3 : const Color(0xFFF8F9FC),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 13,
@@ -1008,13 +1008,13 @@ class _TaskPageState extends State<TaskPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: Colors.black.withAlpha(18),
+                              color: context.isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(18),
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: Colors.black.withAlpha(18),
+                              color: context.isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(18),
                             ),
                           ),
                         ),
