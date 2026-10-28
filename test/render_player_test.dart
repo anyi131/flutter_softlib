@@ -113,29 +113,32 @@ class _FakeVideoPlatform extends VideoPlayerPlatform {
   );
 }
 
+/// 加载中文字体与图标字体；缺任何一个直接抛，别让「全是方框」的图混过去。
 Future<void> _loadFonts() async {
-  for (final path in <String>[
-    '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',
+  final cjk = <String>[
+    '/app/fonts/wqy-zenhei.ttc',
     '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
-  ]) {
-    final f = File(path);
-    if (f.existsSync()) {
-      final bytes = await f.readAsBytes();
-      final loader = FontLoader('Roboto')
-        ..addFont(Future.value(ByteData.view(bytes.buffer)));
-      await loader.load();
-      break;
-    }
-  }
-  final icon = File(
-    '/root/tools/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
-  );
-  if (icon.existsSync()) {
-    final bytes = await icon.readAsBytes();
-    final loader = FontLoader('MaterialIcons')
+    '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',
+  ].map(File.new).where((f) => f.existsSync()).firstOrNull;
+  if (cjk == null) throw StateError('找不到中文字体，图里会是方框');
+  // ★ 必须用同步读：测试体跑在 FakeAsync 区里，真正的异步 I/O 永远不会完成，
+  // 表现就是测试卡在第一例不动（2026-10-28 踩过，卡了 3 分钟 +0）。
+  final bytes = cjk.readAsBytesSync();
+  for (final family in <String>['Roboto', 'sans-serif', 'PingFang SC']) {
+    final loader = FontLoader(family)
       ..addFont(Future.value(ByteData.view(bytes.buffer)));
     await loader.load();
   }
+  final icon = <String>[
+    '/app/fonts/MaterialIcons-Regular.otf',
+    '/root/tools/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+    '/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+  ].map(File.new).where((f) => f.existsSync()).firstOrNull;
+  if (icon == null) throw StateError('找不到 MaterialIcons 字体');
+  final ib = icon.readAsBytesSync();
+  final il = FontLoader('MaterialIcons')
+    ..addFont(Future.value(ByteData.view(ib.buffer)));
+  await il.load();
 }
 
 Future<void> _shot(WidgetTester tester, GlobalKey key, String path) async {

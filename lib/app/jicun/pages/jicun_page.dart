@@ -20,9 +20,17 @@ import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import '../jicun_config.dart';
 import '../jicun_download_controller.dart';
+import '../jicun_downloader.dart';
 import '../jicun_parse_service.dart';
+import '../jicun_download_naming.dart';
 import '../jicun_platform.dart';
+import '../jicun_playback_headers.dart';
+import '../jicun_save_album.dart';
+import '../jicun_save_remote.dart';
+import '../widgets/jicun_gallery.dart';
+import 'jicun_audio_player_page.dart';
 import 'jicun_history_page.dart';
+import 'jicun_settings_page.dart';
 import 'jicun_video_player_page.dart';
 import '../../design/glass.dart';
 
@@ -39,6 +47,9 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
   final _tasks = JicunDownloadController.I;
 
   bool _parsing = false;
+
+  /// 正在保存到相册的任务 id（防连点，也用来把按钮文案切成「保存中…」）
+  final Set<String> _savingIds = <String>{};
   ParseResult? _result;
   String _sourceUrl = '';
   VideoQuality? _pickedQuality;
@@ -275,10 +286,19 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
                 ),
               ),
               Text(
-                '粘贴分享链接 · 解析并下载(保存到应用目录)',
+                '粘贴分享链接 · 解析 · 下载后可存到相册',
                 style: TextStyle(fontSize: 12, color: context.t3),
               ),
             ],
+          ),
+        ),
+        MiniAction(
+          icon: Icons.tune_rounded,
+          label: '设置',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const JicunSettingsPage(),
+            ),
           ),
         ),
       ],
@@ -433,6 +453,10 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
               const SizedBox(height: 10),
               _playEntry(r),
             ],
+            if ((r.audioUrl ?? '').isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _audioEntry(r),
+            ],
             if (r.videos.isNotEmpty && r.videos.first.qualities.length > 1)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -494,6 +518,55 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => JicunVideoPlayerPage(url: vurl),
+      ),
+    );
+  }
+
+  /// 音频直链单独一条入口（有些平台解析出来只有音频）—— 上游同样的位置。
+  Widget _audioEntry(ParseResult r) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: _openAudio,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: C.brand.withAlpha(context.isDark ? 26 : 14),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: C.brand.withAlpha(56)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.graphic_eq_rounded, size: 22, color: C.brand),
+            const SizedBox(width: 8),
+            Text(
+              '在线收听',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: C.brand,
+              ),
+            ),
+            const Spacer(),
+            Text('音频', style: TextStyle(fontSize: 12, color: context.t3)),
+            Icon(Icons.chevron_right_rounded, size: 18, color: C.t3),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openAudio() {
+    final r = _result;
+    final url = r?.audioUrl ?? '';
+    if (url.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => JicunAudioPlayerPage(
+          url: url,
+          title: r?.title ?? '',
+          cover: r?.coverUrl ?? '',
+        ),
       ),
     );
   }
@@ -628,84 +701,27 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
 
   /// 全屏图片查看器：黑底 dialog + PageView 左右滑 + InteractiveViewer 双指缩放。
   void _showImageViewer(List<String> urls, {int initialIndex = 0}) {
-    final controller = PageController(initialPage: initialIndex);
-    final pageNotifier = ValueNotifier<int>(initialIndex);
-    controller.addListener(() {
-      final page = controller.page?.round() ?? initialIndex;
-      if (page != pageNotifier.value) pageNotifier.value = page;
-    });
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (context) {
-        return Dialog.fullscreen(
-          backgroundColor: Colors.black,
-          child: Stack(
-            children: [
-              PageView.builder(
-                controller: controller,
-                itemCount: urls.length,
-                itemBuilder: (context, i) {
-                  return InteractiveViewer(
-                    maxScale: 4,
-                    child: Center(
-                      child: _netImage(urls[i], fit: BoxFit.contain),
-                    ),
-                  );
-                },
-              ),
-              SafeArea(
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                ),
-              ),
-              if (urls.length > 1)
-                SafeArea(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: pageNotifier,
-                        builder: (context, page, _) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withAlpha(120),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${page + 1} / ${urls.length}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    ).whenComplete(controller.dispose);
+    final images = urls.where((u) => u.isNotEmpty).toList(growable: false);
+    if (images.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => JicunGalleryPage(
+          images: images,
+          initialIndex: initialIndex.clamp(0, images.length - 1),
+          headers: jicunPlaybackHeaders(images.first),
+          onSave: (index) async {
+            final url = images[index];
+            final res = await jicunSaveToAlbumFromUrl(
+              url,
+              kind: MediaKind.image.wireName,
+              displayName: jicunCleanTitle(_result?.title ?? ''),
+            );
+            if (!mounted) return;
+            res.ok ? ToastUtil.success(res.message) : ToastUtil.info(res.message);
+          },
+        ),
+      ),
+    );
   }
 
   /// 网络图：加载中灰底占位，失败图标占位。
@@ -864,7 +880,7 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
                 t.message ?? label,
                 style: TextStyle(fontSize: 11, color: context.t3),
               ),
-              if (t.files.any((f) => f.isNotEmpty))
+              if (t.files.any((f) => f.isNotEmpty)) ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
@@ -874,11 +890,74 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
                     style: TextStyle(fontSize: 10, color: context.t3),
                   ),
                 ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: MiniAction(
+                      icon: _savingIds.contains(t.id)
+                          ? Icons.hourglass_top_rounded
+                          : Icons.photo_library_rounded,
+                      label: _savingIds.contains(t.id) ? '保存中…' : '存到相册',
+                      onTap: () => _saveTaskToAlbum(t),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       );
     });
+  }
+
+  /// 把任务里已落盘的文件存进系统相册（视频/图片）或文档目录（音频）。
+  ///
+  /// 相册插件是按条写的，所以一批图集会逐条存；失败不中断，最后统一报结果 ——
+  /// 用户要的是「哪些存进去了」，不是第一条失败就整体回滚。
+  Future<void> _saveTaskToAlbum(JicunTask t) async {
+    if (_savingIds.contains(t.id)) return;
+    final idx = <int>[
+      for (var i = 0; i < t.files.length; i++)
+        if (t.files[i].isNotEmpty) i,
+    ];
+    if (idx.isEmpty) {
+      ToastUtil.info('还没有可保存的文件');
+      return;
+    }
+    setState(() => _savingIds.add(t.id));
+    final base = jicunCleanTitle(t.title);
+    var ok = 0;
+    String? firstFail;
+    try {
+      for (final i in idx) {
+        final kind = i < t.items.length
+            ? t.items[i].kind.wireName
+            : MediaKind.video.wireName;
+        // 图集会有多张同名标题，补个序号才分得清是哪一张。
+        final name = idx.length > 1 ? '${base}_${i + 1}' : base;
+        final res = await jicunSaveToAlbum(
+          t.files[i],
+          kind: kind,
+          displayName: name.isEmpty ? null : name,
+        );
+        if (res.ok) {
+          ok++;
+        } else {
+          firstFail ??= res.message;
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _savingIds.remove(t.id));
+    }
+    if (!mounted) return;
+    if (ok == idx.length) {
+      ToastUtil.success(ok > 1 ? '已保存 $ok 个文件' : '已保存到相册');
+    } else if (ok > 0) {
+      ToastUtil.info('已保存 $ok/${idx.length}，其余失败：${firstFail ?? '未知原因'}');
+    } else {
+      ToastUtil.info(firstFail ?? '保存失败，请重试');
+    }
   }
 
   static String _firstFileOf(JicunTask t) {
