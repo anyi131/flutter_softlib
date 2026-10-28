@@ -20,7 +20,6 @@ import '../../design/ui.dart';
 import '../../utils/toast_util.dart';
 import '../jicun_config.dart';
 import '../jicun_download_controller.dart';
-import '../jicun_history_store.dart';
 import '../jicun_parse_service.dart';
 import '../jicun_platform.dart';
 import 'jicun_history_page.dart';
@@ -833,10 +832,17 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
 
   Widget _historyEntry() {
     return KitCard(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const JicunHistoryPage()),
-      ),
+      // ★ 1028：历史页点一条记录会把原始链接 pop 回来，这里回填并立刻重解析
+      onTap: () async {
+        final url = await Navigator.push<String>(
+          context,
+          MaterialPageRoute(builder: (_) => const JicunHistoryPage()),
+        );
+        if (!mounted) return;
+        if (url == null || url.trim().isEmpty) return;
+        _ctrl.text = url.trim();
+        await _parse();
+      },
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [

@@ -1382,16 +1382,8 @@ class _SplashPageState extends State<SplashPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '公告',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 2,
-                        color: ctx.t3,
-                      ),
-                    ),
+                    // ★ 1028：原来这里写死一个灰字「公告」，和 noticeTitle 重复，
+                    // 标题本身就叫公告时看着像打了两遍 → 去掉
                   ],
                 ),
                 const SizedBox(height: 14),
