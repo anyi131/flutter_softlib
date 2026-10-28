@@ -119,6 +119,7 @@ class _AdminShellV2State extends State<AdminShellV2> {
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
+              showDragHandle: false,
               builder: (_) => const AdminLinkPreviewSheet(),
             ),
             child: Container(

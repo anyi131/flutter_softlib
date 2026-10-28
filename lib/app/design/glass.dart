@@ -351,12 +351,18 @@ Future<T?> showGlassSheet<T>({
   bool isScrollControlled = false,
   bool isDismissible = true,
 }) {
+  // ★ 1028「两个横杠」根因：主题里 bottomSheetTheme.showDragHandle = true，
+  // M3 会在弹层顶部画一条 32×4 的把手。showGlassSheet 的 bottom sheet 背景是
+  // 透明的（由 GlassShell 自己画卡），这条把手于是悬在半空、压在遮罩上，
+  // 而公告 sheet 模板的内容里又手画了一条 44×5 的把手 → 用户看到两条横杠。
+  // 这里统一关掉 M3 的，把手由内容自己决定画不画。
   if (!_glassUiEnabled) {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: isScrollControlled,
       isDismissible: isDismissible,
       enableDrag: isDismissible,
+      showDragHandle: false,
       builder: builder,
     );
   }
@@ -366,6 +372,7 @@ Future<T?> showGlassSheet<T>({
     isScrollControlled: isScrollControlled,
     isDismissible: isDismissible,
     enableDrag: isDismissible,
+    showDragHandle: false,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withAlpha(d ? 31 : 51),
     builder: (ctx) => GlassShell(

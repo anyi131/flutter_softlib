@@ -154,6 +154,7 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
     return showModalBottomSheet<VideoQuality>(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       builder: (c) => SafeArea(
         child: SheetSurface(
           color: c.isDark ? C.bg2 : Colors.white,
