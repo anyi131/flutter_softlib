@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../design/app_anim.dart';
 import '../../utils/safe_ctx.dart';
+import '../../utils/toast_util.dart';
 
 import 'dart:io';
 import 'dart:ui' show ImageFilter;
@@ -52,6 +53,9 @@ class _SplashPageState extends State<SplashPage> {
   /// 配置已落地（成功 / 失败 / 超时都算）
   bool _cfgSettled = false;
 
+  /// 维护页「重新加载」正在查配置（防连点）
+  bool _reloading = false;
+
   /// 启动诊断：显示当前卡点（release 可见）
   String _diag = 'boot:start';
 
@@ -99,6 +103,46 @@ class _SplashPageState extends State<SplashPage> {
     });
   }
 
+  /// 维护页「重新加载」：只复查配置，**不重启开屏倒计时**
+  ///
+  /// ★ 旧实现把这个按钮直接接到 _boot() —— 它会把 3 秒倒计时重新启动，
+  ///   而倒计时到点就会 _enter() 进首页，于是连点几次「重试」反而能闯进主界面。
+  Future<void> _reloadFromMaintain() async {
+    if (_reloading) return;
+    _reloading = true;
+    _entering = false;
+    AppConfig? cfg;
+    try {
+      cfg = await SoftService.instance.fetchConfig(force: true).timeout(
+        const Duration(seconds: 6),
+        onTimeout: () => null,
+      );
+    } catch (_) {}
+    _reloading = false;
+    if (!mounted) return;
+
+    if (cfg == null) {
+      ToastUtil.error('网络异常，请稍后再试');
+      return;
+    }
+    if (cfg.maintainEnable) {
+      setState(() {
+        _config = cfg;
+        _diag = 'maintain:still';
+      });
+      ToastUtil.info('仍在维护中，请稍后再试');
+      return;
+    }
+
+    // 维护已结束 → 直接进主界面（用户已经等过了，不再走 3 秒开屏）
+    _maintain = false;
+    setState(() {
+      _config = cfg;
+      _diag = 'maintain:off';
+    });
+    await _enter();
+  }
+
   /// 启动流程
   ///
   /// ★★ 1020 启动提速（用户反馈「启动图太慢」）：
@@ -109,7 +153,7 @@ class _SplashPageState extends State<SplashPage> {
   ///     2. 配置与图片在后台并行拉，回来只做「纠正」（改图/改时长/关开屏）
   ///     3. 整体兜底从 8 秒收紧到「缓存秒数 + 3 秒」
   Future<void> _boot() async {
-    // 重进（维护页「重新加载」）时重置判定状态
+    // 每次启动重置判定状态（正常只有 initState 会调它）
     _cfgSettled = false;
     _entering = false;
     // ① 读上次缓存（同步读，几十毫秒）
@@ -285,7 +329,20 @@ class _SplashPageState extends State<SplashPage> {
         return;
       }
     }
-    if (_maintain) {
+    // 双重保险：只要当前配置是维护态，任何入口都不放行
+    // （旧版维护页点「重新加载」会重启倒计时，3 秒后从这里闯进首页）
+    //
+    // ★ 注意还要看 resolvedCfg：倒计时和配置几乎同时到点时，
+    //   ⑥ 的 setState 可能还没来得及跑，只查 _config 就会漏。
+    final blocked =
+        _config?.maintainEnable == true ? _config : null;
+    final lateBlocked =
+        blocked ?? (resolvedCfg?.maintainEnable == true ? resolvedCfg : null);
+    if (_maintain || lateBlocked != null) {
+      _maintain = true;
+      if (lateBlocked != null && !identical(_config, lateBlocked)) {
+        setState(() => _config = lateBlocked);
+      }
       _entering = false;
       return;
     }
@@ -1971,7 +2028,7 @@ class _SplashPageState extends State<SplashPage> {
         text: _config?.maintainText ?? '',
         template: _config?.maintainTemplate ?? 'engineer',
         appName: _config?.aboutName ?? '安逸软件汇',
-        onReload: _boot,
+        onReload: _reloadFromMaintain,
       );
     }
 
