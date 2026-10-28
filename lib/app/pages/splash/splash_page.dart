@@ -40,6 +40,18 @@ class _SplashPageState extends State<SplashPage> {
   Timer? _timer;
   bool _entered = false;
 
+  /// 维护模式：配置确认开启后，倒计时不再放行
+  bool _maintain = false;
+
+  /// 正在执行 _enter（倒计时与兜底定时器可能同时触发）
+  bool _entering = false;
+
+  /// 配置请求：维护判定必须等它，但不能等本地图/开屏图
+  Future<AppConfig?>? _cfgFuture;
+
+  /// 配置已落地（成功 / 失败 / 超时都算）
+  bool _cfgSettled = false;
+
   /// 启动诊断：显示当前卡点（release 可见）
   String _diag = 'boot:start';
 
@@ -97,6 +109,9 @@ class _SplashPageState extends State<SplashPage> {
   ///     2. 配置与图片在后台并行拉，回来只做「纠正」（改图/改时长/关开屏）
   ///     3. 整体兜底从 8 秒收紧到「缓存秒数 + 3 秒」
   Future<void> _boot() async {
+    // 重进（维护页「重新加载」）时重置判定状态
+    _cfgSettled = false;
+    _entering = false;
     // ① 读上次缓存（同步读，几十毫秒）
     String cachedUrl = '';
     int cachedSec = 3;
@@ -148,6 +163,15 @@ class _SplashPageState extends State<SplashPage> {
     final cfgFuture = SoftService.instance
         .fetchConfig(force: true)
         .timeout(const Duration(seconds: 4), onTimeout: () => null);
+
+    _cfgFuture = cfgFuture;
+    // 成功/失败都算「配置已落地」；这里接住异常，避免未处理的异步错误
+    unawaited(
+      cfgFuture.then<void>(
+        (_) => _cfgSettled = true,
+        onError: (_) => _cfgSettled = true,
+      ),
+    );
     final netFuture = SoftService.instance.fetchSplash().timeout(
       const Duration(seconds: 4),
       onTimeout: () => const {},
@@ -180,10 +204,14 @@ class _SplashPageState extends State<SplashPage> {
     // ⑥ 配置回来 → 纠正时长 / 关闭开屏 / 维护模式
     try {
       final cfg = await cfgFuture;
-      if (!mounted || _entered) return;
+      if (!mounted) return;
       if (cfg == null) return;
 
+      // ★ 维护模式必须先于「已进主界面」判断处理：
+      //   配置一旦晚于倒计时回来，_entered 已为 true，
+      //   旧代码在这里直接 return，维护页就永远不会出现
       if (cfg.maintainEnable) {
+        _maintain = true;
         _timer?.cancel();
         setState(() {
           _config = cfg;
@@ -192,9 +220,16 @@ class _SplashPageState extends State<SplashPage> {
         return;
       }
 
+      // 关掉维护（用户点了「重新加载」）→ 复位，允许重新走倒计时
+      _maintain = false;
+
+      // 已进主界面：维护以外的纠正（开屏时长 / 开关屏）已无意义
+      if (_entered) return;
+
       final on = cfg.splashEnable;
       final cfgSec = (cfg.splashSeconds).clamp(1, 10);
-      _config = cfg;
+      // 必须 setState：维护页点「重新加载」后要靠这次重建才能退出维护页
+      setState(() => _config = cfg);
 
       // 缓存秒数，下次冷启动直接用
       try {
@@ -207,8 +242,8 @@ class _SplashPageState extends State<SplashPage> {
         _enter();
         return;
       }
-      // 配置的时长比「剩余时间」还短 → 立即按新时长收尾
-      if (cfgSec < _left) {
+      // 时长比剩余时间短、或倒计时已经停了（维护页刚回来）→ 按配置重启
+      if (cfgSec < _left || _left <= 0 || _timer?.isActive != true) {
         _startCountdown(cfgSec);
       }
     } catch (e, st) {
@@ -228,13 +263,39 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   /// 进入主界面（并弹出公告）
-  void _enter() {
-    if (_entered || !mounted) return;
+  Future<void> _enter() async {
+    if (_entered || _entering || !mounted) return;
+    _entering = true;
+
+    // 维护状态未定时先等配置（正常 <0.5s，最慢 2.5s）。
+    // 不等的话，配置只要比倒计时晚回来一点，维护期间用户照样会被放进主界面。
+    AppConfig? resolvedCfg;
+    if (!_cfgSettled) {
+      final pending = _cfgFuture;
+      if (pending != null) {
+        try {
+          resolvedCfg = await pending.timeout(
+            const Duration(milliseconds: 2500),
+            onTimeout: () => null,
+          );
+        } catch (_) {}
+      }
+      if (!mounted) {
+        _entering = false;
+        return;
+      }
+    }
+    if (_maintain) {
+      _entering = false;
+      return;
+    }
     _entered = true;
     if (mounted) setState(() => _diag = 'enter:navigating');
     // ★ 1020：首次启动先进引导（3 屏讲清下载流程），之后再进首页
     _goNext();
-    final cfg = _config;
+    // 配置可能刚好在这轮 await 里才回来（⑥ 的 setState 还没跑），
+    // 直接取这次 await 的结果，公告就不会因为「慢半拍」而被吞掉
+    final cfg = _config ?? resolvedCfg;
     // v52p #11：后台功能开关 notice=0 → 启动公告也不弹
     final noticeOn =
         (SoftService.instance.cachedConfig?.uiConfig.featureNotice ?? true);
