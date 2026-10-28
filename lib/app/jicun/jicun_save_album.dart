@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:gal/gal.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -56,7 +57,8 @@ Future<JicunSaveResult> jicunSaveToAlbum(
         album: album,
       );
     }
-    return await _saveViaGallery(path, displayName: displayName);
+    return await _saveViaGallery(
+        path, displayName: displayName, album: album);
   } catch (error) {
     // 权限、磁盘、平台通道……都在这里收口，调用方不需要再防。
     return JicunSaveResult(
@@ -66,8 +68,50 @@ Future<JicunSaveResult> jicunSaveToAlbum(
   }
 }
 
-/// 视频/图片：交给相册插件，返回值可能是 Map 也可能是 bool（iOS/Android 不一致）。
+/// 视频/图片：优先用 gal 存进指定相册（`Pictures/<相册>`、`Movies/<相册>`），
+/// 它做不到时（老机型、不支持的格式、插件缺失）退回旧的 image_gallery_saver_plus，
+/// 至少落到系统相册根目录，不让用户白等一次下载。
 Future<JicunSaveResult> _saveViaGallery(
+  String path, {
+  String? displayName,
+  required String album,
+}) async {
+  final folder = _safeAlbum(album);
+  try {
+    if (!await Gal.hasAccess(toAlbum: true)) {
+      final granted = await Gal.requestAccess(toAlbum: true);
+      if (!granted) {
+        return const JicunSaveResult(
+          ok: false,
+          message: '没有相册写入权限，请到系统设置里允许',
+        );
+      }
+    }
+    if (_kImageExts.contains(_extOf(path))) {
+      await Gal.putImage(path, album: folder);
+    } else {
+      await Gal.putVideo(path, album: folder);
+    }
+    return JicunSaveResult(ok: true, message: '已保存到 $folder 相册');
+  } on GalException catch (error) {
+    if (error.type == GalExceptionType.accessDenied) {
+      return const JicunSaveResult(
+        ok: false,
+        message: '没有相册写入权限，请到系统设置里允许',
+      );
+    }
+    if (error.type == GalExceptionType.notEnoughSpace) {
+      return const JicunSaveResult(ok: false, message: '存储空间不足，保存失败');
+    }
+    // 格式不支持 / 未预期错误：退回根目录，相册名这一层放弃
+    return _saveViaLegacyPlugin(path, displayName: displayName);
+  } on MissingPluginException {
+    return _saveViaLegacyPlugin(path, displayName: displayName);
+  }
+}
+
+/// 旧插件的保存路径：只能进系统相册根目录，作为兜底。
+Future<JicunSaveResult> _saveViaLegacyPlugin(
   String path, {
   String? displayName,
 }) async {
@@ -197,6 +241,18 @@ String _audioExt(String path) {
   if (dot <= 0 || dot == leaf.length - 1) return 'm4a';
   final ext = leaf.substring(dot + 1).toLowerCase();
   return _kAudioExts.contains(ext) ? ext : 'm4a';
+}
+
+/// 能进相册的图片后缀；其余按视频交给 putVideo。
+const Set<String> _kImageExts = <String>{
+  'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'bmp',
+};
+
+String _extOf(String path) {
+  final leaf = _leafOf(path);
+  final dot = leaf.lastIndexOf('.');
+  if (dot <= 0 || dot == leaf.length - 1) return '';
+  return leaf.substring(dot + 1).toLowerCase();
 }
 
 const Set<String> _kAudioExts = <String>{
