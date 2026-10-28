@@ -217,11 +217,14 @@ Future<void> _initializeServices() async {
     final cfg = await SoftService.instance.fetchConfig(force: true);
     if (cfg != null) {
       final ui = cfg.uiConfig;
-      await ThemeController.instance.setMode(switch (ui.themeMode) {
-        'dark' => ThemeMode.dark,
-        'system' => ThemeMode.system,
-        _ => ThemeMode.light,
-      });
+      // 后台允许用户自选明暗时，不覆盖本机偏好
+      if (!ui.allowUserThemeToggle) {
+        await ThemeController.instance.setMode(switch (ui.themeMode) {
+          'dark' => ThemeMode.dark,
+          'system' => ThemeMode.system,
+          _ => ThemeMode.light,
+        });
+      }
       ThemeController.instance.applyServerPalette(ui.themePalette);
       AppStyleController.instance.applyServerDefault(ui.listStyle);
       // ★ 1015 修复：详情页模板此前完全没应用后台下发值

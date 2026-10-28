@@ -186,14 +186,16 @@ class NavigateLogic extends GetxController with WidgetsBindingObserver {
         currentIndex = 0;
         pageController.jumpToPage(0);
       }
-      // 深浅模式由后台统一下发
+      // 深浅模式由后台统一下发（后台允许用户自选时，保留用户的选择）
       final tc = ThemeController.instance;
-      final m = switch (ui.themeMode) {
-        'dark' => ThemeMode.dark,
-        'system' => ThemeMode.system,
-        _ => ThemeMode.light,
-      };
-      await tc.setMode(m);
+      final respectUserTheme = ui.allowUserThemeToggle;
+      if (!respectUserTheme) {
+        await tc.setMode(switch (ui.themeMode) {
+          'dark' => ThemeMode.dark,
+          'system' => ThemeMode.system,
+          _ => ThemeMode.light,
+        });
+      }
       tc.applyServerPalette(ui.themePalette);
       update(['navigate']);
     } catch (_) {}

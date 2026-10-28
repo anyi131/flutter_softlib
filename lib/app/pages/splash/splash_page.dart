@@ -2042,9 +2042,17 @@ class _SplashPageState extends State<SplashPage> {
     final netImg = userSplash.isNotEmpty
         ? userSplash
         : (cfg?.splashImage ?? '');
+    // 后台可配「开屏点击跳转」（splash_url）：配了就整屏可点，
+    // 未配置时保持不可点，避免误触。
+    final splashUrl = cfg?.splashUrl.trim() ?? '';
     return Scaffold(
       backgroundColor: Colors.white,
-      body: _splashBody(cfg, netImg),
+      body: splashUrl.isEmpty
+          ? _splashBody(cfg, netImg)
+          : GestureDetector(
+              onTap: () => JumpUtil.openUrl(splashUrl),
+              child: _splashBody(cfg, netImg),
+            ),
     );
   }
 
