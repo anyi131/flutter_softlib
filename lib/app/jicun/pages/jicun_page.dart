@@ -426,6 +426,13 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
             _mediaPreview(r),
             const SizedBox(height: 10),
             _mediaSummary(r),
+            // ★ 1028：解析结果里只要有视频，就给一个明确的「在线播放」入口。
+            // 之前只有「点封面」才能进播放器 —— 带图集、或视频没有封面时，
+            // 用户根本点不到播放器（这是「播放器怎么用不了」的主要来源）。
+            if (r.videos.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _playEntry(r),
+            ],
             if (r.videos.isNotEmpty && r.videos.first.qualities.length > 1)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -469,6 +476,62 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
               icon: Icons.save_alt_rounded,
               onPressed: _download,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 在线播放入口 ──────────────────────────────────────────────────────
+
+  /// 打开全屏播放页（清晰度优先用用户选中的那一档）
+  void _openPlayer() {
+    final r = _result;
+    if (r == null || r.videos.isEmpty) return;
+    final v = r.videos.first;
+    final vurl = _pickedQuality?.url ?? v.url;
+    if (vurl.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => JicunVideoPlayerPage(url: vurl),
+      ),
+    );
+  }
+
+  Widget _playEntry(ParseResult r) {
+    final first = r.videos.first;
+    final label = _pickedQuality?.label ??
+        (first.qualities.isNotEmpty ? first.qualities.first.label : '');
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: _openPlayer,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: C.brand.withAlpha(context.isDark ? 26 : 14),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: C.brand.withAlpha(56)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.play_circle_fill_rounded, size: 22, color: C.brand),
+            const SizedBox(width: 8),
+            Text(
+              '在线播放',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: C.brand,
+              ),
+            ),
+            const Spacer(),
+            if (label.isNotEmpty)
+              Text(
+                label,
+                style: TextStyle(fontSize: 12, color: context.t3),
+              ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: C.t3),
           ],
         ),
       ),
@@ -527,14 +590,7 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
     return GestureDetector(
       onTap: () {
         if (showPlay) {
-          final v = videos.first;
-          final vurl = _pickedQuality?.url ?? v.url;
-          if (vurl.isEmpty) return;
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => JicunVideoPlayerPage(url: vurl),
-            ),
-          );
+          _openPlayer();
         } else {
           _showImageViewer([url]);
         }
@@ -812,7 +868,7 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    DirectoryeofNote(t),
+                    _firstFileOf(t),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 10, color: context.t3),
@@ -825,7 +881,7 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
     });
   }
 
-  static String DirectoryeofNote(JicunTask t) {
+  static String _firstFileOf(JicunTask t) {
     final first = t.files.firstWhere((f) => f.isNotEmpty, orElse: () => '');
     return first.isEmpty ? '' : first;
   }
