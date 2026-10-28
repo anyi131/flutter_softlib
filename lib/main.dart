@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'app/jicun/jicun_prefs.dart';
 import 'app/utils/sound_util.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
@@ -38,6 +39,8 @@ Future<void> main() async {
     WidgetsFlutterBinding.ensureInitialized();
     // ★ 1016：音效开关读取（本地偏好）
     unawaited(SoundUtil.init());
+    // ★ 1028：即存的本机偏好（自动粘贴/存储目录/通知开关）提前读，首屏即可用
+    unawaited(JicunPrefs.instance.load());
     // Flutter 框架层异常（构建/布局/绘制）
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);

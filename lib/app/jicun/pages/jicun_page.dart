@@ -5,6 +5,8 @@
 // 按宿主设计体系(lib/app/design)重写;下载落盘到应用目录(非系统媒体库)。
 // 版权与许可遵循上游 MIT License,见仓库 LICENSE。
 ////////////////////////////////////////////////////////////////////////////////
+import 'dart:async';
+
 import 'dart:io';
 
 import '../../utils/err_text.dart';
@@ -23,6 +25,8 @@ import '../jicun_download_controller.dart';
 import '../jicun_downloader.dart';
 import '../jicun_parse_service.dart';
 import '../jicun_download_naming.dart';
+import '../jicun_prefs.dart';
+import '../jicun_network.dart';
 import '../jicun_platform.dart';
 import '../jicun_playback_headers.dart';
 import '../jicun_save_album.dart';
@@ -44,6 +48,7 @@ class JicunPage extends StatefulWidget {
 class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
   final _ctrl = TextEditingController();
   final _settings = JicunSettings.instance;
+  final _prefs = JicunPrefs.instance;
   final _tasks = JicunDownloadController.I;
 
   bool _parsing = false;
@@ -60,6 +65,16 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // 后台配置拉一次(剪贴板/公告等即时生效)
     _settings.refresh();
+    // 本机偏好（自动粘贴/存储目录/通知开关）先读一次，首屏就能拿到
+    unawaited(_prefs.load().then((_) {
+      if (!mounted) return;
+      // 冷启动也自动粘贴一次（以前只有从后台回来才触发）
+      if (_prefs.autoPaste && _ctrl.text.trim().isEmpty) {
+        unawaited(_autoPaste());
+      }
+    }));
+    // 下载完成/失败提醒（开关在本机偏好里）
+    _tasks.onTaskSettled = _onTaskSettled;
     _ensureStorage();
   }
 
@@ -73,9 +88,29 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  /// 任务收尾提醒：完成/失败各一个开关，关掉就静默
+  void _onTaskSettled(JicunTask task, JicunTaskStatus status) {
+    if (status == JicunTaskStatus.done) {
+      if (!_prefs.notifyOnDone) return;
+      ToastUtil.success('「${_shortTitle(task.title)}」下载完成');
+    } else if (status == JicunTaskStatus.failed) {
+      if (!_prefs.notifyOnFail) return;
+      ToastUtil.error('「${_shortTitle(task.title)}」下载失败');
+    }
+  }
+
+  /// 标题太长会把提示条撑爆，超过 12 个字截断
+  String _shortTitle(String raw) {
+    final t = raw.trim().isEmpty ? '任务' : raw.trim();
+    return t.length > 12 ? '${t.substring(0, 12)}…' : t;
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    if (_tasks.onTaskSettled == _onTaskSettled) {
+      _tasks.onTaskSettled = null;
+    }
     // 后台 clear_on_exit:退出页面清历史
     _tasks.clearHistoryIfConfigured();
     _ctrl.dispose();
@@ -86,13 +121,15 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // 后台 auto_paste:回到前台自动读剪贴板
     if (state == AppLifecycleState.resumed &&
-        _settings.cfg.autoPaste &&
+        _prefs.autoPaste &&
         _ctrl.text.trim().isEmpty) {
       _autoPaste();
     }
   }
 
   Future<void> _autoPaste() async {
+    await _prefs.load();
+    if (!mounted) return;
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       final raw = data?.text ?? '';
@@ -142,6 +179,11 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
   Future<void> _download() async {
     final r = _result;
     if (r == null) return;
+    // 仅 Wi-Fi 下载：判不准（null）时放行，别把用户卡死
+    if (_prefs.wifiOnly && await jicunIsCellular() == true) {
+      if (mounted) ToastUtil.info('已开启仅 Wi-Fi 下载，当前是移动网络');
+      return;
+    }
     // 清晰度策略 ask:视频有第二档时先弹选择
     var quality = _pickedQuality;
     if (r.videos.isNotEmpty &&

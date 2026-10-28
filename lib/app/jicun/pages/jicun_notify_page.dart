@@ -185,7 +185,7 @@ class _JicunNotifyPageState extends State<JicunNotifyPage> {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              '提醒依赖系统通知权限；关闭后仍会正常下载，只是不再弹出提醒。'
+              '提醒在下载页内以轻提示呈现；关闭后仍会正常下载，只是不再弹出提醒。'
               '仅 Wi-Fi 开关只影响新任务，不会中断正在下载的任务。',
               style: TextStyle(
                 fontSize: 11.5,

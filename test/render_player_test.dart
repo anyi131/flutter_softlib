@@ -174,7 +174,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 800));
     // 刚打开时控制条是显示的（3 秒后自动收起），这一刻就是用户看到的样子
-        'play=${tester.getRect(find.byType(IconButton).last)}');
     await _shot(tester, key, '/tmp/pl_player.png');
   });
 
