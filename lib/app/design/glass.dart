@@ -144,6 +144,55 @@ class PanelSurface extends StatelessWidget {
   }
 }
 
+/// 底部弹层底板（showModalBottomSheet / Get.bottomSheet 用）
+///
+/// 玻璃开 → 磨砂（顶部圆角），关 → 原样实底。不改调用方的内边距/圆角/配色，
+/// 只把「白卡还是磨砂」这一层替换掉，避免弹层和 App 其它玻璃面断裂。
+class SheetSurface extends StatelessWidget {
+  const SheetSurface({
+    super.key,
+    required this.child,
+    required this.color,
+    this.padding = EdgeInsets.zero,
+    this.margin,
+    this.radius = 22,
+    this.onlyTop = true,
+  });
+
+  final Widget child;
+  final Color color;
+  final EdgeInsets padding;
+  final EdgeInsets? margin;
+  final double radius;
+  final bool onlyTop;
+
+  @override
+  Widget build(BuildContext context) {
+    final br = onlyTop
+        ? BorderRadius.vertical(top: Radius.circular(radius))
+        : BorderRadius.circular(radius);
+    if (GlassTheme.enabled) {
+      return Container(
+        margin: margin,
+        child: GlassShell(
+          radius: radius,
+          dark: Theme.of(context).brightness == Brightness.dark,
+          child: ClipRRect(
+            borderRadius: br,
+            child: Padding(padding: padding, child: child),
+          ),
+        ),
+      );
+    }
+    return Container(
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(color: color, borderRadius: br),
+      child: child,
+    );
+  }
+}
+
 /// ★ 1027 玻璃组件总开关：glass_mode=off 时弹窗/弹层回退原生样式。
 /// glass_mode 只控制页面毛玻璃档位，不经过这里——必须独立判断，
 /// 否则服务器关闭玻璃后弹窗仍是玻璃渲染（1027 真机翻车根因）。
