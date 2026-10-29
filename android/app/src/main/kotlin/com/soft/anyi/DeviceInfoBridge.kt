@@ -25,10 +25,13 @@ object DeviceInfoBridge {
                     "sdkInt" -> result.success(android.os.Build.VERSION.SDK_INT)
                     "totalRamMb" -> result.success(totalRamMb(context))
                     "lowRam" -> result.success(isLowRam(context))
+                    // ★ 1029：下载失败上报要真实剩余空间，原来 Dart 侧算出来恒为 0，后台误判「存储不足」
+                    "freeMb" -> result.success(freeMb())
                     else -> result.notImplemented()
                 }
             } catch (e: Throwable) {
-                result.success(0)
+                // ★ 1029：freeMb 失败必须回 -1（未知），回 0 会被当成「空间耗尽」
+                result.success(if (call.method == "freeMb") -1 else 0)
             }
         }
     }
@@ -39,6 +42,12 @@ object DeviceInfoBridge {
         am.getMemoryInfo(info)
         (info.totalMem / (1024 * 1024)).toInt()
     } catch (e: Throwable) { 0 }
+
+    /** 可用存储（MB）。用 /data 分区，Android 11+ 也能拿到；失败返回 -1 表示未知。 */
+    private fun freeMb(): Int = try {
+        val st = android.os.StatFs(android.os.Environment.getDataDirectory().absolutePath)
+        (st.availableBytes / (1024 * 1024)).toInt()
+    } catch (e: Throwable) { -1 }
 
     private fun isLowRam(context: Context): Boolean = try {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
