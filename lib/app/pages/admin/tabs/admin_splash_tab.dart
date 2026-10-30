@@ -92,6 +92,12 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
   final recharge2Ctrl = TextEditingController();
   final recharge3Ctrl = TextEditingController(); // 留空 = 不修改
   final payPlan1NameCtrl = TextEditingController(text: '一周会员');
+  // ★ 1030 会员促销（纯展示，不改真实扣款价）
+  final promoOnCtrl = TextEditingController(text: '0'); // 1=开
+  final promoTitleCtrl = TextEditingController(text: '限时特惠');
+  final promoEndCtrl = TextEditingController(text: '');
+  final promoTipCtrl = TextEditingController(text: '全场会员限时 5 折');
+  final promoMulCtrl = TextEditingController(text: '2');
   final payPlan1MoneyCtrl = TextEditingController(text: '8');
   final payPlan1DaysCtrl = TextEditingController(text: '7');
   final payPlan2NameCtrl = TextEditingController(text: '三个月会员');
@@ -164,6 +170,11 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
     payPidCtrl.dispose();
     payKeyCtrl.dispose();
     payPlan1NameCtrl.dispose();
+    promoOnCtrl.dispose();
+    promoTitleCtrl.dispose();
+    promoEndCtrl.dispose();
+    promoTipCtrl.dispose();
+    promoMulCtrl.dispose();
     payPlan1MoneyCtrl.dispose();
     payPlan1DaysCtrl.dispose();
     payPlan2NameCtrl.dispose();
@@ -242,6 +253,12 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         payApiCtrl.text = '${cfg['pay_apiurl'] ?? ''}';
         payPidCtrl.text = '${cfg['pay_pid'] ?? ''}';
         payPlan1NameCtrl.text = '${cfg['pay_plan1_name'] ?? '一周会员'}';
+        // ★ 1030 促销配置回填
+        promoOnCtrl.text = '${(cfg['promo_on'] ?? 0) == 1 ? 1 : 0}';
+        promoTitleCtrl.text = '${cfg['promo_title'] ?? '限时特惠'}';
+        promoEndCtrl.text = '${cfg['promo_end'] ?? ''}';
+        promoTipCtrl.text = '${cfg['promo_tip'] ?? '全场会员限时 5 折'}';
+        promoMulCtrl.text = '${cfg['promo_mul'] ?? 2}';
         payPlan1MoneyCtrl.text = '${cfg['pay_plan1_money'] ?? '8'}';
         payPlan1DaysCtrl.text = '${cfg['pay_plan1_days'] ?? 7}';
         payPlan2NameCtrl.text = '${cfg['pay_plan2_name'] ?? '三个月会员'}';
@@ -537,6 +554,12 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
         'pay_wxpay': payWxpay ? 1 : 0,
         'pay_qqpay': payQqpay ? 1 : 0,
         'pay_plan1_name': payPlan1NameCtrl.text.trim(),
+        // ★ 1030 促销（纯展示，不影响真实扣款）
+        'promo_on': promoOnCtrl.text.trim() == '1' ? 1 : 0,
+        'promo_title': promoTitleCtrl.text.trim(),
+        'promo_end': promoEndCtrl.text.trim(),
+        'promo_tip': promoTipCtrl.text.trim(),
+        'promo_mul': double.tryParse(promoMulCtrl.text.trim()) ?? 2,
         'pay_plan1_money': payPlan1MoneyCtrl.text.trim(),
         'pay_plan1_days': int.tryParse(payPlan1DaysCtrl.text) ?? 7,
         'pay_plan2_name': payPlan2NameCtrl.text.trim(),
@@ -1139,6 +1162,32 @@ class _AdminSplashTabState extends State<AdminSplashTab> {
                 const SizedBox(width: 10),
                 Expanded(child: _field('天数（0=永久）', payPlan3DaysCtrl)),
               ],
+            ),
+            const Divider(height: 20),
+            // ★ 1030 会员促销（纯展示：划线价 = 现价 × 倍数，扣款不变）
+            _field('促销标题', promoTitleCtrl),
+            Row(
+              children: [
+                Expanded(child: _field('结束时间 (yyyy-MM-dd HH:mm:ss)', promoEndCtrl)),
+              ],
+            ),
+            _field('促销文案（横幅小字/套餐角标）', promoTipCtrl),
+            Row(
+              children: [
+                Expanded(child: _field('划线价倍数', promoMulCtrl)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _switch(
+                    '促销开关',
+                    promoOnCtrl.text == '1',
+                    (v) => setState(() => promoOnCtrl.text = v ? '1' : '0'),
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              '仅改展示：划线原价 = 套餐现价 × 倍数；实际下单金额仍为上方套餐价格，一分不变。',
+              style: Ty.tiny.copyWith(color: context.t3),
             ),
           ],
         ),

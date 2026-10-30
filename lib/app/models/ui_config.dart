@@ -1,5 +1,39 @@
 import 'package:flutter/material.dart';
 
+/// 会员促销横幅（后台 ui_config.promo）
+///
+/// ★ 1030「大促刺激充值」：纯展示层——划线原价 = 套餐现价 × 倍数，
+///   实际下单金额仍走 pay/plans 的套餐价，扣款一分不变。
+class PromoConfig {
+  final bool on;
+  final String title; // 横幅标题，如「限时特惠」
+  final String end; // 结束时间 yyyy-MM-dd HH:mm:ss，空=不显示倒计时
+  final String tip; // 横幅小字，如「全场会员 5 折起」
+  final double mul; // 划线倍数：原价 = 现价 × mul
+
+  const PromoConfig({
+    this.on = false,
+    this.title = '限时特惠',
+    this.end = '',
+    this.tip = '',
+    this.mul = 2,
+  });
+
+  factory PromoConfig.fromJson(Map json) => PromoConfig(
+    on:
+        json['on'] == true ||
+        json['on'] == 1 ||
+        json['on'] == '1',
+    title: (json['title'] ?? '').toString(),
+    end: (json['end'] ?? '').toString(),
+    tip: (json['tip'] ?? '').toString(),
+    mul: () {
+      final v = double.tryParse('${json['mul'] ?? ''}');
+      return (v == null || v <= 1) ? 2.0 : v;
+    }(),
+  );
+}
+
 /// 支付确认弹窗文案（后台 ui_config.pay_notice，enabled=0 时跳过弹窗）
 class PayNoticeConfig {
   final bool enabled;
@@ -160,6 +194,9 @@ class UiConfig {
   // ── 音效开关（后台下发，全站生效）──
   final SfxConfig sfx;
 
+  /// 会员促销（纯展示，不改真实扣款价）
+  final PromoConfig promo;
+
   // ── 首页快捷入口开关（v52g #7 热更新布局）──
   final bool quickSign;
   final bool quickVip;
@@ -193,6 +230,7 @@ class UiConfig {
     this.featureSilentRetry = true,
     this.featureApiCache = true,
     this.listStyle = 'glass',
+    this.promo = const PromoConfig(),
     this.homeBanner = 'on',
     this.homeNotice = 'on',
     this.updateTemplate = 'classic',
@@ -283,6 +321,9 @@ class UiConfig {
       sfx: SfxConfig.fromJson(
         json['sfx'] is Map ? Map<String, dynamic>.from(json['sfx'] as Map) : const {},
       ),
+      promo: PromoConfig.fromJson(
+        json['promo'] is Map ? Map<String, dynamic>.from(json['promo'] as Map) : const {},
+      ),
 
       quickSign: _b(home['quick_sign'], true),
       quickVip: _b(home['quick_vip'], true),
@@ -368,6 +409,13 @@ class UiConfig {
       'list_style': listStyle,
       'banner': homeBanner,
       'notice': homeNotice,
+    },
+    'promo': {
+      'on': promo.on ? 1 : 0,
+      'title': promo.title,
+      'end': promo.end,
+      'tip': promo.tip,
+      'mul': promo.mul,
     },
   };
 }

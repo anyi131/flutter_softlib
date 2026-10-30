@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:ui' show FontFeature;
 
 import '../../design/app_anim.dart';
 import '../../utils/err_text.dart';
@@ -6,6 +8,7 @@ import '../../utils/err_text.dart';
 import 'package:get/get.dart';
 
 import '../../api/pay_service.dart';
+import '../../api/soft_service.dart';
 import '../../api/user_service.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
@@ -37,10 +40,27 @@ class _VipPageState extends State<VipPage> {
   int _selectedPlan = 1; // 默认选中「推荐」的三个月
   int _payMethod = 0; // 0 支付宝 1 微信 2 QQ
 
+  /// 促销倒计时（横幅存在时每秒刷新）
+  Timer? _promoTick;
+
   @override
   void initState() {
     super.initState();
     _loadPlans();
+    _promoTick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final cfg = SoftService.instance.cachedConfig?.promo;
+      if (cfg == null || !cfg.on) return;
+      final end = DateTime.tryParse(cfg.end.replaceFirst(' ', 'T'));
+      if (end == null) return;
+      setState(() {}); // 只为刷新倒计时文本
+    });
+  }
+
+  @override
+  void dispose() {
+    _promoTick?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadPlans() async {
@@ -88,8 +108,10 @@ class _VipPageState extends State<VipPage> {
                   padding: EdgeInsets.fromLTRB(14, topInset + 52, 14, 20),
                   children: [
                     _buildHeaderCard(),
+                    _promoBanner(),
                     const SizedBox(height: 18),
                     SectionHeader(title: '选择套餐', accent: C.gold),
+                    _promoBadge(),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: List.generate(_plans.length, (i) {
@@ -206,6 +228,123 @@ class _VipPageState extends State<VipPage> {
         onPressed: _submitting ? null : _onBuy,
       ),
     );
+  }
+
+  /// ★ 1030 套餐区促销角标：一行「限时 5 折」式文案（后台 tip 直接透传），
+  ///   与横幅同开关，横幅已展示 tip 时这里自动让位（避免重复刷屏）。
+  Widget _promoBadge() {
+    final cfg = SoftService.instance.cachedConfig?.promo;
+    if (cfg == null || !cfg.on || cfg.tip.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: C.gold.withAlpha(36),
+              borderRadius: BorderRadius.circular(R.full),
+              border: Border.all(color: C.gold.withAlpha(120), width: 0.8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bolt_rounded, size: 13, color: C.gold),
+                const SizedBox(width: 3),
+                Text(
+                  cfg.tip,
+                  style: const TextStyle(
+                    color: C.gold,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ★ 1030 促销横幅（纯展示）：标题 + 倒计时。
+  ///   后台关掉 / 未配置 = 整块不渲染。倒计时走每秒 setState 的 _promoTick。
+  Widget _promoBanner() {
+    final cfg = SoftService.instance.cachedConfig?.promo;
+    if (cfg == null || !cfg.on) return const SizedBox.shrink();
+    final title = cfg.title.isNotEmpty ? cfg.title : '限时特惠';
+    final end = DateTime.tryParse(cfg.end.replaceFirst(' ', 'T'));
+    final hasCountdown = end != null;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          gradient: Deco.goldGradient,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: C.gold.withAlpha(context.isDark ? 50 : 40),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.local_fire_department_rounded,
+                color: Color(0xFF241F18), size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF241F18),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  if (cfg.tip.isEmpty) const SizedBox.shrink(),
+                ],
+              ),
+            ),
+            if (hasCountdown)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF241F18),
+                  borderRadius: BorderRadius.circular(R.full),
+                ),
+                child: Text(
+                  _promoCountdown(end),
+                  style: const TextStyle(
+                    color: Color(0xFFF7D57A),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.4,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _promoCountdown(DateTime end) {
+    final d = end.difference(DateTime.now());
+    if (d.isNegative) return '已结束';
+    final h = d.inHours, m = d.inMinutes % 60, s = d.inSeconds % 60;
+    final hh = h.toString().padLeft(2, '0');
+    final mm = m.toString().padLeft(2, '0');
+    final ss = s.toString().padLeft(2, '0');
+    return d.inDays > 0 ? '${d.inDays}天$hh:$mm:$ss' : '$hh:$mm:$ss';
   }
 
   /// 顶部 VIP PRO 头卡（渐变金卡 + 权益图标行）
@@ -404,7 +543,7 @@ class _VipPageState extends State<VipPage> {
                     ],
                   ),
                   const SizedBox(height: 5),
-                  // 划线原价（按现价 ×1.5 的展示锚点，不参与下单计算）
+                  // 划线原价：促销开 = 现价 × 后台倍数；关 = ×1.5 锚点价（仅展示）
                   Text(
                     '¥${_origPrice(plan.money)}',
                     maxLines: 1,
@@ -457,11 +596,14 @@ class _VipPageState extends State<VipPage> {
     );
   }
 
-  /// 展示用划线原价（×1.5 锚点价）
+  /// 展示用划线原价：促销开启时按后台倍数，关闭时 ×1.5 锚点价（仅展示，不参与下单）
   String _origPrice(String money) {
     final v = double.tryParse(money);
     if (v == null) return money;
-    return (v * 1.5).toStringAsFixed(2);
+    var mul = 1.5;
+    final cfg = SoftService.instance.cachedConfig?.promo;
+    if (cfg != null && cfg.on && cfg.mul > 1) mul = cfg.mul;
+    return (v * mul).toStringAsFixed(2);
   }
 
   /// 支付方式项
