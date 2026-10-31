@@ -56,7 +56,7 @@ dependencies:
   share_plus: ^10.1.2
   device_info_plus: ^11.2.0
   # ★ 1031r 开源批一：动态取色主题 + 压缩提速 + token 加固 + 动画 DSL
-  dynamic_color: ^1.8.1
+  dynamic_color: 1.8.1
   flutter_image_compress: ^2.4.0
   sentry_flutter: ^9.0.0
   app_links: ^6.3.2
