@@ -108,7 +108,6 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <!-- ★ 1031r app_links：Deep Link 分享直达 softlib:// -->
                 <data android:scheme="softlib"/>
-            </intent-filter>
                 <data android:scheme="tencent1905800958"/>
             </intent-filter>
         </activity>
