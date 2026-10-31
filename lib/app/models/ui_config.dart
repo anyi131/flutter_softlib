@@ -87,6 +87,7 @@ class SfxConfig {
   final bool sign; // 签到成功
   final bool message; // 来消息
   final bool update; // 版本更新
+  final String voiceStyle; // 人声音色：yunxi/xiaoxiao/yunyang
 
   const SfxConfig({
     this.master = true,
@@ -94,6 +95,7 @@ class SfxConfig {
     this.sign = true,
     this.message = true,
     this.update = true,
+    this.voiceStyle = 'yunxi',
   });
 
   static bool _b(dynamic v) => v == null
@@ -106,6 +108,7 @@ class SfxConfig {
     sign: _b(json['sign']),
     message: _b(json['message']),
     update: _b(json['update']),
+    voiceStyle: (json['voice_style'] ?? 'yunxi').toString(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -114,6 +117,7 @@ class SfxConfig {
     'sign': sign ? 1 : 0,
     'message': message ? 1 : 0,
     'update': update ? 1 : 0,
+    'voice_style': voiceStyle,
   };
 }
 
