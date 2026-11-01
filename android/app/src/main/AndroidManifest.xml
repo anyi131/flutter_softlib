@@ -15,6 +15,9 @@
 
     <!--通知权限-->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- ★ 1101 开源批二：vibration 触感 + wakelock_plus 防息屏 -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
             android:label="安逸软件汇"
