@@ -92,7 +92,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  patrol: ^4.11.0
   build_runner: ^2.12.2
   flutter_lints: ^6.0.0
   talker_dio_logger: ^5.1.15
@@ -156,8 +155,3 @@ flutter:
 
 # ══════════════════════════════════════════════════════════════
 # ══════════════════════════════════════════════════════════════
-# ★ 1103：patrol 4.x 必须显式声明应用信息，否则 CLI 不知道要驱动哪个包
-patrol:
-  app_name: 安逸软件汇
-  android:
-    package_name: com.soft.anyi
