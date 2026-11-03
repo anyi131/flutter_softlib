@@ -129,6 +129,7 @@ class _AppSearchPageState extends State<AppSearchPage> {
                 SizedBox(
                   height: 46,
                   child: FilledButton(
+                    key: const ValueKey('searchBtn'),
                     style: FilledButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(23),
