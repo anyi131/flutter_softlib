@@ -56,7 +56,31 @@ void main() {
         }
         expect(found, isTrue, reason: '搜索 30s 内没有返回任何结果，接口/网络异常');
 
-        await $(find.byType(AppCard)).first.tap();
+        // ★ 1103：列表顶部卡片容易被吸顶筛选条挡住，直接 tap 会「点空」，
+        //   页面仍停在列表。改成先滚到卡片再点，并用「搜索框消失」判定
+        //   真的跳转了；失败最多换 3 张卡重试。
+        var navigated = false;
+        for (var k = 0; k < 3 && !navigated; k++) {
+          final cards = find.byType(AppCard);
+          final n = cards.evaluate().length;
+          if (n == 0) break;
+          final idx = n > 2 ? 2 : 0;
+          try {
+            await $.scrollUntilVisible(finder: cards.at(idx), maxScrolls: 12);
+          } catch (_) {}
+          try {
+            await $(cards.at(idx)).tap();
+          } catch (_) {}
+          for (var i = 0; i < 15; i++) {
+            await $.pump(const Duration(milliseconds: 400));
+            if ($(#searchField).evaluate().isEmpty) {
+              navigated = true;
+              break;
+            }
+          }
+        }
+        expect(navigated, isTrue, reason: '点了 3 次列表项都没离开搜索页');
+
         // ★ 1103：详情页内容较长，下载按钮在底部，可能是懒加载的 Sliver，
         //   不滚动根本不会被 build。先轮询，中途滚一次，最后带诊断信息失败。
         var ready = false;
