@@ -13,7 +13,7 @@ concurrency:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -51,7 +51,8 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           script: |
             export PATH="$PATH:$HOME/.pub-cache/bin"
-            patrol test --target patrol_test/app_smoke_test.dart
+            # 全量跑 patrol_test/ 下所有用例（不带 --target 即整个目录）
+            patrol test
 
       - name: upload artifacts
         if: failure()
