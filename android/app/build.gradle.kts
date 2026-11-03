@@ -32,6 +32,11 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
+        // ★ 1103：patrol E2E 必需。不配 PatrolJUnitRunner 时 gradle 会跑默认
+        // AndroidJUnitRunner，结果就是「Total: 0」——测试一个都没被发现。
+        testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+
         // 只打包 arm64-v8a，大幅减小 APK 体积（现代手机几乎全是 arm64）
         ndk {
             // 只保留 arm64-v8a，减小体积；如需兼容老设备可加 armeabi-v7a
@@ -99,6 +104,11 @@ android {
             )
         }
     }
+    // ★ 1103：patrol E2E 用 orchestrator 隔离每个测试，避免上一个测试的
+    // 状态（登录态/弹窗）污染下一个
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+    }
 }
 
 
@@ -111,4 +121,6 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     // ★ 1101：flutter_local_notifications desugaring 依赖
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // ★ 1103：patrol / ANDROIDX_TEST_ORCHESTRATOR 必需
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
 }

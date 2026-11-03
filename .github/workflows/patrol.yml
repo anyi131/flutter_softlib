@@ -51,8 +51,7 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           script: |
             export PATH="$PATH:$HOME/.pub-cache/bin"
-            patrol test patrol_test/app_smoke_test.dart \
-              --device-id emulator-5554
+            patrol test patrol_test/app_smoke_test.dart
 
       - name: upload artifacts
         if: failure()
