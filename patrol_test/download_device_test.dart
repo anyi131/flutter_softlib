@@ -9,11 +9,15 @@ import 'package:flutter_softlib/app/widgets/app_card.dart';
 import 'package:get/get.dart';
 
 import 'package:flutter_softlib/main.dart' as app;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   patrolTest(
     '点下载 → 系统安装权限弹窗能被原生层接管',
     ($) async {
+      // 设备首次启动会停在引导页，先标记已引导
+      // ignore: invalid_use_of_visible_for_testing_member
+      SharedPreferences.setMockInitialValues({'onboard_done': true});
       app.main();
       await $.pump(const Duration(seconds: 2));
       await $.pumpAndTrySettle(timeout: const Duration(seconds: 20));

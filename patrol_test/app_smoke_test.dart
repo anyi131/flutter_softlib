@@ -12,6 +12,7 @@ import 'package:flutter_softlib/app/widgets/app_card.dart';
 import 'package:get/get.dart';
 
 import 'package:flutter_softlib/main.dart' as app;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   patrolTest(
@@ -23,6 +24,11 @@ void main() {
       //   the test."（第一次 CI 就是挂在这）。先存后还。
       final originalErrorWidgetBuilder = ErrorWidget.builder;
       final originalFlutterErrorOnError = FlutterError.onError;
+
+      // ★ 1103：设备上首次启动会停在引导页（onboard_done=false），
+      //   后面所有断言都会找不到控件。用内存 prefs 直接标记已完成引导。
+      // ignore: invalid_use_of_visible_for_testing_member
+      SharedPreferences.setMockInitialValues({'onboard_done': true});
 
       try {
         app.main();
