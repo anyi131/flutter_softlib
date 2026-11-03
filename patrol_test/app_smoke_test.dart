@@ -3,7 +3,7 @@
 // 本地跑：
 //   patrol test --target patrol_test/app_smoke_test.dart -d <deviceId>
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 
@@ -64,17 +64,30 @@ void main() {
         expect(found, isTrue, reason: '搜索 30s 内没有返回任何结果，接口/网络异常');
 
         await $(find.byType(AppCard)).first.tap();
-        // ★ 1103：详情页要等真实网络返回，pumpAndSettle 只等动画帧，
-        //   网络没回来时它会立刻返回 → 必须自己轮询
+        // ★ 1103：详情页内容较长，下载按钮在底部，可能是懒加载的 Sliver，
+        //   不滚动根本不会被 build。先轮询，中途滚一次，最后带诊断信息失败。
         var ready = false;
-        for (var i = 0; i < 80; i++) {
+        for (var i = 0; i < 40 && !ready; i++) {
           await $.pump(const Duration(milliseconds: 500));
-          if ($(#downloadBtn).evaluate().isNotEmpty) {
-            ready = true;
-            break;
+          ready = $(#downloadBtn).evaluate().isNotEmpty;
+          if (!ready && i == 10) {
+            try {
+              await $.scrollUntilVisible(
+                finder: find.byKey(const ValueKey('downloadBtn')),
+                maxScrolls: 20,
+              );
+            } catch (_) {}
           }
         }
-        expect(ready, isTrue, reason: '详情页 40s 内没有出现下载按钮');
+        if (!ready) {
+          final texts = $.tester
+              .widgetList<Text>(find.byType(Text))
+              .map((t) => t.data)
+              .whereType<String>()
+              .take(25)
+              .join(' | ');
+          expect(ready, isTrue, reason: '没找到下载按钮，当前页面文字: $texts');
+        }
 
         // 详情页核心控件在
         expect($(#downloadBtn), findsOneWidget);
