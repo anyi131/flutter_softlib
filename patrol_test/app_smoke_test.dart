@@ -64,7 +64,17 @@ void main() {
         expect(found, isTrue, reason: '搜索 30s 内没有返回任何结果，接口/网络异常');
 
         await $(find.byType(AppCard)).first.tap();
-        await $.pumpAndTrySettle(timeout: const Duration(seconds: 25));
+        // ★ 1103：详情页要等真实网络返回，pumpAndSettle 只等动画帧，
+        //   网络没回来时它会立刻返回 → 必须自己轮询
+        var ready = false;
+        for (var i = 0; i < 80; i++) {
+          await $.pump(const Duration(milliseconds: 500));
+          if ($(#downloadBtn).evaluate().isNotEmpty) {
+            ready = true;
+            break;
+          }
+        }
+        expect(ready, isTrue, reason: '详情页 40s 内没有出现下载按钮');
 
         // 详情页核心控件在
         expect($(#downloadBtn), findsOneWidget);
