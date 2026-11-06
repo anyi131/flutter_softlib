@@ -68,3 +68,20 @@ app_id: 6a3f…（你的项目 id）
 - [ ] `shorebird release android` 出的 APK 能正常安装启动
 - [ ] 改一行文案 → `shorebird patch android` → 冷启动看到变化
 - [ ] 验证回滚：控制台选择上一个补丁回滚，冷启动恢复
+
+## 七、本项目落地（154 作为基线）
+
+一次性准备（Mac 上，约 10 分钟）：
+```bash
+curl --proto '=https' --tlsv1.2 -sSfL https://shorebird.dev/install.sh | bash
+shorebird login
+cd ~/flutter_softlib && shorebird init     # 生成 shorebird.yaml，提交到仓库
+shorebird account apikey                   # 复制 token → GitHub Secrets: SHOREBIRD_TOKEN
+```
+
+之后二选一：
+- **打基线**：GitHub Actions 手动运行 `Shorebird (OTA 基线/补丁)` → command=release, build_number=154
+- **发热更新**：同一工作流 → command=patch（只改了 Dart 代码时用）
+
+> 注意：补丁只能推给「用 shorebird release 打出来的包」。普通 flutter 打的包（144/153）收不到补丁。
+> 所以 154 必须用 shorebird release 出，从 154 开始所有 Dart 修复都能 OTA。
