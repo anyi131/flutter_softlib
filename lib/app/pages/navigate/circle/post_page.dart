@@ -122,8 +122,20 @@ class _PostPageState extends State<PostPage> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: C.brand.withAlpha(30),
+                                backgroundImage:
+                                    '${((p['user'] as Map?)?['avatar'] ?? '')}'.isNotEmpty
+                                        ? NetworkImage('${(p['user'] as Map?)?['avatar']}')
+                                        : null,
+                                child: '${((p['user'] as Map?)?['avatar'] ?? '')}'.isEmpty
+                                    ? Icon(Lz.user, size: 16, color: C.brand)
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
                               Text('${(p['user'] as Map?)?['nickname'] ?? '匿名'}',
-                                  style: TextStyle(fontSize: 12, color: context.t2)),
+                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: context.t2)),
                               Container(
                                 margin: const EdgeInsets.only(left: 5),
                                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
