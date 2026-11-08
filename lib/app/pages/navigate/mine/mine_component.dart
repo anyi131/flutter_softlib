@@ -1331,7 +1331,8 @@ class MineComponent extends StatelessWidget {
     );
   }
 
-  /// 1108z9：自定义称号弹窗
+  /// 1108z9：自定义称号弹窗（入口已移除；称号改由后台管理员配置。保留备用）
+  // ignore: unused_element
   Future<void> _editTitleDialog(BuildContext ctx) async {
     final logic = Get.find<MineLogic>();
     final ctrl = TextEditingController(text: logic.userTitle);
@@ -1412,13 +1413,7 @@ class MineComponent extends StatelessWidget {
         C.gold,
         () => Get.toNamed(Routes.goal),
       ),
-      // ★ 1108z9：自定义称号
-      _S(
-        '自定义称号',
-        Icons.badge_rounded,
-        C.violet,
-        () => _editTitleDialog(Get.context!),
-      ),
+
       if (_uiCfg.featureInvite)
         _S(
           '邀请好友',
