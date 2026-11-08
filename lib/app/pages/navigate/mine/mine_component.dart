@@ -154,10 +154,13 @@ class MineComponent extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                logic.nickname.isEmpty ? '点击登录' : logic.nickname,
-                style: Ty.h2.copyWith(color: context.t1, fontSize: 20),
-              ),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(
+                  logic.nickname.isEmpty ? '点击登录' : logic.nickname,
+                  style: Ty.h2.copyWith(color: context.t1, fontSize: 20),
+                ),
+                _userTitleBadge(logic.userTitle),
+              ]),
               const SizedBox(height: 4),
               Text(
                 logged ? 'UID ${logic.uid}' : '登录后享受完整功能',
@@ -747,19 +750,24 @@ class MineComponent extends StatelessWidget {
             const SizedBox(height: 9),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(
-                logged
-                    ? (logic.nickname.isEmpty ? '用户' : logic.nickname)
-                    : '点击登录',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800,
-                  color: context.t1,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Flexible(
+                  child: Text(
+                    logged
+                        ? (logic.nickname.isEmpty ? '用户' : logic.nickname)
+                        : '点击登录',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: context.t1,
+                    ),
+                  ),
                 ),
-              ),
+                _userTitleBadge(logic.userTitle),
+              ]),
             ),
           ],
         ),
@@ -889,10 +897,13 @@ class MineComponent extends StatelessWidget {
               GestureDetector(
                 onTap: () =>
                     logged ? logic.openProfileEdit() : logic.openLogin(),
-                child: Text(
-                  logic.nickname.isEmpty ? '点击登录' : logic.nickname,
-                  style: Ty.h1.copyWith(color: context.t1, fontSize: 21),
-                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(
+                    logic.nickname.isEmpty ? '点击登录' : logic.nickname,
+                    style: Ty.h1.copyWith(color: context.t1, fontSize: 21),
+                  ),
+                  _userTitleBadge(logic.userTitle),
+                ]),
               ),
               const SizedBox(height: 6),
               Row(
@@ -1316,6 +1327,24 @@ class MineComponent extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  /// 1108z：称号徽章（金底，userTitle 空则不渲染）
+  Widget _userTitleBadge(String title) {
+    final t = title.trim();
+    if (t.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: C.gold.withAlpha(28),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: C.gold.withAlpha(130), width: 0.8),
+      ),
+      child: Text(t,
+          style: const TextStyle(
+              fontSize: 10, color: C.gold, fontWeight: FontWeight.w700)),
     );
   }
 
