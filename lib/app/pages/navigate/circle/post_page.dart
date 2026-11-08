@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../api/forum_service.dart';
 import '../../../api/user_service.dart';
@@ -123,6 +124,17 @@ class _PostPageState extends State<PostPage> {
                             children: [
                               Text('${(p['user'] as Map?)?['nickname'] ?? '匿名'}',
                                   style: TextStyle(fontSize: 12, color: context.t2)),
+                              Container(
+                                margin: const EdgeInsets.only(left: 5),
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: C.brand.withAlpha(30),
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: Text('作者',
+                                    style: TextStyle(
+                                        fontSize: 9.5, color: C.brand, fontWeight: FontWeight.w700)),
+                              ),
                               _titleBadge('${(p['user'] as Map?)?['title'] ?? ''}'),
                               const SizedBox(width: 8),
                               Text('${p['time_text'] ?? ''}',
@@ -314,16 +326,20 @@ class _PostPageState extends State<PostPage> {
   Widget _commentTile(Map<String, dynamic> c) {
     final u = (c['user'] as Map?) ?? const {};
     final isReply = (int.tryParse('${c['parent_id'] ?? 0}') ?? 0) > 0;
-    return Padding(
+    final canDel = UserService.instance.user?.id == int.tryParse('${c['user_id'] ?? 0}') ||
+        UserService.instance.user?.isAdmin == true;
+    return GestureDetector(
+      onLongPress: canDel ? () => _confirmDelComment(int.tryParse('${c['id']}') ?? 0) : null,
+      child: Padding(
       padding: EdgeInsets.only(left: isReply ? 26 : 0, top: 7, bottom: 7),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 12,
+            radius: 15,
             backgroundColor: C.brand.withAlpha(30),
             backgroundImage: '${u['avatar'] ?? ''}'.isNotEmpty ? NetworkImage('${u['avatar']}') : null,
-            child: '${u['avatar'] ?? ''}'.isEmpty ? Icon(Lz.user, size: 12, color: C.brand) : null,
+            child: '${u['avatar'] ?? ''}'.isEmpty ? Icon(Lz.user, size: 15, color: C.brand) : null,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -363,6 +379,34 @@ class _PostPageState extends State<PostPage> {
           ),
         ],
       ),
+    ),
     );
+  }
+
+  /// 长按删除自己的评论（管理员可删任意）
+  Future<void> _confirmDelComment(int id) async {
+    final okdel = await Get.dialog<bool>(AlertDialog(
+      backgroundColor: context.isDark ? C.bg2 : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('删除评论', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+      content: const Text('删除后无法恢复，确定删除这条评论吗？', style: TextStyle(fontSize: 13.5)),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
+        TextButton(
+          onPressed: () => Get.back(result: true),
+          child: const Text('删除', style: TextStyle(color: C.danger, fontWeight: FontWeight.w700)),
+        ),
+      ],
+    ));
+    if (okdel != true) return;
+    try {
+      await _svc.commentDel(id);
+      if (!mounted) return;
+      ToastUtil.success('已删除');
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 }

@@ -16,6 +16,7 @@ import '../../../design/theme_controller.dart';
 import '../../../design/kit.dart';
 import '../../../design/lucide.dart';
 import '../../../design/ui.dart';
+import '../../../utils/toast_util.dart';
 import '../../../routes/app_pages.dart';
 import '../../navigate/navigate_logic.dart';
 import 'mine_logic.dart';
@@ -1330,6 +1331,52 @@ class MineComponent extends StatelessWidget {
     );
   }
 
+  /// 1108z9：自定义称号弹窗
+  Future<void> _editTitleDialog(BuildContext ctx) async {
+    final logic = Get.find<MineLogic>();
+    final ctrl = TextEditingController(text: logic.userTitle);
+    final dark = Theme.of(ctx).brightness == Brightness.dark;
+    final okdel = await Get.dialog<bool>(AlertDialog(
+      backgroundColor: dark ? C.bg2 : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('自定义称号', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('展示在昵称旁，最多 12 字，留空清除',
+              style: TextStyle(fontSize: 12.5)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: ctrl,
+            maxLength: 12,
+            decoration: InputDecoration(
+              hintText: '如：软件达人',
+              counterText: '',
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
+        TextButton(
+          onPressed: () => Get.back(result: true),
+          child: const Text('保存', style: TextStyle(fontWeight: FontWeight.w700)),
+        ),
+      ],
+    ));
+    if (okdel != true) return;
+    try {
+      await UserService.instance.setTitle(ctrl.text.trim());
+      await logic.refreshUserTitle(ctrl.text.trim());
+      ToastUtil.success(ctrl.text.trim().isEmpty ? '称号已清除' : '称号已更新');
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
   /// 1108z：称号徽章（金底，userTitle 空则不渲染）
   Widget _userTitleBadge(String title) {
     final t = title.trim();
@@ -1364,6 +1411,13 @@ class MineComponent extends StatelessWidget {
         Icons.emoji_events_rounded,
         C.gold,
         () => Get.toNamed(Routes.goal),
+      ),
+      // ★ 1108z9：自定义称号
+      _S(
+        '自定义称号',
+        Icons.badge_rounded,
+        C.violet,
+        () => _editTitleDialog(Get.context!),
       ),
       if (_uiCfg.featureInvite)
         _S(

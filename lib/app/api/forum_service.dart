@@ -254,6 +254,14 @@ class ForumService {
     if (!(d is Map && d['code'] == 1)) throw Exception('${(d is Map ? d['msg'] : '删除失败')}');
   }
 
+  /// 删除自己的评论（服务端校验：本人或管理员）
+  Future<void> commentDel(int id) async {
+    final r = await _dio.post('/api/softlib/forum/comment_del',
+        data: {'id': id, 'token': UserService.instance.token});
+    final d = r.data;
+    if (!(d is Map && d['code'] == 1)) throw Exception('${(d is Map ? d['msg'] : '删除失败')}');
+  }
+
   Future<void> adminCommentDel(int id) async {
     final r = await _dio.post('/api/softlib/forum/admin_comment_del', data: {'id': id, ..._auth});
     final d = r.data;
