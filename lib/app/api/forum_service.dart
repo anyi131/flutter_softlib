@@ -25,6 +25,20 @@ class ForumService {
           'token': UserService.instance.token,
       };
 
+  /// 1108z16：论坛用户榜（top 8 by score）
+  Future<List<Map<String, dynamic>>> userRank() async {
+    try {
+      final r = await _dio.get('/api/softlib/forum/user_rank');
+      final d = r.data;
+      if (d is Map && d['code'] == 1 && d['data'] is List) {
+        return (d['data'] as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      debugPrint('[Forum] userRank: $e');
+    }
+    return [];
+  }
+
   Future<List<Map<String, dynamic>>> sections() async {
     try {
       final r = await _dio.get('/api/softlib/forum/section_list');
