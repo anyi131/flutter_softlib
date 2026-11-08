@@ -63,7 +63,7 @@ class SoftService {
         }
       }
     } catch (e) {
-      debugPrint('[Softlib] tools: $e');
+      if (kDebugMode) debugPrint('[Softlib] tools: $e');
     }
     return [];
   }
@@ -129,7 +129,7 @@ class SoftService {
         return cfg;
       }
     } catch (e) {
-      debugPrint('[Softlib] $e');
+      if (kDebugMode) debugPrint('[Softlib] $e');
     }
     return _configCache; // 失败时退回旧缓存（若有）
   }
@@ -194,7 +194,7 @@ class SoftService {
     if (cachedFlag && !force) {
       final hit = _cache[key];
       if (hit != null) {
-        debugPrint('[Softlib] fetchApps 未变化，用本地缓存（dv=$respDv）');
+        if (kDebugMode) debugPrint('[Softlib] fetchApps 未变化，用本地缓存（dv=$respDv）');
         return hit.data as List<AppItem>;
       }
       // 没有缓存 → 落到下面按正常数据解析（服务端同时也返回了完整 data）
@@ -317,7 +317,7 @@ class SoftService {
       if (data is Map && data['code'] == 1)
         return AppCat.listFrom(data['data']);
     } catch (e) {
-      debugPrint('[Softlib] $e');
+      if (kDebugMode) debugPrint('[Softlib] $e');
     }
     return [];
   }
@@ -424,7 +424,7 @@ class SoftService {
         lastParseError = data['msg'] as String;
       }
     } catch (e) {
-      debugPrint('[Softlib] single: $e');
+      if (kDebugMode) debugPrint('[Softlib] single: $e');
     }
     return null;
   }
@@ -480,7 +480,7 @@ class SoftService {
         lastParseError = data['msg'] as String;
       }
     } catch (e) {
-      debugPrint('[Softlib] folder: $e');
+      if (kDebugMode) debugPrint('[Softlib] folder: $e');
     }
     return null;
   }
@@ -547,7 +547,7 @@ class SoftService {
       }
       if (d is Map && d['msg'] is String) lastParseError = d['msg'] as String;
     } catch (e) {
-      debugPrint('[Softlib] auth: $e');
+      if (kDebugMode) debugPrint('[Softlib] auth: $e');
       lastParseError = '无法连接服务器完成校验';
     }
     return null;
@@ -618,7 +618,7 @@ class SoftService {
         }
       }
     } catch (e) {
-      debugPrint('[Softlib] $e');
+      if (kDebugMode) debugPrint('[Softlib] $e');
     }
     return null;
   }
@@ -629,7 +629,7 @@ class SoftService {
     try {
       await dio.get('/api/softlib/app/view', queryParameters: {'id': id});
     } catch (e) {
-      debugPrint('[Softlib] $e');
+      if (kDebugMode) debugPrint('[Softlib] $e');
     }
   }
 
@@ -852,7 +852,7 @@ extension ToolboxService on SoftService {
         return _jzsCache;
       }
     } catch (e) {
-      debugPrint('[Softlib] toolbox config: $e');
+      if (kDebugMode) debugPrint('[Softlib] toolbox config: $e');
     }
     return _jzsCache;
   }
@@ -918,7 +918,7 @@ extension ToolboxService on SoftService {
         return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
     } catch (e) {
-      debugPrint('[Softlib] jzs search: $e');
+      if (kDebugMode) debugPrint('[Softlib] jzs search: $e');
     }
     return [];
   }
@@ -949,7 +949,7 @@ extension ToolboxService on SoftService {
         return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
     } catch (e) {
-      debugPrint('[Softlib] jzs fav: $e');
+      if (kDebugMode) debugPrint('[Softlib] jzs fav: $e');
     }
     return [];
   }
@@ -977,7 +977,7 @@ extension ToolboxService on SoftService {
         return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
     } catch (e) {
-      debugPrint('[Softlib] jzs history: $e');
+      if (kDebugMode) debugPrint('[Softlib] jzs history: $e');
     }
     return [];
   }
@@ -1001,7 +1001,7 @@ extension ToolboxService on SoftService {
       }
       return null;
     } catch (e) {
-      debugPrint('[Softlib] toolbox2/$action: $e');
+      if (kDebugMode) debugPrint('[Softlib] toolbox2/$action: $e');
       return null;
     }
   }
@@ -1027,7 +1027,7 @@ extension ToolboxService on SoftService {
       }
       return null;
     } catch (e) {
-      debugPrint('[Softlib] media/$action: $e');
+      if (kDebugMode) debugPrint('[Softlib] media/$action: $e');
       return null;
     }
   }
@@ -1051,7 +1051,7 @@ extension ToolboxService on SoftService {
       }
       return null;
     } catch (e) {
-      debugPrint('[Softlib] toolbox/$action: $e');
+      if (kDebugMode) debugPrint('[Softlib] toolbox/$action: $e');
       return null;
     }
   }
