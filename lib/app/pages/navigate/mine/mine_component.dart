@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../design/app_anim.dart';
 import '../../../design/title_badge.dart';
+import '../../../design/user_medals.dart';
 import '../../../utils/safe_ctx.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
@@ -1396,7 +1397,7 @@ class MineComponent extends StatelessWidget {
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
                             color: ctx0.t1)),
-                    Text('已点亮 $earned / ${achs.length}',
+                    Text('已点亮 ${earned + (Get.isRegistered<MineLogic>(tag: 'mine') && Get.find<MineLogic>(tag: 'mine').isVip ? 1 : 0)} / ${achs.length + 1}',
                         style: TextStyle(fontSize: 11, color: ctx0.t3)),
                   ],
                 ),
@@ -1423,8 +1424,16 @@ class MineComponent extends StatelessWidget {
                             mainAxisSpacing: 16,
                             crossAxisSpacing: 10,
                             childAspectRatio: 0.86),
-                    itemCount: achs.length,
+                    itemCount: achs.length + 1, // 末尾固定一个「会员勋章」
                     itemBuilder: (_, i) {
+                      if (i == achs.length) {
+                        return VipMedalBadge(
+                          earned: Get.isRegistered<MineLogic>(tag: 'mine')
+                              ? (Get.find<MineLogic>(tag: 'mine').isVip)
+                              : false,
+                          size: 54,
+                        );
+                      }
                       final g = achs[i];
                       final got = g.claimed == 1;
                       return MedalBadge(

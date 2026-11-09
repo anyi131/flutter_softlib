@@ -7,6 +7,8 @@ import '../../../design/lucide.dart';
 import '../../../design/title_badge.dart';
 import '../../../design/ui.dart';
 import 'forum_gallery.dart';
+import 'post_content.dart';
+import '../../../design/user_medals.dart';
 import '../../../utils/err_text.dart';
 import '../../../utils/toast_util.dart';
 
@@ -169,6 +171,16 @@ class _PostPageState extends State<PostPage> {
                                       ),
                                       _titleBadge(
                                           '${(p['user'] as Map?)?['title'] ?? ''}'),
+                                      InlineMedals(
+                                        medals: (((p['user'] as Map?)?['medals']
+                                                    as List?) ??
+                                                const [])
+                                            .map((e) => '$e')
+                                            .toList(),
+                                        isVip:
+                                            '${(p['user'] as Map?)?['is_vip'] ?? 0}' == '1',
+                                        size: 14,
+                                      ),
                                       if ('${((p['user'] as Map?)?['is_admin'] ?? 0)}' == '1')
                                         _adminBadge()
                                       else if ('${((p['user'] as Map?)?['is_vip'] ?? 0)}' == '1')
@@ -185,24 +197,14 @@ class _PostPageState extends State<PostPage> {
                             ],
                           ),
                           const SizedBox(height: 18),
-                          // 1109：正文按空行分段 + 排版升级（更接近长文阅读体验）
-                          ...[
-                            for (final para in '${p['content'] ?? ''}'
-                                .split(RegExp(r'\n\s*\n')))
-                              if (para.trim().isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 14),
-                                  child: SelectableText(
-                                    para.trim(),
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      height: 1.85,
-                                      letterSpacing: 0.2,
-                                      color: context.t1,
-                                    ),
-                                  ),
-                                ),
-                          ],
+                          // 1109：正文富文本（标题/列表/引用/图片/粗体）
+                          PostContent(
+                            text: '${p['content'] ?? ''}',
+                            images: ((p['images'] as List?) ?? [])
+                                .map((e) => '$e')
+                                .where((e) => e.isNotEmpty)
+                                .toList(),
+                          ),
                           if ((p['images'] as List?)?.isNotEmpty == true) ...[
                             const SizedBox(height: 10),
                             PostGallery(
@@ -432,6 +434,13 @@ class _PostPageState extends State<PostPage> {
                               color: context.t2)),
                     ),
                     _titleBadge('${u['title'] ?? ''}'),
+                    InlineMedals(
+                      medals: ((u['medals'] as List?) ?? const [])
+                          .map((e) => '$e')
+                          .toList(),
+                      isVip: '${u['is_vip'] ?? 0}' == '1',
+                      size: 13,
+                    ),
                     if ('${u['is_admin'] ?? 0}' == '1')
                       _adminBadge()
                     else if ('${u['is_vip'] ?? 0}' == '1')
