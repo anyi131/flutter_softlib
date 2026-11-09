@@ -316,14 +316,16 @@ class _ElasticBarState extends State<_ElasticBar>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          // ★ 1109 修复：原来用不透明色 → BackdropFilter 被完全盖住，看着像实心条。
+          //   改成半透明，背后的内容才能透过玻璃看到（Liquid Glass 的关键）。
           colors: isDark
-              ? const [C.bg1, C.bg0]
-              : const [C.lbg1, C.lbg1],
+              ? [C.bg1.withAlpha(178), C.bg0.withAlpha(198)]
+              : [Colors.white.withAlpha(150), Colors.white.withAlpha(178)],
         ),
         border: Border.all(
           color: isDark
               ? Colors.white.withAlpha(56)
-              : Colors.white.withAlpha(240),
+              : Colors.white.withAlpha(200),
           width: 1.1,
         ),
         boxShadow: [

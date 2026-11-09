@@ -100,6 +100,8 @@ class _CircleComponentState extends State<CircleComponent> {
                             fontSize: 13, fontWeight: FontWeight.w800, color: context.t2)),
                   ),
                 ),
+              // 1109：底部留白（玻璃底栏悬浮，列表末尾要能滚出来）
+              const SliverToBoxAdapter(child: SizedBox(height: 96)),
               if (_loading)
                 const SliverToBoxAdapter(child: SkeletonPosts())
               else if (_posts.isEmpty)
@@ -122,8 +124,9 @@ class _CircleComponentState extends State<CircleComponent> {
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
-                        _secGrid(),
-  _userRank(),
+                        // ★ 1109：这里原来又渲染了一遍板块网格（_secGrid），
+                        //   和上方「逛板块」重复 → 屏幕里板块出现两次。已移除。
+                        _userRank(),
                         for (int i = 0; i < _posts.length; i++) ...[
                           if (i > 0)
                             Divider(

@@ -121,49 +121,88 @@ class _PostPageState extends State<PostPage> {
                               style: TextStyle(
                                   fontSize: 19, fontWeight: FontWeight.w900, color: context.t1, height: 1.35)),
                           const SizedBox(height: 8),
+                          // 1109：作者行改成两行（昵称弹性 + 元信息下移），
+                          //   原来 7 个元素挤一行必然溢出/被裁。
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               CircleAvatar(
-                                radius: 16,
+                                radius: 18,
                                 backgroundColor: C.brand.withAlpha(30),
                                 backgroundImage:
                                     '${((p['user'] as Map?)?['avatar'] ?? '')}'.isNotEmpty
                                         ? NetworkImage('${(p['user'] as Map?)?['avatar']}')
                                         : null,
                                 child: '${((p['user'] as Map?)?['avatar'] ?? '')}'.isEmpty
-                                    ? Icon(Lz.user, size: 16, color: C.brand)
+                                    ? Icon(Lz.user, size: 18, color: C.brand)
                                     : null,
                               ),
-                              const SizedBox(width: 8),
-                              Text('${(p['user'] as Map?)?['nickname'] ?? '匿名'}',
-                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: context.t2)),
-                              Container(
-                                margin: const EdgeInsets.only(left: 5),
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: C.brand.withAlpha(30),
-                                  borderRadius: BorderRadius.circular(5),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(children: [
+                                      Flexible(
+                                        child: Text(
+                                            '${(p['user'] as Map?)?['nickname'] ?? '匿名'}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: context.t1)),
+                                      ),
+                                      Container(
+                                        margin: const EdgeInsets.only(left: 5),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 5, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          color: C.brand.withAlpha(28),
+                                          borderRadius: BorderRadius.circular(5),
+                                        ),
+                                        child: Text('作者',
+                                            style: TextStyle(
+                                                fontSize: 9.5,
+                                                color: C.brand,
+                                                fontWeight: FontWeight.w700)),
+                                      ),
+                                      _titleBadge(
+                                          '${(p['user'] as Map?)?['title'] ?? ''}'),
+                                      if ('${((p['user'] as Map?)?['is_admin'] ?? 0)}' == '1')
+                                        _adminBadge()
+                                      else if ('${((p['user'] as Map?)?['is_vip'] ?? 0)}' == '1')
+                                        _vipBadge(),
+                                    ]),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${p['time_text'] ?? ''} · ${p['views'] ?? 0} 阅读 · 评论 ${_comments.length}',
+                                      style: TextStyle(fontSize: 11, color: context.t3),
+                                    ),
+                                  ],
                                 ),
-                                child: Text('作者',
-                                    style: TextStyle(
-                                        fontSize: 9.5, color: C.brand, fontWeight: FontWeight.w700)),
                               ),
-                              _titleBadge('${(p['user'] as Map?)?['title'] ?? ''}'),
-                              if ('${((p['user'] as Map?)?['is_admin'] ?? 0)}' == '1') _adminBadge() else if ('${((p['user'] as Map?)?['is_vip'] ?? 0)}' == '1') _vipBadge(),
-                              const SizedBox(width: 8),
-                              Text('${p['time_text'] ?? ''}',
-                                  style: TextStyle(fontSize: 11, color: context.t3)),
-                              const SizedBox(width: 8),
-                              Text('${p['views'] ?? 0} 阅读',
-                                  style: TextStyle(fontSize: 11, color: context.t3)),
-                              const SizedBox(width: 8),
-                              Text('评论 ${_comments.length}',
-                                  style: TextStyle(fontSize: 11, color: context.t3)),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          SelectableText('${p['content'] ?? ''}',
-                              style: TextStyle(fontSize: 14, height: 1.75, color: context.t1)),
+                          const SizedBox(height: 18),
+                          // 1109：正文按空行分段 + 排版升级（更接近长文阅读体验）
+                          ...[
+                            for (final para in '${p['content'] ?? ''}'
+                                .split(RegExp(r'\n\s*\n')))
+                              if (para.trim().isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 14),
+                                  child: SelectableText(
+                                    para.trim(),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      height: 1.85,
+                                      letterSpacing: 0.2,
+                                      color: context.t1,
+                                    ),
+                                  ),
+                                ),
+                          ],
                           if ((p['images'] as List?)?.isNotEmpty == true) ...[
                             const SizedBox(height: 10),
                             PostGallery(
