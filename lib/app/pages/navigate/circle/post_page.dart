@@ -146,7 +146,7 @@ class _PostPageState extends State<PostPage> {
                               Expanded(
                                 child: Text('${p['title'] ?? ''}',
                                     style: TextStyle(
-                                        fontSize: 19,
+                                        fontSize: 20.5,
                                         fontWeight: FontWeight.w900,
                                         color: context.t1,
                                         height: 1.35)),
@@ -346,6 +346,7 @@ class _PostPageState extends State<PostPage> {
                             Expanded(
                               child: TextField(
                                 controller: _input,
+                                onTapOutside: (_) => FocusScope.of(context).unfocus(),
                                 minLines: 1,
                                 maxLines: 3,
                                 style: TextStyle(fontSize: 13, color: context.t1),
