@@ -375,6 +375,9 @@ class _HomeComponentState extends State<HomeComponent> {
             SliverToBoxAdapter(child: _storeLatest()),
             SliverToBoxAdapter(child: _storeEditor()),
             if (uiCfg.featureNotice) SliverToBoxAdapter(child: _notice()),
+            if (uiCfg.featureReferral)
+              SliverToBoxAdapter(
+                  child: _sectionHead('全部软件', Icons.apps, '持续更新')),
             if (uiCfg.featureReferral) _storeGrid(),
             tail,
           ],
@@ -1746,6 +1749,35 @@ class _HomeComponentState extends State<HomeComponent> {
 
   // ───────── ② 搜索 ─────────
 
+  /// 1109：通用区块头（左竖条 + 图标 + 标题 + 右侧说明）
+  Widget _sectionHead(String title, IconData icon, [String? trailing]) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 9),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 15,
+            decoration: BoxDecoration(
+                color: C.brand, borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(width: 7),
+          Icon(icon, size: 15, color: C.brand),
+          const SizedBox(width: 5),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                  color: context.t1)),
+          const Spacer(),
+          if (trailing != null && trailing.isNotEmpty)
+            Text(trailing, style: TextStyle(fontSize: 11, color: context.t3)),
+        ],
+      ),
+    );
+  }
+
   /// 1108z18：新上架横滑数据
   Future<void> _ensureLatest() async {
     if (_latestApps.isNotEmpty) return;
@@ -1789,6 +1821,13 @@ class _HomeComponentState extends State<HomeComponent> {
                   color: context.isDark ? C.bg2 : Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: context.isDark ? C.bg3 : C.lbg2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(context.isDark ? 40 : 10),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Column(children: [
                   Stack(children: [
@@ -1811,7 +1850,7 @@ class _HomeComponentState extends State<HomeComponent> {
                   const SizedBox(height: 5),
                   Text('${a.title ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: context.t1)),
-                  Text('${a.versionName ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis,
+                  Text('${a.size ?? ''} · ${a.downCount ?? 0}次', maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 9, color: context.t3)),
                 ]),
               ),
@@ -1825,7 +1864,9 @@ class _HomeComponentState extends State<HomeComponent> {
   /// 1108z18：编辑推荐大卡
   Widget _storeEditor() {
     if (_latestApps.isEmpty) return const SizedBox.shrink();
-    final a = _latestApps.reduce((x, y) => ((x.views ?? 0) as int) >= ((y.views ?? 0) as int) ? x : y);
+    final sorted = List<dynamic>.from(_latestApps)
+      ..sort((x, y) => ((y.downCount ?? 0) as int).compareTo((x.downCount ?? 0) as int));
+    final a = sorted.first;
     final icon = '${a.icon ?? ''}';
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
