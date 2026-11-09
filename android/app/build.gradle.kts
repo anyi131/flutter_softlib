@@ -39,6 +39,29 @@ android {
         }
     }
 
+    // ★ 1109 瘦身：插件 AAR 会带上 x86_64/armeabi-v7a 的 .so（本 App 用不到），
+    //   这些不会被 abiFilters 过滤，必须显式从打包里排除，省约 1.6MB
+    packaging {
+        jniLibs {
+            excludes += listOf(
+                "lib/x86/**",
+                "lib/x86_64/**",
+                "lib/armeabi-v7a/**",
+                "lib/mips/**",
+                "lib/mips64/**"
+            )
+        }
+        resources {
+            excludes += listOf(
+                "META-INF/*.kotlin_module",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE*",
+                "META-INF/NOTICE*",
+                "META-INF/versions/**"
+            )
+        }
+    }
+
     // ★ 1014 关键修复：release 必须用「固定签名」。
     // ═══════════════════════════════════════════════════════════════
     // ★ 1014 签名配置（由你自己控制，代码里不含任何密码）
