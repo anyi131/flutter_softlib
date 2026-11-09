@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import '../../design/app_anim.dart';
 import '../../utils/safe_ctx.dart';
+import '../../utils/device_info_util.dart';
 import '../../utils/toast_util.dart';
 
 import 'dart:io';
@@ -388,6 +389,11 @@ class _SplashPageState extends State<SplashPage> {
         'fullscreen';
     final title = cfg?.splashTitle ?? '';
     final desc = cfg?.splashDesc ?? '';
+
+    // ★ 1109：暗夜品牌开屏（参考「TYMV」那种：纯黑底 + 居中 Logo 光晕 + 名字 + slogan + 版本）
+    if (tpl == 'hero_dark') {
+      return _heroDark(title, desc);
+    }
 
     // ★★ 1020 开屏重构：配置了网络图时，按模板给 3 种不同版式。
     //   原来 7 个模板里有的根本没有图片槽位，这里统一收敛成 3 套可用样式：
@@ -2124,6 +2130,124 @@ class _SplashPageState extends State<SplashPage> {
       );
     }
     return _defaultSplash();
+  }
+
+  /// 1109：暗夜品牌开屏
+  ///   深黑渐变底 + 中央 Logo 光晕 + 应用名（大字距）+ slogan + 底部版本号
+  ///   入场：Logo 放大淡入 → 文字上浮淡入
+  Widget _heroDark(String title, String desc) {
+    final t = title.trim().isEmpty ? '安逸软件汇' : title.trim();
+    final d = desc.trim();
+    final ver = DeviceInfo.appVersion;
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0B0D12), Color(0xFF05070A), Color(0xFF000000)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // 顶部品牌光晕
+          Positioned(
+            top: -120,
+            left: -40,
+            right: -40,
+            child: Container(
+              height: 360,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [C.brand.withAlpha(60), Colors.transparent],
+                  radius: 0.7,
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                const Spacer(flex: 3),
+                // 中央 Logo + 光晕
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.86, end: 1),
+                  duration: const Duration(milliseconds: 900),
+                  curve: Curves.easeOutBack,
+                  builder: (_, s, ch) => Transform.scale(scale: s, child: ch),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 132,
+                        height: 132,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: C.brand.withAlpha(85),
+                              blurRadius: 70,
+                              spreadRadius: 6,
+                            ),
+                          ],
+                        ),
+                      ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: Image.asset(
+                          Assets.imagesApp,
+                          width: 92,
+                          height: 92,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                // 应用名
+                Text(
+                  t,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                  ),
+                ),
+                if (d.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      d,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withAlpha(150),
+                        fontSize: 13,
+                        height: 1.6,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+                const Spacer(flex: 4),
+                if (ver.isNotEmpty)
+                  Text(
+                    '版本 $ver',
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(90),
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                const SizedBox(height: 26),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _defaultSplash() {
