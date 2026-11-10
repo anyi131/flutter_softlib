@@ -138,17 +138,24 @@ class _PostPageState extends State<PostPage> {
               (UserService.instance.user?.id ==
                       int.tryParse('${p['user_id'] ?? 0}') ||
                   UserService.instance.user?.isAdmin == true))
-            PopupMenuButton<String>(
-              icon: Icon(Lz.more, size: 20, color: context.t2),
-              onSelected: (v) {
-                if (v == 'del') _confirmDelPost();
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(
-                  value: 'del',
-                  child: Text('删除帖子', style: TextStyle(fontSize: 13.5)),
+            // 1109：自绘圆形按钮 + 底部动作面板
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: AppIconButton(
+                icon: Lz.more,
+                onTap: () => showAppActionSheet(
+                  context,
+                  title: '帖子操作',
+                  actions: [
+                    AppActionItem(
+                      label: '删除帖子',
+                      icon: Lz.trash2,
+                      danger: true,
+                      onTap: _confirmDelPost,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
         ],
       ),
