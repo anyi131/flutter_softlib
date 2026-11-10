@@ -127,6 +127,10 @@ class _PublishPageState extends State<PublishPage> {
         b('图片', '![](https://图片地址)'),
         b('分割线', '\n---\n'),
         b('表格', '\n| 列1 | 列2 |\n|---|---|\n| a | b |\n'),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: AppChip('导入链接', icon: Lz.link, primary: true, onTap: _importLink),
+        ),
       ]),
     );
   }
@@ -199,6 +203,73 @@ class _PublishPageState extends State<PublishPage> {
             style: TextStyle(fontSize: 11, color: context.t3)),
       ],
     );
+  }
+
+  /// 1109：从链接导入标题/正文/首图
+  Future<void> _importLink() async {
+    final ctrl = TextEditingController();
+    final go = await Get.dialog<bool>(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      title: const Text('导入链接内容',
+          style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('粘贴网页链接，自动抓取标题、正文和首图',
+              style: TextStyle(fontSize: 12, color: context.t3)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: ctrl,
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(
+              hintText: 'https://',
+              isDense: true,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('取消')),
+        FilledButton(
+            onPressed: () => Get.back(result: true), child: const Text('导入')),
+      ],
+    ));
+    if (go != true) return;
+    final url = ctrl.text.trim();
+    if (url.isEmpty) return;
+    ToastUtil.info('正在抓取…');
+    try {
+      final d = await ForumService.instance.fetchLink(url);
+      if (!mounted) return;
+      final t = '${d['title'] ?? ''}'.trim();
+      final tx = '${d['text'] ?? ''}'.trim();
+      final img = '${d['image'] ?? ''}'.trim();
+      setState(() {
+        if (_title.text.trim().isEmpty && t.isNotEmpty) {
+          _title.text = t;
+        }
+        final buf = StringBuffer();
+        if (tx.isNotEmpty) buf.writeln(tx);
+        buf.writeln();
+        buf.writeln('来源：' + url);
+        if (img.isNotEmpty) {
+          buf.writeln();
+          buf.writeln('![](' + img + ')');
+        }
+        final old = _content.text.trim();
+        _content.text = old.isEmpty
+            ? buf.toString()
+            : old + '\n\n' + buf.toString();
+      });
+      ToastUtil.success('已导入，右上角可预览');
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   Widget build(BuildContext context) {
