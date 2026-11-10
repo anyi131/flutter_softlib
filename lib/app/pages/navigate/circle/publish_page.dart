@@ -109,6 +109,24 @@ class _PublishPageState extends State<PublishPage> {
     );
   }
 
+  /// 1109：在光标处插入图片（上传后写入 Markdown，正文任意位置可插图）
+  Future<void> _insertImageAtCursor() async {
+    try {
+      final picked = await ImagePicker()
+          .pickImage(source: ImageSource.gallery, imageQuality: 82);
+      if (picked == null) return;
+      setState(() => _uploading = true);
+      final url = await PostService.instance.uploadImage(File(picked.path));
+      if (url.isEmpty) throw Exception('上传失败');
+      _insertMd('\n![](' + url + ')\n');
+      ToastUtil.success('已插入到光标处');
+    } catch (e) {
+      ToastUtil.error('插图失败');
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
   Widget _mdBar() {
     Widget b(String label, String insert) => Padding(
           padding: const EdgeInsets.only(right: 8),
@@ -129,7 +147,11 @@ class _PublishPageState extends State<PublishPage> {
         b('引用', '\n> 引用内容\n'),
         b('代码', '\n```\n代码\n```\n'),
         b('链接', '[文字](https://)'),
-        b('图片', '![](https://图片地址)'),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: AppChip('插入图片',
+              icon: Lz.image, onTap: _insertImageAtCursor),
+        ),
         b('分割线', '\n---\n'),
         b('表格', '\n| 列1 | 列2 |\n|---|---|\n| a | b |\n'),
         Padding(
