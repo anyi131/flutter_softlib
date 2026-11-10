@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../api/forum_service.dart';
@@ -33,6 +34,9 @@ class _PostPageState extends State<PostPage> {
   List<Map<String, dynamic>> _comments = [];
   bool _loading = true;
   bool _sending = false;
+  int _cPage = 1;
+  bool _cMore = false;
+  bool _cLoadingMore = false;
 
   @override
   void initState() {
@@ -53,6 +57,8 @@ class _PostPageState extends State<PostPage> {
     setState(() {
       _post = p;
       _comments = c;
+      _cPage = 1;
+      _cMore = c.length >= 20;
       _loading = false;
     });
   }
@@ -147,6 +153,11 @@ class _PostPageState extends State<PostPage> {
                   context,
                   title: '帖子操作',
                   actions: [
+                    AppActionItem(
+                      label: '分享',
+                      icon: Lz.share,
+                      onTap: _sharePost,
+                    ),
                     AppActionItem(
                       label: '删除帖子',
                       icon: Lz.trash2,
@@ -395,6 +406,22 @@ class _PostPageState extends State<PostPage> {
                           else
                             for (var ci = 0; ci < _comments.length; ci++)
                               _commentTile(_comments[ci], ci + 1),
+                            if (_cMore)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                child: Center(
+                                  child: _cLoadingMore
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2))
+                                      : AppChip('加载更多评论',
+                                          onTap: _loadMoreComments),
+                                ),
+                              ),
+
                         ],
                       ),
                     ),
@@ -513,6 +540,31 @@ class _PostPageState extends State<PostPage> {
 
   /// 1109：称号徽章（统一炫酷样式；标题为空不渲染）
   Widget _titleBadge(String title) => TitleBadge(title, scale: 0.95);
+
+  /// 1109：评论分页加载
+  Future<void> _loadMoreComments() async {
+    if (_cLoadingMore || !_cMore) return;
+    setState(() => _cLoadingMore = true);
+    try {
+      final next = await _svc.comments(widget.postId, page: _cPage + 1);
+      if (!mounted) return;
+      setState(() {
+        _cPage += 1;
+        _comments.addAll(next);
+        _cMore = next.length >= 20;
+        _cLoadingMore = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _cLoadingMore = false);
+    }
+  }
+
+  /// 1109：分享（复制链接）
+  Future<void> _sharePost() async {
+    final link = 'https://flrjk.52yfx.cn/forum/post/${widget.postId}';
+    await Clipboard.setData(ClipboardData(text: link));
+    ToastUtil.success('链接已复制');
+  }
 
   Widget _commentTile(Map<String, dynamic> c, [int floor = 0]) {
     final u = (c['user'] as Map?) ?? const {};

@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../api/forum_service.dart';
+import '../../../api/soft_service.dart';
+import '../../../api/user_service.dart';
 import '../../../api/post_service.dart';
 import '../../../design/app_anim.dart';
 import '../../../design/ui.dart';
@@ -79,7 +81,10 @@ class _PublishPageState extends State<PublishPage> {
       final id = await ForumService.instance
           .publish(title: t, section: _section, text: c, images: urls);
       if (!mounted) return;
-      ToastUtil.success('发布成功');
+      final needReview =
+          (SoftService.instance.cachedConfig?.uiConfig.forumReview ?? false) &&
+              !(UserService.instance.user?.isAdmin == true);
+      ToastUtil.success(needReview ? '已提交，等待管理员审核' : '发布成功');
       Get.back(result: true);
       if (id > 0) {
         // 发布后直接进详情
