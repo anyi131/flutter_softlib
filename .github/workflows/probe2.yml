@@ -1,0 +1,45 @@
+name: Probe Deps Upgrade
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flutter 3.47.9
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.9
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+
+      - name: 全量大版本升级
+        run: |
+          set +e
+          flutter pub upgrade --major-versions > /tmp/up.txt 2>&1
+          echo "=== upgrade 结果尾部 ==="
+          tail -25 /tmp/up.txt
+          echo "=== pubspec.yaml 变更 ==="
+          git --no-pager diff --stat pubspec.yaml pubspec.lock
+          git --no-pager diff pubspec.yaml | head -120
+
+      - name: Analyze
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/a.txt 2>&1
+          echo "=== error 行 ==="
+          grep " error •" /tmp/a.txt | head -30
+          echo "=== error 计数 ==="
+          grep -c " error •" /tmp/a.txt
+
+      - name: 尝试构建 APK（真实验证）
+        run: |
+          set +e
+          flutter build apk --debug > /tmp/b.txt 2>&1
+          echo "build exit=$?"
+          tail -30 /tmp/b.txt
