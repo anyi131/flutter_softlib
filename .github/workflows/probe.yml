@@ -1,4 +1,4 @@
-name: Probe Analyze Only
+name: Probe Upgrade (不打包，只评估)
 
 on:
   workflow_dispatch:
@@ -9,27 +9,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Flutter (new)
+      - name: Set up Flutter (新版本)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.9
+          flutter-version: 3.47.9
           channel: stable
           cache: true
 
-      - name: Version info
+      - name: 版本信息
         run: flutter --version
 
       - name: Pub get
         run: flutter pub get
 
-      - name: Pub outdated
+      - name: 依赖过时清单（只报告，不升级）
         run: flutter pub outdated || true
 
-      - name: Analyze
+      - name: Analyze（统计破坏性变更）
         run: |
           set +e
           flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/analyze.txt 2>&1
-          echo "=== error count ==="
+          echo "=== error 总数 ==="
           grep -c " error •" /tmp/analyze.txt
-          echo "=== first 40 errors ==="
+          echo "=== 前 40 条 error ==="
           grep " error •" /tmp/analyze.txt | head -40
