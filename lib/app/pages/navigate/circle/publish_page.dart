@@ -77,10 +77,12 @@ class _PublishPageState extends State<PublishPage> {
 
   Future<void> _submit() async {
     final t = _title.text.trim();
-    final c = DeltaToMarkdown()
+    // ΔToMarkdown 会把 . - _ ( ) # 等字符全部反斜杠转义（3\.0\.3、install\.sh），
+    // 用户看到的是带反斜杠的乱码。这里只保留 * ` [ ] 的必要转义，其余还原。
+    final c = _unescapeMd(DeltaToMarkdown()
         .convert(_quill.document.toDelta())
         .replaceAll(RegExp(r'\n{3,}'), '\n\n')
-        .trim();
+        .trim());
     if (t.length < 2) return ToastUtil.info('标题至少 2 个字');
     if (c.contains('[pay]') &&
         (!_payOn || (double.tryParse(_payPrice.text.trim()) ?? 0) <= 0)) {
@@ -216,6 +218,12 @@ class _PublishPageState extends State<PublishPage> {
   }
 
   /// 正文 Markdown 文本（富文本 → Markdown，详情页沿用原渲染器）
+  /// 还原 DeltaToMarkdown 的过度转义
+  String _unescapeMd(String s) => s.replaceAllMapped(
+        RegExp(r'\\([.\-_()#!|>+])'),
+        (m) => m.group(1)!,
+      );
+
   String _mdText() =>
       DeltaToMarkdown().convert(_quill.document.toDelta()).trim();
 
