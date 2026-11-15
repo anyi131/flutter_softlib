@@ -1,10 +1,8 @@
 name: Build Android APK
 
 on:
-  push:
-    branches: ["main", "master"]
-  pull_request:
-    branches: ["main", "master"]
+  # 1109c：只在手动触发时构建 —— 改代码 push 不再自动打包，
+  #   避免连续修 bug 时刷出一堆无用构建记录、浪费 Actions 时间
   workflow_dispatch:
 
 permissions:
