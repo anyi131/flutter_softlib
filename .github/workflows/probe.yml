@@ -35,5 +35,5 @@ jobs:
           echo "=== analyze.txt 行数 ==="
           wc -l /tmp/analyze.txt
           echo "=== 原始输出前 40 行 ==="
-          head -40 /tmp/analyze.txt
+          cat /tmp/analyze.txt
           grep " error •" /tmp/analyze.txt | head -40
