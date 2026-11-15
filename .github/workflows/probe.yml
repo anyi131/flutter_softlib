@@ -32,4 +32,8 @@ jobs:
           echo "=== error 总数 ==="
           grep -c " error •" /tmp/analyze.txt
           echo "=== 前 40 条 error ==="
+          echo "=== analyze.txt 行数 ==="
+          wc -l /tmp/analyze.txt
+          echo "=== 原始输出前 40 行 ==="
+          head -40 /tmp/analyze.txt
           grep " error •" /tmp/analyze.txt | head -40
