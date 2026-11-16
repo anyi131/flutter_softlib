@@ -362,6 +362,11 @@ class SoftService {
   static String lastParseChannel = '';
   /// ★ 1105h：最近一次解析附带的中转兜底地址（服务端直连失败时换它重下）
   static String lastParseProxyUrl = '';
+  /// 1109e：解析接口额外下发的「IPv4 专用直链」与对应 Host。
+  ///   蓝奏 CDN 的 IPv6 节点连不上，客户端下载器优先试 IPv6 会卡死；
+  ///   用 http + IPv4 + Host 头可以强制走 IPv4。
+  static String lastParseUrlV4 = '';
+  static String lastParseHost = '';
 
   /// ★ 1016：解析接口的原始返回片段（便于后台排查）
   static String lastParseResp = '';
@@ -588,6 +593,21 @@ class SoftService {
                 ? pvTop
                 : ((pvIn is String && pvIn.startsWith('http')) ? pvIn : '');
             if (pv.isNotEmpty) lastParseProxyUrl = pv;
+            // 1109e：抓 IPv4 备用直链
+            try {
+              final v4Top = d['urlV4'];
+              final v4In = (d['data'] is Map) ? (d['data'] as Map)['urlV4'] : null;
+              final hTop = d['host'];
+              final hIn = (d['data'] is Map) ? (d['data'] as Map)['host'] : null;
+              final v4 = (v4Top is String && v4Top.startsWith('http'))
+                  ? v4Top
+                  : ((v4In is String && v4In.startsWith('http')) ? v4In : '');
+              final hh = (hTop is String && hTop.isNotEmpty)
+                  ? hTop
+                  : ((hIn is String && hIn.isNotEmpty) ? hIn : '');
+              lastParseUrlV4 = v4;
+              lastParseHost = hh;
+            } catch (_) {}
           } catch (_) {}
           for (final k in [
             'downUrl',
