@@ -37,6 +37,8 @@ class _PublishPageState extends State<PublishPage> {
   late int _section = widget.sectionId ?? (widget.sections.isNotEmpty ? int.tryParse('${widget.sections.first['id']}') ?? 0 : 0);
   bool _sending = false;
   final List<File> _images = [];
+  /// 1109j：已在外链/服务器上的图片（导入链接选「作附件」时进这里）
+  final List<String> _remoteImages = [];
   bool _uploading = false;
   /// 1109：发布前预览
   bool _preview = false;
@@ -95,6 +97,8 @@ class _PublishPageState extends State<PublishPage> {
     try {
       final urls = <String>[];
       var upFail = 0;
+      // 导入链接转成附件的图片：直接带上
+      urls.addAll(_remoteImages);
       if (_images.isNotEmpty) {
         setState(() => _uploading = true);
         for (final f in _images) {
@@ -394,6 +398,26 @@ class _PublishPageState extends State<PublishPage> {
     if (go != true) return;
     final url = ctrl.text.trim();
     if (url.isEmpty) return;
+
+    // 1109j：抓到的图放哪里，让作者决定
+    final imgMode = await Get.dialog<String>(
+      AlertDialog(
+        title: const Text('导入图片的处理方式'),
+        content: const Text('抓到的图片放哪里？\n\n'
+            '· 正文内嵌：保留原文图文结构\n'
+            '· 作附件：统一放到帖子末尾九宫格'),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Get.back(result: 'inline'),
+              child: const Text('正文内嵌')),
+          FilledButton(
+              onPressed: () => Get.back(result: 'attach'),
+              child: const Text('作附件')),
+        ],
+      ),
+    );
+    if (imgMode == null) return;
     ToastUtil.info('正在抓取…');
     try {
       final d = await ForumService.instance.fetchLink(url);
@@ -405,8 +429,26 @@ class _PublishPageState extends State<PublishPage> {
         if (_title.text.trim().isEmpty && t.isNotEmpty) {
           _title.text = t;
         }
+        var bodyText = tx;
+        if (imgMode == 'attach') {
+          // 把正文里的 markdown 图抽出来 → 附件宫格
+          final re = RegExp(r'!\[[^\]]*\]\(([^)]+)\)');
+          final found = <String>[];
+          for (final m in re.allMatches(bodyText)) {
+            final u = m.group(1)?.trim() ?? '';
+            if (u.startsWith('http') && !found.contains(u)) found.add(u);
+          }
+          bodyText = bodyText
+              .replaceAll(re, '')
+              .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+              .trim();
+          for (final u in found) {
+            if (_images.length + _remoteImages.length >= 9) break;
+            if (!_remoteImages.contains(u)) _remoteImages.add(u);
+          }
+        }
         final buf = StringBuffer();
-        if (tx.isNotEmpty) buf.writeln(tx);
+        if (bodyText.isNotEmpty) buf.writeln(bodyText);
         if (img.isNotEmpty) {
           buf.writeln();
           buf.writeln('![](' + img + ')');
