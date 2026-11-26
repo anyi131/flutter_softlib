@@ -224,7 +224,11 @@ class JicunParseService {
 
   // ─────────────── 1109s：直连 MeowSave（各自 IP，不过本站服务器） ───────────────
   static const String _meowBase = 'https://api.videofix.top/meow';
-  static const String _meowUa = 'MeowSave/1.1.5 (Android34;Pixel 7)';
+  /// 上游自 v1.1.8 起按 UA 版本号设门槛:<=1.1.7 一律回 app_update_required
+  /// (文案「请前往 MeowSave 官网更新至 1.1.8 或更高版本后再解析」)。
+  /// 客户端这边必须跟着抬版本,否则直连永远是空结果、全部回落服务端。
+  static const String _meowUa = 'MeowSave/1.1.8 (Android34;Pixel 7)';
+  static const String _meowAppVersion = '1.1.8';
 
   static int _meowVid = 0;
   static String _meowTok = '';
@@ -282,7 +286,7 @@ class JicunParseService {
       'manufacturer': 'Google',
       'android': '14',
       'sdk': 34,
-      'app_version': '1.1.5',
+      'app_version': _meowAppVersion,
       'app_code': 4,
       'screen': '1080x2400',
       'locale': 'zh-CN',
@@ -444,9 +448,17 @@ class JicunParseService {
         if (l is num) lastLimit = l.toInt();
       }
     } catch (_) {}
-    if (_isSuccess(body) && _dataOf(body) is Map) {
+    // ★ 1127：本站约定是 `{"code":1,"msg":"ok","data":{…}}` ——
+    //   code=1 表示成功。旧判定只认 0/200，于是解析成功的应答被当成失败，
+    //   再拿 msg("ok") 抛 ParseException —— 用户就只看到弹一个「ok」，
+    //   真正的视频直链全丢。
+    //   现在只要应答带了非空 data（或 code 算成功）就走成功分支；
+    //   data 为空才往下读 msg/error —— 那才是真正的失败信息。
+    final payload = _dataOf(body);
+    if (payload is Map &&
+        (payload.isNotEmpty || _isSuccess(body))) {
       // 明文地址在这里统一升 https(上游同款,Android 禁明文)。
-      final data = secureMediaUrls(_dataOf(body)) as Map<String, dynamic>;
+      final data = secureMediaUrls(payload) as Map<String, dynamic>;
       if (!fromUpstream) return ParseResult.fromJson(data);
       return platform == ParsePlatform.qishuiMusic
           ? ParseResult.fromQishuiMusic(data)
@@ -464,10 +476,13 @@ class JicunParseService {
   static bool _isSuccess(Map<String, dynamic> body) {
     if (body['succ'] == true) return true;
     final code = body['code'] ?? body['retcode'] ?? body['status'];
-    if (code is num) return code == 200 || code == 0;
+    // ★ 1127：本站接口（/api/softlib/*）统一用 code=1 表示成功，
+    //   与上游 media-parser 的 0/200 约定并存，这里一并认掉。
+    if (code is num) return code == 200 || code == 0 || code == 1;
     if (code is String) {
       final text = code.trim();
-      return text == '200' || text == '0' || text.toLowerCase() == 'ok';
+      return text == '200' || text == '0' || text == '1' ||
+          text.toLowerCase() == 'ok' || text.toLowerCase() == 'success';
     }
     return _dataOf(body) is Map;
   }
