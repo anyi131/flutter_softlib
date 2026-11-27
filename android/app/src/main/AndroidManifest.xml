@@ -23,7 +23,8 @@
             android:label="安逸软件汇"
             android:name="${applicationName}"
             android:requestLegacyExternalStorage="true"
-            android:usesCleartextTraffic="true"
+            android:usesCleartextTraffic="false"
+            android:networkSecurityConfig="@xml/network_security_config"
             android:enableOnBackInvokedCallback="true"
             android:icon="@mipmap/ic_launcher">
 

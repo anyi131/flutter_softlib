@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ★ 1127 安全加固：禁用明文流量（原 AndroidManifest 是 usesCleartextTraffic="true"）
+
+  原来的风险：
+    usesCleartextTraffic 是 application 级开关，对 WebView / 下载器 / url_launcher
+    全部生效 —— 内置浏览器里任何一个外链工具被劫持，就能让 App 静默下载
+    一个明文 HTTP 的 APK；网络中间人也能替换下载到的安装包。
+
+  现在的策略：
+    默认禁止所有明文 HTTP（cleartextTrafficPermitted="false"），
+    App 内所有网络请求必须走 HTTPS。
+
+  维护说明：
+    如果将来某个工具/接口只能用 http，请在这里加一段 <domain-config> 单独放行，
+    并在注释里写清原因，不要图省事改回全局 usesCleartextTraffic。
+    之前唯一的明文依赖 api.btstu.cn 已经改走服务端代理
+    （见 lib/app/pages/toolkit/tool_pages_net.dart:3222 的注释）。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

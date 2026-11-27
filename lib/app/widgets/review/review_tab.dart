@@ -44,6 +44,24 @@ class _ReviewTabState extends State<ReviewTab> {
     _load();
   }
 
+  /// ★ 1127：切换软件时不刷新评价 tab 的问题。
+  ///
+  /// 详情页支持原地换 id（`_syncRouteArgs` / 「相关推荐」），复用的是同一个
+  /// State —— `initState` 不会再跑，于是页面显示的是**上一个软件**的评分和评论，
+  /// 在这里写评价还会挂到错误的 appId 上。
+  @override
+  void didUpdateWidget(ReviewTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.appId != widget.appId) {
+      setState(() {
+        _loading = true;
+        _summary = ReviewSummary.empty();
+        _list = [];
+      });
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     final s = await _svc.summary(widget.appId);
     final l = await _svc.list(widget.appId, filter: _filter, sort: _sort);

@@ -213,8 +213,11 @@ String _appVersion = '';
 
 /// 初始化应用服务
 Future<void> _initializeServices() async {
-  // 初始化下载器
-  await FlutterDownloader.initialize(debug: true, ignoreSsl: true);
+  // ★ 1127 安全：initialize 的 debug 默认跟 kDebugMode 走，ignoreSsl 必须关。
+  //   原来写死 debug:true + ignoreSsl:true —— release 包里也在跑 debug 模式，
+  //   而且**不校验 TLS 证书**，配合之前的 usesCleartextTraffic 等于对中间人完全敞开：
+  //   攻击者可以替换下载到的 APK。
+  await FlutterDownloader.initialize(debug: kDebugMode, ignoreSsl: false);
   // ★ 1109：新下载引擎（background_downloader 多连接分段）
   //   事件复用旧通道（AppDetailsLogic.downloadCallback → SendPort），上层零改动
   DlEngine.onStallReport = (msg) {

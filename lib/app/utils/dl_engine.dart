@@ -229,8 +229,18 @@ class DlEngine {
   }
 
   /// 每 2 秒扫一遍：进度 8 秒没增长 → 用中转地址重下一次（每任务一次）
+  ///
+  /// ★ 1127：没有在途任务时把定时器停掉。
+  ///   原来 `_stallTimer ??=` 只建不销毁，`_checkStalls` 首行 `if (_watch.isEmpty) return;`
+  ///   等于让一个 2 秒周期的定时器在 App 整个生命周期里空转 ——
+  ///   下过一次东西之后就一直每 2 秒唤醒主 isolate，耗电、也更容易被系统杀。
   static void _checkStalls() {
-    if (_watch.isEmpty) return;
+    if (_watch.isEmpty) {
+      // 没有要盯的任务 → 停止定时器，下次有任务时 _ensureStallTimer 会重建
+      _stallTimer?.cancel();
+      _stallTimer = null;
+      return;
+    }
     final now = DateTime.now();
     for (final e in _watch.entries.toList()) {
       final id = e.key;

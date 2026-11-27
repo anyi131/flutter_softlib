@@ -1106,7 +1106,13 @@ class AppDetailsLogic extends GetxController {
       // ═══ 三级降级：① 本地解析 → ② 外置接口 → ③ 原链接浏览器 ═══
       //   本地解析只用于**免费资源**：客户端算法可被反编译，
       //   付费/会员资源必须走服务端票据，否则付费墙失效。
-      final isFree = item == null || (!item!.isVipItem && !item!.hasPrice);
+      //
+      // ★ 1127 安全修复：原来写的是 `item == null || (...)` ——
+      //   从深链 / 消息 / 分享页进来时 item 为 null（只带 url），
+      //   于是任何资源都被当成「免费」，直接走客户端解析拿到直链，
+      //   服务端票据校验被完全绕过，付费资源白嫖。
+      //   现在：item 缺失一律按「可能付费」处理 —— 只走服务端链路。
+      final isFree = item != null && !item!.isVipItem && !item!.hasPrice;
       if (isFree && LzyLocalParser.isLzyUrl(target)) {
         ResolveOverlay.stage('本地解析中…');
         try {
@@ -2250,5 +2256,31 @@ class AppDetailsLogic extends GetxController {
         );
       },
     );
+  }
+
+  /// ★ 1127：补上资源清理。
+  ///
+  /// 这个 controller 是 `Get.lazyPut(fenix: true)` 注册的 —— 每次退出详情页都会
+  /// 销毁、再进来重新创建。但原来没有 onClose，于是：
+  ///   · `port.listen(...)` 注册的 ReceivePort 永远不关 → 每进出一次泄漏一个端口
+  ///   · 旧的 `_progressTimer` 继续跑 → 下完还对着已销毁的 controller 调 update()
+  ///     → "A AppDetailsLogic was used after being disposed" 红屏 / 进度条错乱
+  /// 这就是「下载完成后进度不动」「重进详情页进度乱跳」的结构性原因。
+  @override
+  void onClose() {
+    try {
+      _progressTimer?.cancel();
+      _progressTimer = null;
+    } catch (_) {}
+    try {
+      // 先解绑名字映射，再关端口（顺序反了会让新实例注册不到回调）
+      IsolateNameServer.removePortNameMapping(
+        'app_details_downloader_send_port',
+      );
+    } catch (_) {}
+    try {
+      port.close();
+    } catch (_) {}
+    super.onClose();
   }
 }

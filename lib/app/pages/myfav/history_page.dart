@@ -36,6 +36,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
   List<Map<String, dynamic>> _list = [];
   bool _loading = true;
+  /// ★ 1127：加载失败要能说清楚，否则「还没有使用记录」会被当成记录被清了
+  String _err = '';
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Future<void> _load() async {
     // ★ 1101 排雷：刷新不切骨架，只有首进空列表才显示
     if (_list.isEmpty) setState(() => _loading = true);
+    _err = '';
     try {
       // ★ 1020：服务端只认 POST body 里的 token
       final r = await _dio.post(
@@ -61,7 +64,14 @@ class _HistoryPageState extends State<HistoryPage> {
         });
         return;
       }
+      // ★ 1127：接口明确返回失败 —— 记下原因，别当成「没有记录」
+      if (r.data is Map) {
+        _err = '${r.data['msg'] ?? '加载失败'}';
+      } else {
+        _err = '返回内容无法识别';
+      }
     } catch (e) {
+      _err = ErrText.of(e);
       debugPrint('[History] $e');
     }
     if (!mounted) return;
@@ -269,11 +279,17 @@ class _HistoryPageState extends State<HistoryPage> {
                   child: _loading
                       ? const LoadingSkeletonList()
                       : (_list.isEmpty
-                            ? const EmptyState(
-                                icon: Lz.history,
-                                text: '还没有使用记录',
-                                hint: '打开过的工具会记录在这里',
-                              )
+                            ? (_err.isNotEmpty
+                                  ? EmptyState(
+                                      icon: Lz.history,
+                                      text: '记录加载失败',
+                                      hint: '$_err\n下拉重试，或检查网络/登录状态',
+                                    )
+                                  : const EmptyState(
+                                      icon: Lz.history,
+                                      text: '还没有使用记录',
+                                      hint: '打开过的工具会记录在这里',
+                                    ))
                             : RefreshIndicator(
                                 onRefresh: _load,
                                 color: C.brand,

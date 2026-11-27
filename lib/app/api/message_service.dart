@@ -59,11 +59,24 @@ class MessageService {
     return 0;
   }
 
-  Future<void> markRead({int id = 0}) async {
-    await _dio.post(
-      '/api/softlib/message/read',
-      data: {'token': UserService.instance.token, 'id': id},
-    );
+  /// 标记已读。id=0 表示全部已读。
+  /// 返回服务端算出来的最新未读数；**-1 表示结果不可信**（请求异常 / 应答不含 unread），
+  /// 调用方收到 -1 时不要动本地红点，避免把「未读到」误判成「已读完」。
+  Future<int> markRead({int id = 0}) async {
+    try {
+      final r = await _dio.post(
+        '/api/softlib/message/read',
+        data: {'token': UserService.instance.token, 'id': id},
+      );
+      if (r.data is Map && r.data['code'] == 1) {
+        final n = int.tryParse('${r.data['data']?['unread']}');
+        // ★ 1127：原来这里没拿到 unread 就 return 0 —— 会把红点误清零。
+        if (n != null && n >= 0) return n;
+      }
+      return -1;
+    } catch (_) {
+      return -1;
+    }
   }
 
   Future<void> remove(int id) async {

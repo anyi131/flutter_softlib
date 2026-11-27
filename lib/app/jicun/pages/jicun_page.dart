@@ -137,6 +137,9 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
       final url = extractShareUrl(raw);
       if (url != null && mounted) {
         setState(() => _ctrl.text = raw);
+        // ★ 1127：粘贴完主动收键盘。只写 _ctrl.text 不会让输入框失焦，
+        //   光标还停在框里 → 系统键盘一直挂着，用户看着莫名其妙。
+        FocusManager.instance.primaryFocus?.unfocus();
       }
     } catch (_) {}
   }
@@ -443,10 +446,14 @@ class _JicunPageState extends State<JicunPage> with WidgetsBindingObserver {
               MiniAction(
                 icon: Icons.clear_all_rounded,
                 label: '清空',
-                onTap: () => setState(() {
-                  _ctrl.clear();
-                  _result = null;
-                }),
+                onTap: () {
+                  setState(() {
+                    _ctrl.clear();
+                    _result = null;
+                  });
+                  // 清空后同样收键盘，避免键盘残留
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
               ),
             ],
           ),

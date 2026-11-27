@@ -6,6 +6,7 @@ import '../../../design/adaptive.dart';
 import '../../../design/kit.dart';
 import '../../../design/lucide.dart';
 import '../../../design/ui.dart';
+import '../../../utils/err_text.dart';
 import 'post_page.dart';
 
 /// ★ 1107t 圈子搜索页（修复：右上角放大镜之前误跳「全部帖子」列表）
@@ -37,10 +38,18 @@ class _CircleSearchPageState extends State<CircleSearchPage> {
       setState(() => _hits = r);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _err = '$e');
+      // ★ 1127：别把 DioException 原文糊到用户脸上，也别泄漏内部地址
+      setState(() => _err = ErrText.of(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  /// ★ 1127：原来整个类没有 dispose，反复进出会一直累积 TextEditingController
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
   }
 
   @override

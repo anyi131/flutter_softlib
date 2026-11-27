@@ -44,6 +44,9 @@ class _FavoritesPageState extends State<FavoritesPage>
   bool _loading = true;
   List<Map<String, dynamic>> _software = [];
   List<Map<String, dynamic>> _tools = [];
+  /// ★ 1127：加载失败时记下原因，UI 才能显示「加载失败」而不是「还没有收藏」
+  String _swErr = '';
+  String _tlErr = '';
 
   @override
   void initState() {
@@ -86,10 +89,14 @@ class _FavoritesPageState extends State<FavoritesPage>
       );
       if (r.data is Map && r.data['code'] == 1) {
         final list = (r.data['data']?['list'] as List?) ?? [];
+        _swErr = '';
         return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
+      // ★ 1127：接口失败时记下原因，别让 UI 显示成「还没有收藏」
+      _swErr = r.data is Map ? '${r.data['msg'] ?? '加载失败'}' : '返回内容无法识别';
     } catch (e) {
       debugPrint('[Fav] software: $e');
+      _swErr = ErrText.of(e);
     }
     return [];
   }
@@ -102,10 +109,14 @@ class _FavoritesPageState extends State<FavoritesPage>
       );
       if (r.data is Map && r.data['code'] == 1) {
         final list = (r.data['data']?['list'] as List?) ?? [];
+        _tlErr = '';
         return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
+      // ★ 1127：同 _fetchSoftware，失败要留原因
+      _tlErr = r.data is Map ? '${r.data['msg'] ?? '加载失败'}' : '返回内容无法识别';
     } catch (e) {
       debugPrint('[Fav] tools: $e');
+      _tlErr = ErrText.of(e);
     }
     return [];
   }
@@ -245,7 +256,9 @@ class _FavoritesPageState extends State<FavoritesPage>
 
   Widget _softwareList() {
     if (_software.isEmpty) {
-      return _empty('还没有收藏软件', '在软件详情页点收藏即可加入这里');
+      return _swErr.isEmpty
+          ? _empty('还没有收藏软件', '在软件详情页点收藏即可加入这里')
+          : _empty('收藏加载失败', '$_swErr\n下拉重试，或检查网络/登录状态');
     }
     return RefreshIndicator(
       onRefresh: _load,
@@ -268,7 +281,9 @@ class _FavoritesPageState extends State<FavoritesPage>
 
   Widget _toolList() {
     if (_tools.isEmpty) {
-      return _empty('还没有收藏工具', '在工具箱长按任意工具即可收藏');
+      return _tlErr.isEmpty
+          ? _empty('还没有收藏工具', '在工具箱长按任意工具即可收藏')
+          : _empty('工具收藏加载失败', '$_tlErr\n下拉重试，或检查网络/登录状态');
     }
     return RefreshIndicator(
       onRefresh: _load,

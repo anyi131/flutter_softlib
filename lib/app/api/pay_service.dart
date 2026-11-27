@@ -136,8 +136,12 @@ class PayService {
     );
   }
 
-  /// 查询订单是否已支付
-  Future<bool> isPaid(String outTradeNo) async {
+  /// 查询订单是否已支付。
+  ///
+  /// ★ 1127：改为三态 —— `true` 已付 / `false` 明确未付 / `null` 查询失败（网络等原因）。
+  ///   原来异常时 return false，轮询会把「网络抖动」当成「没付款」，
+  ///   已付款用户等 10 分钟看到「未到账」。
+  Future<bool?> isPaidOrNull(String outTradeNo) async {
     try {
       final token = UserService.instance.token;
       final data = _unwrap(
@@ -146,13 +150,21 @@ class PayService {
           data: {'out_trade_no': outTradeNo, 'token': token},
         ),
       );
-      if (data is Map) return data['paid'] == true || data['status'] == 1;
-      return false;
+      if (data is Map) {
+        if (data['paid'] == true || data['status'] == 1) return true;
+        return false;
+      }
+      // 应答形状异常 —— 无法判定，交给调用方决定是否继续轮询
+      return null;
     } catch (e) {
-      debugPrint('[Pay] $e');
-      return false;
+      debugPrint('[Pay] isPaid: $e');
+      return null;
     }
   }
+
+  /// 查询订单是否已支付（兼容旧调用方：查询失败按未付处理）
+  Future<bool> isPaid(String outTradeNo) async =>
+      (await isPaidOrNull(outTradeNo)) ?? false;
 
   /// 轮询等待支付完成（最多 [timeout]），返回是否成功
   /// 用户付完款切回 App 时能尽快感知到

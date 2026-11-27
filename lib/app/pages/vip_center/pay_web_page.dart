@@ -35,6 +35,9 @@ class _PayWebPageState extends State<PayWebPage> {
   late final WebViewController _controller;
   Timer? _poll;
   bool _done = false;
+  /// ★ 1127：防止 return_url 的两次回调（onPageFinished + onNavigationRequest）
+  ///   同时发起两次订单查询
+  bool _confirming = false;
   bool _loading = true;
   int _progress = 0;
 
@@ -66,9 +69,9 @@ class _PayWebPageState extends State<PayWebPage> {
           },
           onPageFinished: (u) {
             if (mounted) setState(() => _loading = false);
-            // 命中支付站的同步返回地址 → 认为已支付
+            // 命中支付站的同步返回地址 → 只是「用户走完了支付页」，**不等于已到账**
             if (u.contains('/api/softlib/pay/return')) {
-              _finish(true);
+              _confirmPaid();
             }
           },
           onProgress: (p) {
@@ -82,7 +85,7 @@ class _PayWebPageState extends State<PayWebPage> {
           onNavigationRequest: (req) {
             // 拦截支付完成后的同步跳转，避免加载到我们自己的结果页
             if (req.url.contains('/api/softlib/pay/return')) {
-              _finish(true);
+              _confirmPaid();
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -103,12 +106,39 @@ class _PayWebPageState extends State<PayWebPage> {
         return;
       }
       tick++;
-      if (await PayService.instance.isPaid(_outTradeNo)) {
+      // ★ 1127：null = 查询失败，不要当成「未付款」，继续轮询
+      final paid = await PayService.instance.isPaidOrNull(_outTradeNo);
+      if (paid == true) {
         _finish(true);
         return;
       }
       if (tick > 200) t.cancel(); // 10 分钟
     });
+  }
+
+  /// ★ 1127：支付站跳回 return_url 只代表「用户走完了支付页」，
+  ///   不代表钱已经到账（用户可能点了取消、支付失败、或中间人伪造跳转）。
+  ///   这里必须向服务端确认订单状态后才放行 ——
+  ///   原来直接 `_finish(true)`，没付钱也会弹「支付成功，已到账」。
+  Future<void> _confirmPaid() async {
+    if (_done || _confirming) return;
+    _confirming = true;
+    try {
+      // 给支付渠道一点时间回调通知，稍等再查
+      await Future.delayed(const Duration(milliseconds: 800));
+      final paid = await PayService.instance.isPaidOrNull(_outTradeNo);
+      if (!mounted) return;
+      if (paid == true) {
+        await _finish(true);
+      } else {
+        // 未确认到账：不弹成功，让用户等待轮询继续查（或稍后手动刷新）
+        setState(() => _loading = false);
+      }
+    } catch (_) {
+      // 查询失败也不放行，交给轮询兜底
+    } finally {
+      _confirming = false;
+    }
   }
 
   Future<void> _finish(bool paid) async {

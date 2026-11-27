@@ -12,6 +12,8 @@ import '../../design/adaptive.dart';
 import '../../design/kit.dart';
 import '../../design/ui.dart';
 import '../../api/message_service.dart';
+import '../../api/user_service.dart';
+import '../navigate/mine/mine_logic.dart';
 import '../../routes/app_pages.dart';
 import '../../utils/toast_util.dart';
 import '../../design/lucide.dart';
@@ -36,7 +38,47 @@ class _MessagePageState extends State<MessagePage> {
   @override
   void initState() {
     super.initState();
-    _load(reset: true);
+    // ★ 1127：先加载列表，加载成功后再静默全标已读 ——
+    //   原来两件事同时发起，弱网下列表还没回来就已经标完了，
+    //   用户可能一条都没看到就被清空。现在挂在 _load 完成之后。
+    _load(reset: true).then((_) {
+      if (mounted) _markAllReadSilently();
+    });
+  }
+
+  /// ★ 1127：进入消息页即把未读清掉。
+  ///
+  /// 以前只有点顶栏的对勾才会 markRead —— 用户进来一条条看完，红点和数字
+  /// 还挂在「我的」页上，看着像没读。现在进来就静默全标已读（不弹 toast），
+  /// 并把「我的」页的红点数一并归零（服务端 read 接口返回最新 unread）。
+  Future<void> _markAllReadSilently() async {
+    if (!UserService.instance.isLoggedIn) return;
+    try {
+      final left = await MessageService.instance.markRead();
+      if (!mounted) return;
+      setState(() {
+        for (final m in _list) {
+          m['is_read'] = 1;
+        }
+      });
+      _syncMineBadge(left);
+    } catch (_) {
+      // 静默失败：用户仍可点顶栏对勾手动全标已读
+    }
+  }
+
+  /// 把「我的」页的红点数同步成服务端最新的未读数。
+  void _syncMineBadge(int unread) {
+    if (unread < 0) return; // -1 = 请求失败，别瞎改
+    try {
+      // MineLogic 在 navigate_binding 里是 lazyPut(tag: 'mine', fenix: true)
+      final logic = Get.isRegistered<MineLogic>(tag: 'mine')
+          ? Get.find<MineLogic>(tag: 'mine')
+          : (Get.isRegistered<MineLogic>() ? Get.find<MineLogic>() : null);
+      if (logic == null) return;
+      logic.messageCount = unread;
+      logic.update();
+    } catch (_) {}
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -74,13 +116,14 @@ class _MessagePageState extends State<MessagePage> {
   /// ★ 1031q：一键全部已读（顶栏 done_all 图标）
   Future<void> _markAllRead() async {
     try {
-      await MessageService.instance.markRead();
+      final left = await MessageService.instance.markRead();
       if (!mounted) return;
       setState(() {
         for (final m in _list) {
           m['is_read'] = 1;
         }
       });
+      _syncMineBadge(left);
       ToastUtil.success('已全部标记为已读');
     } catch (e) {
       ToastUtil.error(ErrText.of(e));
@@ -108,8 +151,9 @@ class _MessagePageState extends State<MessagePage> {
     final id = (m['id'] as num?)?.toInt() ?? 0;
     if ((m['is_read'] as num?)?.toInt() == 0) {
       try {
-        await MessageService.instance.markRead(id: id);
+        final left = await MessageService.instance.markRead(id: id);
         if (mounted) setState(() => m['is_read'] = 1);
+        _syncMineBadge(left);
       } catch (_) {}
     }
     final lt = (m['link_type'] ?? '').toString();
@@ -458,9 +502,10 @@ class _MessagePageState extends State<MessagePage> {
   Future<void> _openAndMark(Map<String, dynamic> m) async {
     try {
       final id = (m['id'] as num?)?.toInt() ?? 0;
-      await MessageService.instance.markRead(id: id);
+      final left = await MessageService.instance.markRead(id: id);
       if (!mounted) return;
       setState(() => m['is_read'] = 1);
+      _syncMineBadge(left);
     } catch (_) {}
   }
 

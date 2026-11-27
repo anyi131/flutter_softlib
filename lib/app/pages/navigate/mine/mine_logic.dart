@@ -411,6 +411,12 @@ class MineLogic extends GetxController {
     final u = account;
     final nickCtrl = TextEditingController(text: u?.nickname ?? '');
     final qqCtrl = TextEditingController(text: u?.qq ?? '');
+    // ★ 1127：在弹窗**还活着**的时候把文本取出来。
+    //   原来在 Get.dialog 返回之后才读 ctrl.text —— 那时 EditableTextState
+    //   已释放 controller，可能读到空值或抛异常，
+    //   表现为「提示资料已更新，但昵称其实没变」。
+    String? nickOut;
+    String? qqOut;
     final ok = await Get.dialog<bool>(
       AppDialog(
         title: const Text('编辑资料'),
@@ -451,17 +457,32 @@ class MineLogic extends GetxController {
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () => Get.back(result: true),
+            onPressed: () {
+              // 关闭之前先把内容抓下来
+              nickOut = nickCtrl.text.trim();
+              qqOut = qqCtrl.text.trim();
+              Get.back(result: true);
+            },
             child: const Text('保存'),
           ),
         ],
       ),
     );
+    // ★ 1127：弹窗退场动画期间 TextField 还在用 controller，
+    //   立刻 dispose 会报 "used after being disposed"。
+    //   这里延后释放（文本已经在保存时抓下来了，不依赖 controller）。
+    Future.delayed(const Duration(milliseconds: 400), () {
+      try {
+        nickCtrl.dispose();
+        qqCtrl.dispose();
+      } catch (_) {}
+    });
     if (ok != true) return;
+    if (nickOut == null && qqOut == null) return; // 没取到，别发空请求
     final done = await AppAction.act(
       () => _userService.updateProfile({
-        'nickname': nickCtrl.text.trim(),
-        'qq': qqCtrl.text.trim(),
+        'nickname': nickOut ?? (u?.nickname ?? ''),
+        'qq': qqOut ?? (u?.qq ?? ''),
       }),
       loading: '保存中…',
       success: '资料已更新',
@@ -545,6 +566,13 @@ class MineLogic extends GetxController {
         ],
       ),
     );
+    // ★ 1127：controller 用完要释放（原来每次兑换都泄漏一个），
+    //   但退场动画期间 TextField 还在用它，所以延后一点再 dispose。
+    Future.delayed(const Duration(milliseconds: 400), () {
+      try {
+        ctrl.dispose();
+      } catch (_) {}
+    });
     if (code == null || code.isEmpty) return;
     try {
       final msg = await _userService.redeem(code);

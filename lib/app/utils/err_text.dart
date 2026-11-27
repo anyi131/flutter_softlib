@@ -31,7 +31,16 @@ class ErrText {
     if (s.contains('SendTimeout')) return '发送超时，请重试';
 
     // ── 状态码 ──
-    if (s.contains('status code of 401') || s.contains('401')) {
+    // ★ 1127：原来是裸 `s.contains('401')` —— 任何带 401 的字符串都会中招，
+    //   比如 `?id=401`、`took 1401ms` 都会被说成「登录已失效」，误导用户去重新登录。
+    //   现在要求它出现在明确的状态码语境里。
+    if (s.contains('status code of 401') ||
+        (RegExp(r'\b401\b', caseSensitive: false).hasMatch(s) &&
+            (s.contains('HTTP') ||
+                s.contains('status') ||
+                s.contains('Unauthorized') ||
+                s.contains('响应') ||
+                s.contains('鉴权')))) {
       return '登录已失效，请重新登录';
     }
     if (s.contains('403')) return '没有权限访问';
