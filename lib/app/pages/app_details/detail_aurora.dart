@@ -494,7 +494,12 @@ class DetailAurora {
                   // ★ 1101：0.84 屏宽×3x≈1110px，660 不够
                   memCacheWidth: 1080,
                   imageUrl: shots[i],
-                  fit: BoxFit.cover,
+                  height: 200,
+                  // ★ 1128 修复：原来只有 BoxFit.cover 没给高度，
+                  //   采集到的截图多为横版拼图（如 960×640），
+                  //   cover 会把图裁成中间一条 → 用户看到「显示不全」。
+                  //   现在限高 200 + contain，按原比例完整显示。
+                  fit: BoxFit.contain,
                   errorWidget: (_, __, ___) => Container(
                     width: 220,
                     color: context.isDark

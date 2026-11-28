@@ -439,7 +439,9 @@ class DetailNeon {
                   // ★ 1101：0.82 屏宽×3x≈1080px，630 不够
                   memCacheWidth: 1080,
                   imageUrl: shots[i],
-                  fit: BoxFit.cover,
+                  height: 178,
+                  // ★ 1128 修复：同 aurora，横版截图被 cover 裁成一条
+                  fit: BoxFit.contain,
                   errorWidget: (_, __, ___) => Container(
                     width: 210,
                     color: dark ? Colors.white10 : Colors.black.withAlpha(6),

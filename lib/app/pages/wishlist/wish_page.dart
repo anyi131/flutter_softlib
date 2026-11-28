@@ -64,24 +64,31 @@ class _WishPageState extends State<WishPage> {
   Future<void> _load({bool more = false}) async {
     if (!more) {
       // ★ 1101 排雷：刷新不切骨架，只有首进空列表才显示
-      if (_list.isEmpty) if (_list.isEmpty) setState(() => _loading = true);
+      if (_list.isEmpty) setState(() => _loading = true);
       _page = 1;
     }
-    final r = await _svc.list(
-      sort: _sort,
-      page: _page,
-      size: 20,
-      kw: _kwCtrl.text.trim(),
-    );
-    if (!mounted) return;
-    final list = ((r['list'] as List?) ?? [])
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
-    setState(() {
-      _list = more ? [..._list, ...list] : list;
-      _hasMore = r['has_more'] == true;
-      _loading = false;
-    });
+    // 1128h：补 try/catch（原来重复写了两次 if，且网络失败会永久转圈）
+    try {
+      final r = await _svc.list(
+        sort: _sort,
+        page: _page,
+        size: 20,
+        kw: _kwCtrl.text.trim(),
+      );
+      if (!mounted) return;
+      final list = ((r['list'] as List?) ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      setState(() {
+        _list = more ? [..._list, ...list] : list;
+        _hasMore = r['has_more'] == true;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('[Wish] load failed: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   /// 投票（乐观更新）

@@ -71,14 +71,21 @@ class _FavoritesPageState extends State<FavoritesPage>
   Future<void> _load() async {
     // ★ 1101 排雷：首次进入才显示骨架；下拉/手动刷新保持列表，静默换数据，
     //   否则刷新瞬间整页被骨架替换再弹回（真机截图实锤）
+    // 1128h：补 try/catch —— 原来网络失败 _loading 不复位，页面永久骨架屏
     if (_software.isEmpty && _tools.isEmpty) setState(() => _loading = true);
-    final results = await Future.wait([_fetchSoftware(), _fetchTools()]);
-    if (!mounted) return;
-    setState(() {
-      _software = results[0];
-      _tools = results[1];
-      _loading = false;
-    });
+    try {
+      final results = await Future.wait([_fetchSoftware(), _fetchTools()]);
+      if (!mounted) return;
+      setState(() {
+        _software = results[0];
+        _tools = results[1];
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('[Fav] load failed: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   Future<List<Map<String, dynamic>>> _fetchSoftware() async {

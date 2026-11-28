@@ -275,12 +275,18 @@ class _AppComponentState extends State<AppComponent> {
         _loading = false;
         _loadingMore = false;
       });
-    } catch (_) {
+    } catch (e) {
+      // 1128h：原来这里把异常吞掉，只解除 loading ——
+      //   _switch() 已经清空了 _apps，于是页面显示「该分类暂无软件」，
+      //   用户看到的是「空分类」而不是「网络失败」，还被 _reportRender 当异常上报。
+      //   现在写明错误并保留为空列表以外的提示。
+      debugPrint('[Softlib] _load failed: $e');
       if (!mounted) return;
       setState(() {
         _loading = false;
         _loadingMore = false;
         _hasMore = false;
+        if (_apps.isEmpty) _err = '加载失败：${ErrText.of(e)}';
       });
     }
   }
@@ -547,15 +553,22 @@ class _AppComponentState extends State<AppComponent> {
   /// 把当前渲染状态上报一次（状态不变不重复报）
   void _reportRender() {
     try {
+      // 1128h：sig 去掉 style —— 主题/样式可能异步变化（后台下发 + 本地覆盖），
+      //   带上它会让「同一个空列表」因 style 抖动被当成新状态反复上报。
       final sig =
           'apps=${_apps.length} cats=${_cats.length} '
           'loading=$_loading parsing=$_folderParsing err=$_err '
-          'style=${AppStyleController.instance.listStyle.value.name} '
           'cat=$_cat kw=$_kw src=$_source';
       // 1109h：只在「异常状态」上报 —— 正常加载/切分类不再刷日志
       //   （之前 7 天 2366 条，把错误日志淹没了）
-      final abnormal = _err.isNotEmpty || (!_loading && _apps.isEmpty);
-      if (!abnormal) return;
+      // 1128h：加载中一律不算异常（_switch 会清空 _apps 并置 loading=true，
+      //   否则每次正常加载都误报一条 apps=0 loading=true）
+      final abnormal = !_loading && (_err.isNotEmpty || _apps.isEmpty);
+      if (!abnormal) {
+        // 恢复正常就复位，下一次真的异常时还能报一条
+        _lastSig = '';
+        return;
+      }
       if (sig == _lastSig) return;
       _lastSig = sig;
       SoftService.reportLogStatic(

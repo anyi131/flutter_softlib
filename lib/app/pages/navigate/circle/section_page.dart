@@ -68,18 +68,25 @@ class _SectionPageState extends State<SectionPage> {
       _list.clear();
       setState(() => _loading = true);
     }
-    final d = await _svc.posts(section: _sid, order: _order, page: _page, limit: 15);
-    final list = (d['list'] as List? ?? [])
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
-    if (!mounted) return;
-    setState(() {
-      _list.addAll(list);
-      _more = d['has_more'] == true;
-      _page++;
-      _loading = false;
-    });
+    // 1128h：原来没有 try/catch —— 网络失败时 _loading 永远 true，列表卡死
+    try {
+      final d = await _svc.posts(section: _sid, order: _order, page: _page, limit: 15);
+      final list = (d['list'] as List? ?? [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _list.addAll(list);
+        _more = d['has_more'] == true;
+        _page++;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('[Forum] section load failed: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   @override

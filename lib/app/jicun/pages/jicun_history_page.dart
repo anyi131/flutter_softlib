@@ -42,12 +42,19 @@ class _JicunHistoryPageState extends State<JicunHistoryPage> {
   }
 
   Future<void> _load() async {
-    final list = await _store.load();
-    if (!mounted) return;
-    setState(() {
-      _entries = list;
-      _loading = false;
-    });
+    // 1128h：补 try/catch —— 本地存储异常时 _loading 不复位
+    try {
+      final list = await _store.load();
+      if (!mounted) return;
+      setState(() {
+        _entries = list;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('[Jicun] history load failed: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   void _exitSelecting() {

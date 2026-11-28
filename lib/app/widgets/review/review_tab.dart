@@ -63,14 +63,21 @@ class _ReviewTabState extends State<ReviewTab> {
   }
 
   Future<void> _load() async {
-    final s = await _svc.summary(widget.appId);
-    final l = await _svc.list(widget.appId, filter: _filter, sort: _sort);
-    if (!mounted) return;
-    setState(() {
-      _summary = s;
-      _list = l;
-      _loading = false;
-    });
+    // 1128h：补 try/catch —— 原来网络一失败 _loading 不复位，评论区永久转圈
+    try {
+      final s = await _svc.summary(widget.appId);
+      final l = await _svc.list(widget.appId, filter: _filter, sort: _sort);
+      if (!mounted) return;
+      setState(() {
+        _summary = s;
+        _list = l;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('[Review] load failed: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   @override

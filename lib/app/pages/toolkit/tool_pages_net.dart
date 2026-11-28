@@ -835,13 +835,23 @@ class _PoemPageState extends State<PoemPage> {
       _loading = true;
       _err = '';
     });
-    final d = await _svc.poem();
-    if (!mounted) return;
-    setState(() {
-      _d = d;
-      _loading = false;
-      _err = d == null ? '诗句拉取失败' : '';
-    });
+    // 1128h：补 try/catch —— 原来网络失败会让页面永久停在 loading
+    try {
+      final d = await _svc.poem();
+      if (!mounted) return;
+      setState(() {
+        _d = d;
+        _loading = false;
+        _err = d == null ? '诗句拉取失败' : '';
+      });
+    } catch (e) {
+      debugPrint('[Tool] poem load failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _err = '诗句拉取失败';
+      });
+    }
   }
 
   @override
@@ -918,12 +928,19 @@ class _HitokotoPageState extends State<HitokotoPage> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final d = await _svc.hitokoto();
-    if (!mounted) return;
-    setState(() {
-      _d = d;
-      _loading = false;
-    });
+    // 1128h：补 try/catch —— 一言接口失败会让页面永久 loading
+    try {
+      final d = await _svc.hitokoto();
+      if (!mounted) return;
+      setState(() {
+        _d = d;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('[Tool] hitokoto failed: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   @override

@@ -39,15 +39,23 @@ class _MyForumPageState extends State<MyForumPage>
   }
 
   Future<void> _load() async {
-    if (_posts.isEmpty) if (_posts.isEmpty) setState(() => _loading = true);
-    final p = await _svc.myPosts();
-    final m = await _svc.myMarks();
-    if (!mounted) return;
-    setState(() {
-      _posts = p;
-      _marks = m;
-      _loading = false;
-    });
+    // 1128h：原来重复写了两次 if (_posts.isEmpty)；且整个方法没有 try/catch ——
+    //   网络一断 myPosts() 直接抛异常，_loading 永远是 true，页面永久转圈。
+    if (_posts.isEmpty) setState(() => _loading = true);
+    try {
+      final p = await _svc.myPosts();
+      final m = await _svc.myMarks();
+      if (!mounted) return;
+      setState(() {
+        _posts = p;
+        _marks = m;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('[Forum] my_forum load failed: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   @override
