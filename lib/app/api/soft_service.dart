@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'api_http.dart';
 
@@ -1110,8 +1111,23 @@ extension ToolboxService on SoftService {
 class _RetryInterceptor extends Interceptor {
   static const _maxRetry = 1;
 
+  /// ★ 1128 修复「Invalid argument(s) (onError): The error handler of
+  ///   Future.catchError must return a value of the future's type」崩溃。
+  ///
+  ///   dio 5.11 起 `DioMixin._fetch` 会在拦截器链里用
+  ///   `future.catchError(errorInterceptorWrapper(fun))`，并且通过
+  ///   `_invokeCallbackDynamically` **动态调用** onError，
+  ///   把 `async` 重写产生的 `Future<void>` 交给
+  ///   `_observeInterceptorCallback` 的 `result.then<void>((_) {}, onError: ...)`。
+  ///   handler 只能 complete 一次，一旦我们在这之后再抛异常（或延迟回调），
+  ///   dio 会走 `callbackZone.handleUncaughtError`，而该闭包的返回类型与
+  ///   `Future<void>` 不匹配 → 直接抛 Invalid argument 崩溃
+  ///   （真机复现：Reno3 5G / 3.11.8+178 / route=/appDetails）。
+  ///
+  ///   修法：onError 保持**同步**（不写 async），重试放到 unawaited 的
+  ///   内部 async 闭包里，所有分支都只调用一次 handler 且不返回值。
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {
+  void onError(DioException err, ErrorInterceptorHandler handler) {
     final opt = err.requestOptions;
     final tried = (opt.extra['_retry'] as int?) ?? 0;
     final retriable =
@@ -1121,10 +1137,16 @@ class _RetryInterceptor extends Interceptor {
         err.type == DioExceptionType.connectionError ||
         (err.response != null && (err.response!.statusCode ?? 0) >= 500);
 
-    if (retriable && tried < _maxRetry) {
-      opt.extra['_retry'] = tried + 1;
-      await Future.delayed(Duration(milliseconds: 400 * (tried + 1)));
+    if (!retriable || tried >= _maxRetry) {
+      handler.next(err);
+      return;
+    }
+
+    opt.extra['_retry'] = tried + 1;
+    // 不 await：onError 必须是同步返回的 void
+    unawaited(() async {
       try {
+        await Future.delayed(Duration(milliseconds: 400 * (tried + 1)));
         final resp =
             await ApiHttp.create(
               BaseOptions(
@@ -1140,11 +1162,11 @@ class _RetryInterceptor extends Interceptor {
               queryParameters: opt.queryParameters,
               options: Options(method: opt.method),
             );
-        return handler.resolve(resp);
+        handler.resolve(resp);
       } catch (_) {
         // 重试仍失败 → 走原始错误
+        handler.next(err);
       }
-    }
-    handler.next(err);
+    }());
   }
 }
