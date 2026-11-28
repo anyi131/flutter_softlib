@@ -919,6 +919,8 @@ class _HitokotoPageState extends State<HitokotoPage> {
   final _svc = ToolboxService.instance;
   Map<String, dynamic>? _d;
   bool _loading = true;
+  /// ★ 1128i：失败原因 —— 不要拿空白卡片冒充一句话
+  String _err = '';
 
   @override
   void initState() {
@@ -927,7 +929,10 @@ class _HitokotoPageState extends State<HitokotoPage> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _err = '';
+    });
     // 1128h：补 try/catch —— 一言接口失败会让页面永久 loading
     try {
       final d = await _svc.hitokoto();
@@ -935,11 +940,17 @@ class _HitokotoPageState extends State<HitokotoPage> {
       setState(() {
         _d = d;
         _loading = false;
+        _err = (d == null || '${d['text'] ?? ''}'.trim().isEmpty)
+            ? '没拿到一句话'
+            : '';
       });
     } catch (e) {
       debugPrint('[Tool] hitokoto failed: $e');
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _err = '一言拉取失败';
+      });
     }
   }
 
@@ -952,6 +963,12 @@ class _HitokotoPageState extends State<HitokotoPage> {
       actions: [_refresh(_load, context)],
       child: _loading
           ? const LoadingState(text: '正在取一句话…')
+          : _err.isNotEmpty
+          ? EmptyState(
+              icon: Icons.wifi_off_rounded,
+              text: _err,
+              hint: '点击右上角刷新重试',
+            )
           : Center(
               child: ToolCard(
                 padding: const EdgeInsets.symmetric(

@@ -5,6 +5,7 @@ import '../../../api/forum_service.dart';
 import '../../../design/app_anim.dart';
 import '../../../design/lucide.dart';
 import '../../../design/ui.dart';
+import '../../../utils/err_text.dart';
 import 'forum_gallery.dart';
 import 'post_page.dart';
 
@@ -27,6 +28,8 @@ class _SectionPageState extends State<SectionPage> {
   bool _more = true;
   int _page = 1;
   String _order = 'created';
+  /// ★ 1128i：帖子流失败原因 —— 区分「板块没人发」和「网络挂了」
+  String _err = '';
 
   int get _sid => int.tryParse('${widget.section['id']}') ?? 0;
 
@@ -81,11 +84,15 @@ class _SectionPageState extends State<SectionPage> {
         _more = d['has_more'] == true;
         _page++;
         _loading = false;
+        _err = '';
       });
     } catch (e) {
       debugPrint('[Forum] section load failed: $e');
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _err = ErrText.of(e);
+      });
     }
   }
 
@@ -116,10 +123,39 @@ class _SectionPageState extends State<SectionPage> {
                 return Padding(
                   padding: const EdgeInsets.only(top: 90),
                   child: Column(children: [
-                    Icon(Lz.fileText, size: 40, color: context.t3.withAlpha(120)),
+                    Icon(
+                      _err.isNotEmpty ? Icons.wifi_off_rounded : Lz.fileText,
+                      size: 40,
+                      color: context.t3.withAlpha(120),
+                    ),
                     const SizedBox(height: 10),
-                    Text(_loading ? '加载中…' : '这个板块还没有帖子',
-                        style: TextStyle(fontSize: 13, color: context.t3)),
+                    Text(
+                      _loading
+                          ? '加载中…'
+                          : (_err.isNotEmpty ? '帖子加载失败' : '这个板块还没有帖子'),
+                      style: TextStyle(fontSize: 13, color: context.t3),
+                    ),
+                    if (!_loading && _err.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(
+                          _err,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: context.t3.withAlpha(170),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextButton(
+                        onPressed: () => _load(reset: true),
+                        child: const Text('重试'),
+                      ),
+                    ],
                   ]),
                 );
               }

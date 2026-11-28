@@ -30,6 +30,8 @@ class _JicunHistoryPageState extends State<JicunHistoryPage> {
   final HistoryStore _store = HistoryStore();
   List<HistoryEntry> _entries = const [];
   bool _loading = true;
+  /// ★ 1128i：本地历史读取失败时的提示（否则会显示成「还没有记录」）
+  String _err = '';
   final Set<String> _selected = <String>{};
 
   /// 选中集合非空 = 多选模式（不再用独立开关，避免两个状态不同步）
@@ -49,11 +51,15 @@ class _JicunHistoryPageState extends State<JicunHistoryPage> {
       setState(() {
         _entries = list;
         _loading = false;
+        _err = '';
       });
     } catch (e) {
       debugPrint('[Jicun] history load failed: $e');
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _err = '历史读取失败';
+      });
     }
   }
 
@@ -171,11 +177,21 @@ class _JicunHistoryPageState extends State<JicunHistoryPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _entries.isEmpty
-          ? EmptyState(
-              icon: Lz.history,
-              text: '还没有解析记录',
-              hint: '去「即存」Tab 解析一条分享链接吧',
-            )
+          ? (_err.isNotEmpty
+                ? EmptyState(
+                    icon: Icons.wifi_off_rounded,
+                    text: _err,
+                    hint: '解析记录保存在本机，读取失败可稍后重试',
+                    action: TextButton(
+                      onPressed: _load,
+                      child: const Text('重试'),
+                    ),
+                  )
+                : EmptyState(
+                    icon: Lz.history,
+                    text: '还没有解析记录',
+                    hint: '去「即存」Tab 解析一条分享链接吧',
+                  ))
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView.builder(

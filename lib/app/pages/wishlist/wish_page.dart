@@ -43,6 +43,8 @@ class _WishPageState extends State<WishPage> {
   String _sort = 'votes';
   int _page = 1;
   bool _hasMore = false;
+  /// ★ 1128i：失败原因（空列表时区分「真的没人提」和「加载失败」）
+  String _err = '';
   final Set<int> _voting = {};
 
   @override
@@ -83,11 +85,15 @@ class _WishPageState extends State<WishPage> {
         _list = more ? [..._list, ...list] : list;
         _hasMore = r['has_more'] == true;
         _loading = false;
+        _err = '';
       });
     } catch (e) {
       debugPrint('[Wish] load failed: $e');
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _err = ErrText.of(e);
+      });
     }
   }
 
@@ -282,11 +288,17 @@ class _WishPageState extends State<WishPage> {
                   child: _loading && _list.isEmpty
                       ? const LoadingSkeletonList()
                       : (_list.isEmpty
-                            ? EmptyState(
-                                icon: Icons.wb_incandescent_outlined,
-                                text: '还没有人提需求',
-                                hint: '点右下角按钮，告诉我们需要什么',
-                              )
+                            ? (_err.isNotEmpty
+                                  ? EmptyState(
+                                      icon: Icons.wifi_off_rounded,
+                                      text: '需求列表加载失败',
+                                      hint: '$_err\n下拉重试，或检查网络',
+                                    )
+                                  : EmptyState(
+                                      icon: Icons.wb_incandescent_outlined,
+                                      text: '还没有人提需求',
+                                      hint: '点右下角按钮，告诉我们需要什么',
+                                    ))
                             : RefreshIndicator(
                                 onRefresh: () => _load(),
                                 color: C.brand,

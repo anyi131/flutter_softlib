@@ -37,6 +37,8 @@ class _ReviewTabState extends State<ReviewTab> {
   String _filter = 'all';
   String _sort = 'latest';
   bool _loading = true;
+  /// ★ 1128i：失败原因 —— 加载失败不要显示成「还没有评价」
+  String _err = '';
 
   @override
   void initState() {
@@ -72,11 +74,15 @@ class _ReviewTabState extends State<ReviewTab> {
         _summary = s;
         _list = l;
         _loading = false;
+        _err = '';
       });
     } catch (e) {
       debugPrint('[Review] load failed: $e');
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _err = ErrText.of(e);
+      });
     }
   }
 
@@ -114,7 +120,25 @@ class _ReviewTabState extends State<ReviewTab> {
           const SizedBox(height: 10),
           _filterRow(),
           const SizedBox(height: 12),
-          if (_list.isEmpty)
+          if (_err.isNotEmpty && (_summary.count == 0 || _list.isEmpty))
+            SizedBox(
+              height: 240,
+              child: EmptyState(
+                text: _list.isEmpty ? '评价加载失败' : '刷新失败',
+                hint: _list.isEmpty
+                    ? '$_err\n直接下拉页面，或点下方重试'
+                    : '$_err\n下面显示的是上次加载的内容',
+                icon: Icons.wifi_off_rounded,
+                action: TextButton(
+                  onPressed: () {
+                    setState(() => _loading = true);
+                    _load();
+                  },
+                  child: const Text('重试'),
+                ),
+              ),
+            )
+          else if (_list.isEmpty)
             const SizedBox(
               height: 240,
               child: EmptyState(
@@ -124,11 +148,44 @@ class _ReviewTabState extends State<ReviewTab> {
               ),
             )
           else
+            ...(_err.isNotEmpty && _list.isNotEmpty
+                ? [_staleBar()]
+                : <Widget>[]),
             ..._list.map((r) => _reviewTile(r)),
         ],
       ),
     );
   }
+
+  /// 刷新失败但仍有旧数据时的提示条
+  Widget _staleBar() => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      children: [
+        Icon(Icons.wifi_off_rounded, size: 14, color: C.warning),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            '刷新失败：$_err',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Ty.tiny.copyWith(fontSize: 11.5, color: context.t3),
+          ),
+        ),
+        GestureDetector(
+          onTap: () => _load(),
+          child: Text(
+            '重试',
+            style: Ty.tiny.copyWith(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: C.brand,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   void _toggleSort() {
     setState(() => _sort = _sort == 'latest' ? 'hot' : 'latest');

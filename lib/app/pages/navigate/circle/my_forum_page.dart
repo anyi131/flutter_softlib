@@ -6,6 +6,7 @@ import '../../../design/app_anim.dart';
 import '../../../design/lucide.dart';
 import '../../../design/ui.dart';
 import '../../../design/components.dart';
+import '../../../utils/err_text.dart';
 import 'post_page.dart';
 
 /// 我的帖子 / 我的收藏
@@ -25,6 +26,8 @@ class _MyForumPageState extends State<MyForumPage>
   List<Map<String, dynamic>> _posts = [];
   List<Map<String, dynamic>> _marks = [];
   bool _loading = true;
+  /// ★ 1128i：失败原因 —— 加载失败和「还没发过帖子」要分开显示
+  String _err = '';
 
   @override
   void initState() {
@@ -50,11 +53,15 @@ class _MyForumPageState extends State<MyForumPage>
         _posts = p;
         _marks = m;
         _loading = false;
+        _err = '';
       });
     } catch (e) {
       debugPrint('[Forum] my_forum load failed: $e');
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _err = ErrText.of(e);
+      });
     }
   }
 
@@ -78,17 +85,31 @@ class _MyForumPageState extends State<MyForumPage>
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : TabBarView(
               controller: _tab,
-              children: [_list(_posts, '还没发过帖子'), _list(_marks, '还没有收藏')],
+              children: [
+                _list(_posts, '还没发过帖子', '去圈子逛逛，发现感兴趣的话题'),
+                _list(_marks, '还没有收藏', '在帖子里点收藏，之后随时回来看'),
+              ],
             ),
     );
   }
 
-  Widget _list(List<Map<String, dynamic>> data, String empty) {
+  Widget _list(List<Map<String, dynamic>> data, String empty, String hint) {
     if (data.isEmpty) {
+      // ★ 1128i：网络失败时显示「加载失败」，别再骗用户说「还没发过帖子」
+      if (_err.isNotEmpty) {
+        return AppEmpty(
+          icon: Icons.wifi_off_rounded,
+          title: '加载失败',
+          subtitle: '$_err\n点「重试」再试一次，或检查网络',
+          actionLabel: '重试',
+          actionIcon: Lz.refreshCw,
+          onAction: _load,
+        );
+      }
       return AppEmpty(
         icon: Lz.inbox,
         title: empty,
-        subtitle: '去圈子逛逛，发现感兴趣的话题',
+        subtitle: hint,
         actionLabel: '去圈子',
         actionIcon: Lz.compass,
         onAction: () => Get.back(),
